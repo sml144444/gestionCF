@@ -191,6 +191,24 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-modal-label { display: block; font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
 .tt-modal-input { width: 100%; height: 42px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 13px; color: #1e293b; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
 .tt-modal-input:focus { border-color: {{ $accentColor }}; background: white; }
+
+/* ── Draft card — visible only to admin/gestionnaire ── */
+.card-brouillon {
+    opacity: 0.72;
+    border-style: dashed !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+    border-left: 3px dashed #94a3b8 !important;
+}
+.card-brouillon .tt-card-module { color: #475569; }
+.draft-badge {
+    position: absolute; top: 7px; left: 9px;
+    font-size: 7px; font-weight: 800; letter-spacing: .5px;
+    background: #f1f5f9; color: #64748b;
+    padding: 2px 6px; border-radius: 99px;
+    border: 1px solid #cbd5e1; text-transform: uppercase;
+}
+.card-brouillon .tt-card-module { padding-top: 18px; }
 </style>
 
 {{-- ════ FLASH ════ --}}
@@ -290,6 +308,32 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </svg>
             PDF
         </a>
+
+        @if($canSeeDraft && $canCreate)
+<form method="POST"
+      action="{{ route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
+      style="display:inline;"
+      onsubmit="return confirm('Publier toutes les séances en brouillon de cette semaine ?')">
+    @csrf
+    <button type="submit"
+            class="tt-nav-btn {{ $draftCount > 0 ? 'primary' : '' }}"
+            {{ $draftCount === 0 ? 'disabled' : '' }}
+            style="{{ $draftCount > 0
+                ? 'background:#16a34a; border-color:#16a34a; color:white; box-shadow:0 4px 12px rgba(22,163,74,0.3);'
+                : 'opacity:.45; cursor:not-allowed;' }}"
+            title="{{ $draftCount > 0 ? 'Publier '.$draftCount.' séance(s) en brouillon' : 'Aucun brouillon cette semaine' }}">
+        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                  d="M5 13l4 4L19 7"/>
+        </svg>
+        Publier
+        @if($draftCount > 0)
+            <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800;
+                         padding:1px 6px; border-radius:99px;">{{ $draftCount }}</span>
+        @endif
+    </button>
+</form>
+@endif
     </div>
 </div>
 
@@ -376,98 +420,105 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
                     @if($cell['type'] === 'skip')
                         {{-- skip --}}
+@elseif($cell['type'] === 'session')
+    @php
+        $emploi    = $cell['emploi'];
+        $colspan   = $cell['colspan'];
+        $spanLbl   = EmploiDuTempsController::spanLabel($sNum, $colspan);
+        $totalH    = EmploiDuTempsController::totalHours($sNum, $colspan);
+        $isRemote  = ($emploi->mode ?? 'presentiel') === 'distance';
+        $isDraft   = $emploi->statut === 'brouillon';  // ← AJOUTÉ
 
-                    @elseif($cell['type'] === 'session')
-                        @php
-                            $emploi    = $cell['emploi'];
-                            $colspan   = $cell['colspan'];
-                            $spanLbl   = EmploiDuTempsController::spanLabel($sNum, $colspan);
-                            $totalH    = EmploiDuTempsController::totalHours($sNum, $colspan);
-                            $isRemote  = ($emploi->mode ?? 'presentiel') === 'distance';
+        // Logique pour la classe CSS
+        if ($isDraft) {
+            $cardClass = 'card-brouillon';
+        } elseif ($isRemote) {
+            $cardClass = 'card-distance';
+        } else {
+            $rawColor  = EmploiDuTempsController::cardColor($emploi->id_module);
+            $colorIdx  = match(true) {
+                in_array($rawColor, ['blue', 'violet']) => 1,
+                in_array($rawColor, ['green', 'teal'])  => 2,
+                in_array($rawColor, ['amber', 'red'])   => 3,
+                default                                 => 4,
+            };
+            $cardClass = 'card-role-'.$colorIdx;
+        }
 
-                            if ($isRemote) {
-                                $cardClass = 'card-distance';
-                            } else {
-                                $rawColor  = EmploiDuTempsController::cardColor($emploi->id_module);
-                                $colorIdx  = match(true) {
-                                    in_array($rawColor, ['blue', 'violet']) => 1,
-                                    in_array($rawColor, ['green', 'teal'])  => 2,
-                                    in_array($rawColor, ['amber', 'red'])   => 3,
-                                    default                                 => 4,
-                                };
-                                $cardClass = 'card-role-'.$colorIdx;
-                            }
+        $lastOfSpan    = $sNum + $colspan - 1;
+        $isLastSOfSpan = ($lastOfSpan % 4 === 0);
+        $spanBorder    = $isLastSOfSpan ? ($isLastDay ? '' : 'border-right:3px solid #94a3b8;') : 'border-right:1px solid #e2e8f0;';
+    @endphp
+    <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
+        <div class="tt-card {{ $cardClass }}">
+            @if($isDraft)
+                <div class="draft-badge">Brouillon</div>
+            @endif
+            <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
+            <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
+            <div class="tt-card-row">
+                <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
+                {{ $emploi->gestionnaire->name ?? '—' }}
+            </div>
 
-                            $lastOfSpan    = $sNum + $colspan - 1;
-                            $isLastSOfSpan = ($lastOfSpan % 4 === 0);
-                            $spanBorder    = $isLastSOfSpan ? ($isLastDay ? '' : 'border-right:3px solid #94a3b8;') : 'border-right:1px solid #e2e8f0;';
-                        @endphp
-                        <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
-                            <div class="tt-card {{ $cardClass }}">
-                                <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
-                                <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
-                                <div class="tt-card-row">
-                                    <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
-                                    {{ $emploi->gestionnaire->name ?? '—' }}
-                                </div>
+            @if($isRemote && $emploi->lien_distance)
+                <div class="tt-card-row" style="margin-top:4px;">
+                    <div class="tt-card-dot" style="background:#f59e0b;"></div>
+                    <a href="{{ $emploi->lien_distance }}" target="_blank"
+                       style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
+                        Rejoindre la réunion
+                    </a>
+                </div>
+            @elseif(!$isRemote)
+                <div class="tt-card-row">
+                    <div class="tt-card-dot" style="background:#94a3b8;"></div>
+                    {{ $emploi->salle->name ?? '—' }}
+                </div>
+            @endif
 
-                                @if($isRemote && $emploi->lien_distance)
-                                    <div class="tt-card-row" style="margin-top:4px;">
-                                        <div class="tt-card-dot" style="background:#f59e0b;"></div>
-                                        <a href="{{ $emploi->lien_distance }}" target="_blank"
-                                           style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
-                                            Rejoindre la réunion
-                                        </a>
-                                    </div>
-                                @elseif(!$isRemote)
-                                    <div class="tt-card-row">
-                                        <div class="tt-card-dot" style="background:#94a3b8;"></div>
-                                        {{ $emploi->salle->name ?? '—' }}
-                                    </div>
-                                @endif
+            <div class="tt-card-row" style="color:#64748b; font-style:italic;">
+                {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
+            </div>
 
-                                <div class="tt-card-row" style="color:#64748b; font-style:italic;">
-                                    {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
-                                </div>
+            @if($canEdit || $canDelete || $canLien)
+            <div class="tt-actions">
+                @if($canEdit)
+                    <button class="tt-btn-edit"
+                            style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
+                            onclick="openEditModal({{ $emploi->id }})">✎</button>
+                @endif
 
-                                @if($canEdit || $canDelete || $canLien)
-                                <div class="tt-actions">
-                                    @if($canEdit)
-                                        <button class="tt-btn-edit"
-                                                style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
-                                                onclick="openEditModal({{ $emploi->id }})">✎</button>
-                                    @endif
+                @if($canDelete)
+                    <form method="POST" action="{{ route('emplois.destroy', $emploi) }}" style="display:inline;">
+                        @csrf @method('DELETE')
+                        <button class="tt-btn-del"
+                                onclick="openDeleteModal(
+                                    '{{ route('emplois.destroy', $emploi) }}',
+                                    '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
+                                    '{{ addslashes($emploi->module->name ?? 'Module') }}',
+                                    '{{ $emploi->date_debut->translatedFormat('l d M') }}',
+                                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                                    '{{ $emploi->date_debut->format('H:i') }}',
+                                    '{{ $emploi->date_fin->format('H:i') }}',
+                                    '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
+                                )">✕</button>
+                    </form>
+                @endif
 
-                                    @if($canDelete)
-                                        <form method="POST" action="{{ route('emplois.destroy', $emploi) }}" style="display:inline;">
-                                            @csrf @method('DELETE')
-                                            <button class="tt-btn-del"
-                                                    onclick="openDeleteModal(
-                                                        '{{ route('emplois.destroy', $emploi) }}',
-                                                        '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
-                                                        '{{ addslashes($emploi->module->name ?? 'Module') }}',
-                                                        '{{ $emploi->date_debut->translatedFormat('l d M') }}',
-                                                        '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                                        '{{ $emploi->date_debut->format('H:i') }}',
-                                                        '{{ $emploi->date_fin->format('H:i') }}',
-                                                        '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
-                                                    )">✕</button>
-                                        </form>
-                                    @endif
-
-@if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))                                        <button class="tt-btn-edit"
-                                                style="background:#fef3c7; color:#92400e;"
-                                                onclick="openLienModal(
-                                                    {{ $emploi->id }},
-                                                    '{{ addslashes($emploi->lien_distance ?? '') }}',
-                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
-                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
-                                                )">🔗 Lien</button>
-                                    @endif
-                                </div>
-                                @endif
-                            </div>
-                        </td>
+                @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
+                    <button class="tt-btn-edit"
+                            style="background:#fef3c7; color:#92400e;"
+                            onclick="openLienModal(
+                                {{ $emploi->id }},
+                                '{{ addslashes($emploi->lien_distance ?? '') }}',
+                                '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
+                                '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
+                            )">🔗 Lien</button>
+                @endif
+            </div>
+            @endif
+        </div>
+    </td>
 
                     @else
                         <td class="tt-empty-td" style="{{ $cellBorder }}">

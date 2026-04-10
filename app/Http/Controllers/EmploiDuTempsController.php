@@ -31,7 +31,6 @@ class EmploiDuTempsController extends Controller
         $user = auth()->user();
         $year = (int) $request->get('year', 1);
 
-        // ── Guard ──
         if (! $user->hasPermissionTo('emploi-view')) {
             abort(403, 'Accès refusé à l\'emploi du temps.');
         }
@@ -47,9 +46,9 @@ class EmploiDuTempsController extends Controller
             $dayDates[$i + 1] = $weekStart->copy()->addDays($i);
         }
 
-        // ── Data filtering based on permissions ──
-        if ($user->hasPermissionTo('emploi-view-all-groups')) {
-            // Admin / gestionnaire — full view of all groups
+        $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
+
+        if ($canSeeDraft) {
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
                 ->orderBy('id_filiere')->orderBy('id')
@@ -57,12 +56,11 @@ class EmploiDuTempsController extends Controller
 
             $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
-                ->where('statut', 'actif')
+                ->whereIn('statut', ['actif', 'brouillon'])
                 ->whereIn('id_groupe', $groupes->pluck('id'))
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            // Stagiaire — only their own group
             $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
@@ -75,7 +73,6 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } else {
-            // Formateur — only sessions they teach
             $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
@@ -96,6 +93,13 @@ class EmploiDuTempsController extends Controller
         $formateurs       = User::where('role', 'formateur')->orderBy('name')->get();
         $grid             = $this->buildGrid($groupes, $emplois);
 
+        $draftCount = $canSeeDraft
+            ? EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
+                ->where('statut', 'brouillon')
+                ->whereIn('id_groupe', $groupes->pluck('id'))
+                ->count()
+            : 0;
+
         $emploisJson = $emplois->map(fn($e) => [
             'id'            => $e->id,
             'id_groupe'     => $e->id_groupe,
@@ -105,16 +109,17 @@ class EmploiDuTempsController extends Controller
             'date_fin'      => $e->date_fin->format('Y-m-d\TH:i'),
             'mode'          => $e->mode ?? 'presentiel',
             'lien_distance' => $e->lien_distance ?? '',
+            'statut'        => $e->statut,
         ])->values();
 
         return view('emplois.index', compact(
             'grid', 'year', 'weekStart', 'weekEnd', 'dayDates',
             'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
-            'emplois', 'emploisJson'
+            'emplois', 'emploisJson', 'draftCount', 'canSeeDraft'
         ));
     }
 
-    // ── STORE ──────────────────────────────────────────────
+    // ── STORE — saves as brouillon ─────────────────────────
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -142,7 +147,7 @@ class EmploiDuTempsController extends Controller
             $year = Groupe::find($data['id_groupe'])->annee ?? 1;
             return redirect()
                 ->route('emplois.index', ['week' => $debut->toDateString(), 'year' => $year])
-                ->with('success', 'Séances fusionnées automatiquement ✓');
+                ->with('success', 'Séances fusionnées ✓ (brouillon)');
         }
 
         EmploiDuTemps::create([
@@ -153,7 +158,7 @@ class EmploiDuTempsController extends Controller
             'date_debut'    => $debut,
             'date_fin'      => $fin,
             'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
-            'statut'        => 'actif',
+            'statut'        => 'brouillon',
             'mode'          => $data['mode'],
             'lien_distance' => $data['mode'] === 'distance' ? ($data['lien_distance'] ?? null) : null,
         ]);
@@ -161,9 +166,38 @@ class EmploiDuTempsController extends Controller
         $year = Groupe::find($data['id_groupe'])->annee ?? 1;
         return redirect()
             ->route('emplois.index', ['week' => $debut->toDateString(), 'year' => $year])
-            ->with('success', $data['mode'] === 'distance'
-                ? 'Séance à distance créée avec succès.'
-                : 'Séance créée avec succès.');
+            ->with('success', 'Séance ajoutée en brouillon. Cliquez « Publier » pour la rendre visible.');
+    }
+
+    // ── PUBLISH — brouillon → actif ────────────────────────
+    public function publish(Request $request): RedirectResponse
+    {
+        $user = auth()->user();
+
+        if (! $user->hasPermissionTo('emploi-create')) {
+            abort(403);
+        }
+
+        $year = (int) $request->get('year', 1);
+
+        $weekStart = $request->has('week')
+            ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
+            : Carbon::now()->startOfWeek(Carbon::MONDAY);
+
+        $weekEnd = $weekStart->copy()->addDays(5)->endOfDay();
+
+        $groupeIds = Groupe::where('annee', $year)->pluck('id');
+
+        $published = EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
+            ->where('statut', 'brouillon')
+            ->whereIn('id_groupe', $groupeIds)
+            ->update(['statut' => 'actif']);
+
+        return redirect()
+            ->route('emplois.index', ['week' => $weekStart->toDateString(), 'year' => $year])
+            ->with('success', $published > 0
+                ? "{$published} séance(s) publiées — maintenant visibles pour tous ✓"
+                : 'Aucune séance en brouillon à publier.');
     }
 
     // ── UPDATE ──────────────────────────────────────────────
@@ -238,7 +272,7 @@ class EmploiDuTempsController extends Controller
         $debut = Carbon::parse($date . ' ' . $startTime);
         $fin   = Carbon::parse($date . ' ' . $endTime);
 
-        $base = EmploiDuTemps::where('statut', 'actif')
+        $base = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
             ->where('date_debut', '<', $fin)
             ->where('date_fin',   '>', $debut);
 
@@ -468,7 +502,7 @@ class EmploiDuTempsController extends Controller
 
     private function checkOverlaps(Carbon $debut, Carbon $fin, array $data, ?int $excludeId): void
     {
-        $base = EmploiDuTemps::where('statut', 'actif')
+        $base = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
             ->where('date_debut', '<', $fin)
             ->where('date_fin',   '>', $debut);
 
@@ -495,7 +529,7 @@ class EmploiDuTempsController extends Controller
 
     private function tryMergeOnStore(array $data, Carbon $debut, Carbon $fin): bool
     {
-        $q = EmploiDuTemps::where('statut', 'actif')
+        $q = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
             ->where('id_user',   $data['id_user'])
             ->where('id_groupe', $data['id_groupe'])
             ->whereDate('date_debut', $debut->toDateString());
@@ -516,7 +550,7 @@ class EmploiDuTempsController extends Controller
                 'date_debut'    => $debut,
                 'date_fin'      => $next->date_fin,
                 'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
-                'statut'        => 'actif',
+                'statut'        => 'brouillon',
                 'mode'          => $data['mode'],
                 'lien_distance' => $data['lien_distance'] ?? null,
             ]);
@@ -529,7 +563,7 @@ class EmploiDuTempsController extends Controller
 
     private function tryMergeAdjacent(EmploiDuTemps $emploi): void
     {
-        $q = EmploiDuTemps::where('statut', 'actif')
+        $q = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
             ->where('id', '!=', $emploi->id)
             ->where('id_user',   $emploi->id_user)
             ->where('id_groupe', $emploi->id_groupe)

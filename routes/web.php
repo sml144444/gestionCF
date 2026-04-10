@@ -103,6 +103,9 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->grou
 
     Route::get('/emplois/pdf', [EmploiDuTempsController::class, 'downloadPdf'])
         ->name('emplois.pdf');
+
+    Route::post('/emplois/publish', [EmploiDuTempsController::class, 'publish'])
+    ->name('emplois.publish');
 });
 
 // ─────────────────────────────────────────────
