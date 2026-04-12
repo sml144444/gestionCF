@@ -18,6 +18,9 @@ class Filiere extends Model
         return $this->hasMany(Groupe::class, 'id_filiere');
     }
 
+    public function stagiaires() {
+    return $this->hasMany(User::class, 'id_filiere');
+}
     public function modules()
     {
         return $this->hasMany(Module::class, 'id_filiere');

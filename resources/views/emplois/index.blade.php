@@ -230,6 +230,40 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 @endif
 
+{{-- ════ STAGIAIRE : avertissement semaine non visible ════ --}}
+@if($isStagiaire)
+@php
+    $joursAvance = 2;
+    $prochainLundi = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
+    $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
+    $estSemaineActuelle = $weekStart->eq(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY));
+    $estSemaineProchaine = $weekStart->eq($prochainLundi);
+    $peutVoirSemaineProchaine = \Carbon\Carbon::now()->gte($visibleDepuis);
+    $semaineAutorisee = $weekStart->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
+                     || ($estSemaineProchaine && $peutVoirSemaineProchaine);
+@endphp
+@if(!$semaineAutorisee)
+<div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
+            display:flex; align-items:center; gap:8px;
+            background:#fff7ed; border:1px solid #fed7aa; color:#9a3412;">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+    </svg>
+    L'emploi du temps de cette semaine sera disponible
+    <strong>le {{ $visibleDepuis->translatedFormat('l d M') }}</strong>.
+</div>
+@elseif($estSemaineProchaine && $peutVoirSemaineProchaine)
+<div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
+            display:flex; align-items:center; gap:8px;
+            background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af;">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+    </svg>
+    Aperçu de la semaine prochaine — planning provisoire.
+</div>
+@endif
+@endif
+
 <div class="tt-wrap">
 
 {{-- ════ HEADER ════ --}}
@@ -290,12 +324,29 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </svg>
         </a>
         <a href="{{ route('emplois.index', ['year' => $year]) }}" class="tt-nav-btn today-btn">Aujourd'hui</a>
-        <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()]) }}"
-           class="tt-nav-btn">
-            <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-            </svg>
-        </a>
+        
+        {{-- Bouton semaine suivante avec restriction pour stagiaire --}}
+        @php
+            $semaineSuivante = $weekStart->copy()->addWeek();
+            $prochainLundiNav = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
+            $visibleDepuisNav = $prochainLundiNav->copy()->subDays(2);
+            $peutNaviguerSuivante = !$isStagiaire || $semaineSuivante->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
+                || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
+        @endphp
+        @if($peutNaviguerSuivante)
+            <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()]) }}"
+               class="tt-nav-btn">
+                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        @else
+            <span class="tt-nav-btn" style="opacity:0.35; cursor:not-allowed;" title="Non disponible encore">
+                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                </svg>
+            </span>
+        @endif
 
         {{-- PDF --}}
         <a href="{{ route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
@@ -310,30 +361,30 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </a>
 
         @if($canSeeDraft && $canCreate)
-<form method="POST"
-      action="{{ route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
-      style="display:inline;"
-      onsubmit="return confirm('Publier toutes les séances en brouillon de cette semaine ?')">
-    @csrf
-    <button type="submit"
-            class="tt-nav-btn {{ $draftCount > 0 ? 'primary' : '' }}"
-            {{ $draftCount === 0 ? 'disabled' : '' }}
-            style="{{ $draftCount > 0
-                ? 'background:#16a34a; border-color:#16a34a; color:white; box-shadow:0 4px 12px rgba(22,163,74,0.3);'
-                : 'opacity:.45; cursor:not-allowed;' }}"
-            title="{{ $draftCount > 0 ? 'Publier '.$draftCount.' séance(s) en brouillon' : 'Aucun brouillon cette semaine' }}">
-        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                  d="M5 13l4 4L19 7"/>
-        </svg>
-        Publier
-        @if($draftCount > 0)
-            <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800;
-                         padding:1px 6px; border-radius:99px;">{{ $draftCount }}</span>
+        <form method="POST"
+              action="{{ route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
+              style="display:inline;"
+              onsubmit="return confirm('Publier toutes les séances en brouillon de cette semaine ?')">
+            @csrf
+            <button type="submit"
+                    class="tt-nav-btn {{ $draftCount > 0 ? 'primary' : '' }}"
+                    {{ $draftCount === 0 ? 'disabled' : '' }}
+                    style="{{ $draftCount > 0
+                        ? 'background:#16a34a; border-color:#16a34a; color:white; box-shadow:0 4px 12px rgba(22,163,74,0.3);'
+                        : 'opacity:.45; cursor:not-allowed;' }}"
+                    title="{{ $draftCount > 0 ? 'Publier '.$draftCount.' séance(s) en brouillon' : 'Aucun brouillon cette semaine' }}">
+                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                          d="M5 13l4 4L19 7"/>
+                </svg>
+                Publier
+                @if($draftCount > 0)
+                    <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800;
+                                 padding:1px 6px; border-radius:99px;">{{ $draftCount }}</span>
+                @endif
+            </button>
+        </form>
         @endif
-    </button>
-</form>
-@endif
     </div>
 </div>
 

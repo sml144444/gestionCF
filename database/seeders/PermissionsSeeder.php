@@ -27,6 +27,7 @@ class PermissionsSeeder extends Seeder
             'user-create',
             'user-edit',
             'user-delete',
+            'stagiaire-list',   // 👥 Voir la liste des stagiaires par filière/groupe
 
             // Groupes & Filières
             'groupe-list',
@@ -69,6 +70,7 @@ class PermissionsSeeder extends Seeder
             'groupe-list',
             'groupe-create',
             'groupe-edit',
+            'stagiaire-list',   // ← ADD THIS
             'edu-view',               // ← voir la page EDU
             'edu-import',             // ← importer des stagiaires
         ]);

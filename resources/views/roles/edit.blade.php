@@ -106,6 +106,8 @@
                     'groupe-create' => '➕ Créer un groupe',
                     'groupe-edit' => '✏️ Modifier un groupe',
                     'groupe-delete' => '🗑️ Supprimer un groupe',
+
+                    'stagiaire-list' => '👥 Voir la liste des stagiaires',
                     
                     // Import EDU
                     'edu-import' => '📥 Importer des données EDU',

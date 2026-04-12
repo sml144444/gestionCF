@@ -61,16 +61,38 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
-                ->whereBetween('date_debut', [$weekStart, $weekEnd])
-                ->where('statut', 'actif')
-                ->where('id_groupe', $user->id_groupe)
-                ->get();
+            
+            // Configuration : nombre de jours avant que la semaine prochaine soit visible
+            $joursAvance = 2; // 2 = visible le samedi, 1 = visible le dimanche
+            
+            $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
+            $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
+            
+            $debutSemaineDemandee = $weekStart;
+            $semaineActuelle = Carbon::now()->startOfWeek(Carbon::MONDAY);
+            $estSemainePasseeOuActuelle = $debutSemaineDemandee->lte($semaineActuelle);
+            $estSemaineProchaine = $debutSemaineDemandee->eq($prochainLundi);
+            $peutVoirSemaineProchaine = Carbon::now()->gte($visibleDepuis);
+            
+            if (!$estSemainePasseeOuActuelle && !($estSemaineProchaine && $peutVoirSemaineProchaine)) {
+                // Semaine non autorisée → afficher vide
+                $emplois = collect();
+                $groupes = Groupe::with('filiere', 'option')
+                    ->where('annee', $year)
+                    ->where('id', $user->id_groupe)
+                    ->get();
+            } else {
+                $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+                    ->whereBetween('date_debut', [$weekStart, $weekEnd])
+                    ->where('statut', 'actif')
+                    ->where('id_groupe', $user->id_groupe)
+                    ->get();
 
-            $groupes = Groupe::with('filiere', 'option')
-                ->where('annee', $year)
-                ->where('id', $user->id_groupe)
-                ->get();
+                $groupes = Groupe::with('filiere', 'option')
+                    ->where('annee', $year)
+                    ->where('id', $user->id_groupe)
+                    ->get();
+            }
 
         } else {
             $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])

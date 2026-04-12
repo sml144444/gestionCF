@@ -139,3 +139,14 @@ Route::middleware(['auth'])->group(function () {
         ->name('edu-import.manual')
         ->middleware('can:edu-import');
 });
+
+
+// ─────────────────────────────────────────────
+// STAGIAIRES — liste par filière/groupe/option
+// Permission : stagiaire-list (admin + gestionnaire)
+// ─────────────────────────────────────────────
+Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
+    Route::get('/stagiaire', [\App\Http\Controllers\StagiaireController::class, 'index'])
+        ->name('stagiaire.index')
+        ->middleware('can:stagiaire-list');
+});
