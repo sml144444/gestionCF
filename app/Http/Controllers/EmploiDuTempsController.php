@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EmploiDuTemps;
 use App\Models\Groupe;
+use App\Models\Module;
 use App\Models\Salle;
 use App\Models\User;
 use Carbon\Carbon;
@@ -48,6 +49,7 @@ class EmploiDuTempsController extends Controller
 
         $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
 
+        // ── Data filtering based on permissions ──────────────
         if ($canSeeDraft) {
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
@@ -61,21 +63,17 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            
-            // Configuration : nombre de jours avant que la semaine prochaine soit visible
-            $joursAvance = 2; // 2 = visible le samedi, 1 = visible le dimanche
-            
+
+            $joursAvance   = 2;
             $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
             $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
-            
-            $debutSemaineDemandee = $weekStart;
-            $semaineActuelle = Carbon::now()->startOfWeek(Carbon::MONDAY);
-            $estSemainePasseeOuActuelle = $debutSemaineDemandee->lte($semaineActuelle);
-            $estSemaineProchaine = $debutSemaineDemandee->eq($prochainLundi);
-            $peutVoirSemaineProchaine = Carbon::now()->gte($visibleDepuis);
-            
-            if (!$estSemainePasseeOuActuelle && !($estSemaineProchaine && $peutVoirSemaineProchaine)) {
-                // Semaine non autorisée → afficher vide
+
+            $semaineActuelle              = Carbon::now()->startOfWeek(Carbon::MONDAY);
+            $estSemainePasseeOuActuelle   = $weekStart->lte($semaineActuelle);
+            $estSemaineProchaine          = $weekStart->eq($prochainLundi);
+            $peutVoirSemaineProchaine     = Carbon::now()->gte($visibleDepuis);
+
+            if (! $estSemainePasseeOuActuelle && ! ($estSemaineProchaine && $peutVoirSemaineProchaine)) {
                 $emplois = collect();
                 $groupes = Groupe::with('filiere', 'option')
                     ->where('annee', $year)
@@ -95,6 +93,7 @@ class EmploiDuTempsController extends Controller
             }
 
         } else {
+            // Formateur or restricted user — only their own sessions
             $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
@@ -107,6 +106,25 @@ class EmploiDuTempsController extends Controller
                 ->whereIn('id', $groupeIds)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
+        }
+
+        // ── Module progress (dynamic, no DB storage) ─────────
+        // For each groupe+module pair, sum all scheduled hours (all time, not just this week)
+        $moduleProgress = [];
+        if ($groupes->isNotEmpty()) {
+            $allScheduled = EmploiDuTemps::whereIn('id_groupe', $groupes->pluck('id'))
+                ->whereIn('statut', ['actif', 'brouillon'])
+                ->whereNotNull('id_module')
+                ->get(['id_groupe', 'id_module', 'date_debut', 'date_fin']);
+
+            foreach ($allScheduled as $e) {
+                $gId = $e->id_groupe;
+                $mId = $e->id_module;
+                if (! isset($moduleProgress[$gId][$mId])) {
+                    $moduleProgress[$gId][$mId] = 0.0;
+                }
+                $moduleProgress[$gId][$mId] += $e->date_debut->diffInMinutes($e->date_fin) / 60;
+            }
         }
 
         $groupesByFiliere = $groupes->groupBy('id_filiere');
@@ -122,11 +140,21 @@ class EmploiDuTempsController extends Controller
                 ->count()
             : 0;
 
+        // Modules grouped by filiere_id for JS (used in modal select)
+        $modulesByFiliere = Module::orderBy('name')->get()->groupBy('id_filiere')->map(
+            fn($mods) => $mods->map(fn($m) => [
+                'id'        => $m->id,
+                'name'      => $m->name,
+                'nbr_heure' => $m->nbr_heure,
+            ])->values()
+        );
+
         $emploisJson = $emplois->map(fn($e) => [
             'id'            => $e->id,
             'id_groupe'     => $e->id_groupe,
             'id_salle'      => $e->id_salle,
             'id_user'       => $e->id_user,
+            'id_module'     => $e->id_module,
             'date_debut'    => $e->date_debut->format('Y-m-d\TH:i'),
             'date_fin'      => $e->date_fin->format('Y-m-d\TH:i'),
             'mode'          => $e->mode ?? 'presentiel',
@@ -137,13 +165,16 @@ class EmploiDuTempsController extends Controller
         return view('emplois.index', compact(
             'grid', 'year', 'weekStart', 'weekEnd', 'dayDates',
             'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
-            'emplois', 'emploisJson', 'draftCount', 'canSeeDraft'
+            'emplois', 'emploisJson', 'draftCount', 'canSeeDraft',
+            'moduleProgress', 'modulesByFiliere'
         ));
     }
 
-    // ── STORE — saves as brouillon ─────────────────────────
+    // ── STORE ──────────────────────────────────────────────
     public function store(Request $request): RedirectResponse
     {
+        $user = auth()->user();
+
         $data = $request->validate([
             'id_groupe'     => 'required|exists:groupes,id',
             'id_salle'      => 'nullable|exists:salles,id',
@@ -152,7 +183,15 @@ class EmploiDuTempsController extends Controller
             'date_fin'      => 'required|date|after:date_debut',
             'mode'          => 'required|in:presentiel,distance',
             'lien_distance' => 'nullable|string|max:500',
+            'id_module'     => 'nullable|exists:modules,id',
         ]);
+
+        // Gestionnaire/admin : module obligatoire
+        if ($user->hasPermissionTo('emploi-view-all-groups') && empty($data['id_module'])) {
+            throw ValidationException::withMessages([
+                'id_module' => 'Le module est obligatoire pour créer une séance.',
+            ]);
+        }
 
         if ($data['mode'] === 'presentiel' && empty($data['id_salle'])) {
             throw ValidationException::withMessages([
@@ -165,6 +204,12 @@ class EmploiDuTempsController extends Controller
 
         $this->checkOverlaps($debut, $fin, $data, null);
 
+        // Determine module to save
+        $idModule = null;
+        if ($user->hasPermissionTo('emploi-view-all-groups') || $user->hasPermissionTo('emploi-change-module')) {
+            $idModule = $data['id_module'] ?? null;
+        }
+
         if ($this->tryMergeOnStore($data, $debut, $fin)) {
             $year = Groupe::find($data['id_groupe'])->annee ?? 1;
             return redirect()
@@ -176,7 +221,7 @@ class EmploiDuTempsController extends Controller
             'id_groupe'     => $data['id_groupe'],
             'id_salle'      => $data['mode'] === 'distance' ? null : ($data['id_salle'] ?? null),
             'id_user'       => $data['id_user'],
-            'id_module'     => $request->id_module ?? null,
+            'id_module'     => $idModule,
             'date_debut'    => $debut,
             'date_fin'      => $fin,
             'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
@@ -191,7 +236,7 @@ class EmploiDuTempsController extends Controller
             ->with('success', 'Séance ajoutée en brouillon. Cliquez « Publier » pour la rendre visible.');
     }
 
-    // ── PUBLISH — brouillon → actif ────────────────────────
+    // ── PUBLISH ────────────────────────────────────────────
     public function publish(Request $request): RedirectResponse
     {
         $user = auth()->user();
@@ -200,14 +245,13 @@ class EmploiDuTempsController extends Controller
             abort(403);
         }
 
-        $year = (int) $request->get('year', 1);
+        $year  = (int) $request->get('year', 1);
 
         $weekStart = $request->has('week')
             ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
             : Carbon::now()->startOfWeek(Carbon::MONDAY);
 
-        $weekEnd = $weekStart->copy()->addDays(5)->endOfDay();
-
+        $weekEnd   = $weekStart->copy()->addDays(5)->endOfDay();
         $groupeIds = Groupe::where('annee', $year)->pluck('id');
 
         $published = EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
@@ -225,6 +269,8 @@ class EmploiDuTempsController extends Controller
     // ── UPDATE ──────────────────────────────────────────────
     public function update(Request $request, EmploiDuTemps $emploi): RedirectResponse
     {
+        $user = auth()->user();
+
         $data = $request->validate([
             'id_groupe'     => 'required|exists:groupes,id',
             'id_salle'      => 'nullable|exists:salles,id',
@@ -233,6 +279,7 @@ class EmploiDuTempsController extends Controller
             'date_fin'      => 'required|date|after:date_debut',
             'mode'          => 'required|in:presentiel,distance',
             'lien_distance' => 'nullable|string|max:500',
+            'id_module'     => 'nullable|exists:modules,id',
         ]);
 
         if ($data['mode'] === 'presentiel' && empty($data['id_salle'])) {
@@ -246,10 +293,17 @@ class EmploiDuTempsController extends Controller
 
         $this->checkOverlaps($debut, $fin, $data, $emploi->id);
 
+        // Determine which module value to persist
+        $idModule = $emploi->id_module; // keep existing by default
+        if ($user->hasPermissionTo('emploi-view-all-groups') || $user->hasPermissionTo('emploi-change-module')) {
+            $idModule = $data['id_module'] ?? $emploi->id_module;
+        }
+
         $emploi->update([
             'id_groupe'     => $data['id_groupe'],
             'id_salle'      => $data['mode'] === 'distance' ? null : ($data['id_salle'] ?? null),
             'id_user'       => $data['id_user'],
+            'id_module'     => $idModule,
             'date_debut'    => $debut,
             'date_fin'      => $fin,
             'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
@@ -323,9 +377,23 @@ class EmploiDuTempsController extends Controller
                 'available' => ! $busySalleIds->contains($s->id),
             ]);
 
+        // ── Modules filtered by the groupe's filiere ─────────
+        $groupe  = Groupe::find($groupeId);
+        $modules = $groupe
+            ? Module::where('id_filiere', $groupe->id_filiere)
+                ->orderBy('name')
+                ->get()
+                ->map(fn($m) => [
+                    'id'        => $m->id,
+                    'name'      => $m->name,
+                    'nbr_heure' => $m->nbr_heure,
+                ])
+            : collect();
+
         return response()->json([
             'formateurs' => $formateurs,
             'salles'     => $salles,
+            'modules'    => $modules,
             'debut'      => $debut->format('Y-m-d\TH:i'),
             'fin'        => $fin->format('Y-m-d\TH:i'),
         ]);
@@ -568,7 +636,7 @@ class EmploiDuTempsController extends Controller
                 'id_groupe'     => $data['id_groupe'],
                 'id_salle'      => $data['id_salle'] ?? null,
                 'id_user'       => $data['id_user'],
-                'id_module'     => null,
+                'id_module'     => $data['id_module'] ?? null,
                 'date_debut'    => $debut,
                 'date_fin'      => $next->date_fin,
                 'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,

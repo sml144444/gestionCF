@@ -8,10 +8,13 @@
 @php
     use App\Http\Controllers\EmploiDuTempsController;
 
-    $canCreate = Auth::user()->can('emploi-create');
-    $canEdit   = Auth::user()->can('emploi-edit');
-    $canDelete = Auth::user()->can('emploi-delete');
-    $canLien   = Auth::user()->can('emploi-lien');
+    $canCreate       = Auth::user()->hasPermissionTo('emploi-create');
+    $canEdit         = Auth::user()->hasPermissionTo('emploi-edit');
+    $canDelete       = Auth::user()->hasPermissionTo('emploi-delete');
+    $canLien         = Auth::user()->hasPermissionTo('emploi-lien');
+    $canChangeModule = Auth::user()->hasPermissionTo('emploi-change-module');
+    $canSelectModule = Auth::user()->hasPermissionTo('emploi-view-all-groups') || $canChangeModule;
+    $isGestionnaire  = Auth::user()->hasPermissionTo('emploi-view-all-groups');
 
     $isStagiaire = Auth::user()->role === 'stagiaire';
 
@@ -35,6 +38,14 @@
     $cardPalette = Auth::user()->role === 'gestionnaire'
         ? ['light' => '#eff6ff', 'medium' => '#2563eb', 'text' => '#1e40af']
         : $p;
+
+    // Flat progress map for JS: "groupeId_moduleId" => hours
+    $progressFlat = [];
+    foreach ($moduleProgress as $gId => $modules) {
+        foreach ($modules as $mId => $hours) {
+            $progressFlat[$gId . '_' . $mId] = round($hours, 2);
+        }
+    }
 @endphp
 
 <style>
@@ -57,7 +68,6 @@
 .tt-sticky-cell { position: sticky; left: 0; z-index: 10; background: white; box-shadow: 3px 0 8px rgba(0,0,0,0.06); }
 tr:hover .tt-sticky-cell { background: #fafbfc; }
 
-/* ── Filière separator — light ── */
 .tt-filiere-row td { color: {{ $p['text'] }}; background: {{ $p['light'] }}; }
 .tt-filiere-sticky-cell {
     position: sticky; left: 0; z-index: 15;
@@ -69,7 +79,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     border-bottom: 1px solid {{ $accentColor }}30;
 }
 
-/* ── Day header ── */
 .tt-day-head { padding: 10px 4px 8px; text-align: center; background: white; border-bottom: 2px solid #f1f5f9; }
 .tt-day-head.today { background: {{ $accentColor }}; border-bottom-color: {{ $accentColor }}; }
 .tt-day-name { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #334155; text-transform: uppercase; }
@@ -82,12 +91,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     padding: 2px 6px; border-radius: 99px; margin-top: 3px; letter-spacing: 0.5px;
 }
 
-/* ── Séance header ── */
 .tt-seance-head { padding: 5px 2px 4px; text-align: center; background: #f8fafc; border-bottom: 1px solid #e9edf2; min-width: 52px; }
 .tt-seance-label { font-size: 9px; font-weight: 800; color: #475569; letter-spacing: 1px; text-transform: uppercase; }
 .tt-seance-time  { font-size: 8px; color: #64748b; margin-top: 1px; }
 
-/* ── Body rows ── */
 .tt-body-row { transition: background 0.15s; }
 .tt-body-row:hover { background: #fafbfe; }
 .tt-body-row td { border-bottom: 1px solid #f1f5f9; vertical-align: top; }
@@ -95,7 +102,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-group-name { font-size: 11px; font-weight: 700; color: #1e293b; }
 .tt-group-sub  { font-size: 9px; color: #64748b; margin-top: 2px; }
 
-/* ── Session card ── */
 .tt-session-td { padding: 5px; }
 .tt-card {
     border-radius: 10px; padding: 8px 9px; min-height: 72px;
@@ -104,38 +110,28 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 }
 .tt-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
 
-/* Présentiel cards — role palette */
 .card-role-1 { background: {{ $cardPalette['light'] }}; border-color: {{ $cardPalette['medium'] }}30; border-left: 3px solid {{ $cardPalette['medium'] }}; }
 .card-role-2 { background: {{ $cardPalette['light'] }}; border-color: {{ $cardPalette['medium'] }}30; border-left: 3px solid {{ $cardPalette['text'] }}; }
 .card-role-3 { background: #f8fafc; border-color: {{ $cardPalette['medium'] }}20; border-left: 3px solid {{ $cardPalette['text'] }}80; }
 .card-role-4 { background: {{ $cardPalette['light'] }}; border-color: {{ $cardPalette['medium'] }}20; border-left: 3px solid {{ $cardPalette['medium'] }}b0; }
-
-/* À distance card — always yellow regardless of role */
-.card-distance {
-    background: #fefce8;
-    border-color: #fde68a;
-    border-left: 3px solid #f59e0b;
-}
+.card-distance { background: #fefce8; border-color: #fde68a; border-left: 3px solid #f59e0b; }
+.card-brouillon { opacity: 0.72; border-style: dashed !important; border-color: #94a3b8 !important; background: #f8fafc !important; border-left: 3px dashed #94a3b8 !important; }
+.card-brouillon .tt-card-module { color: #475569; }
+.draft-badge { position: absolute; top: 7px; left: 9px; font-size: 7px; font-weight: 800; letter-spacing: .5px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 99px; border: 1px solid #cbd5e1; text-transform: uppercase; }
+.card-brouillon .tt-card-module { padding-top: 18px; }
 
 .tt-card-module { font-size: 11px; font-weight: 700; color: {{ $cardPalette['text'] }}; line-height: 1.3; margin-bottom: 5px; padding-right: 52px; }
 .card-distance .tt-card-module { color: #92400e; }
 .tt-card-row    { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #334155; margin-top: 3px; }
 .tt-card-dot    { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.tt-card-time   {
-    position: absolute; top: 7px; right: 7px;
-    font-size: 8px; font-weight: 700;
-    background: rgba(0,0,0,0.06); color: #334155;
-    padding: 2px 6px; border-radius: 99px; white-space: nowrap;
-}
-.tt-distance-badge {
-    position: absolute; top: 7px; left: 9px;
-    font-size: 8px; font-weight: 700;
-    background: #fef3c7; color: #92400e;
-    padding: 2px 6px; border-radius: 99px;
-    border: 1px solid #fde68a;
-    display: flex; align-items: center; gap: 3px;
-}
+.tt-card-time   { position: absolute; top: 7px; right: 7px; font-size: 8px; font-weight: 700; background: rgba(0,0,0,0.06); color: #334155; padding: 2px 6px; border-radius: 99px; white-space: nowrap; }
 .card-distance .tt-card-module { padding-top: 20px; padding-right: 52px; }
+
+/* ── Progress bar on card ── */
+.card-progress { margin-top: 5px; }
+.card-progress-track { height: 3px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+.card-progress-fill  { height: 100%; border-radius: 99px; transition: width 0.3s; }
+.card-progress-meta  { display: flex; justify-content: space-between; font-size: 7px; color: #94a3b8; margin-top: 2px; }
 
 .tt-actions { position: absolute; bottom: 7px; right: 7px; display: none; gap: 3px; }
 .tt-card:hover .tt-actions { display: flex; }
@@ -143,72 +139,34 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-btn-del  { font-size: 9px; font-weight: 700; background: #fee2e2; color: #dc2626; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
 .tt-btn-edit:hover, .tt-btn-del:hover { opacity: 0.8; }
 
-/* ── Empty cell ── */
 .tt-empty-td { padding: 5px; }
-.tt-add-btn {
-    width: 100%; min-height: 72px;
-    border: 1.5px dashed #e2e8f0; border-radius: 10px;
-    background: transparent; display: flex; align-items: center; justify-content: center;
-    font-size: 16px; color: #e2e8f0; cursor: pointer; transition: all 0.15s;
-}
+.tt-add-btn { width: 100%; min-height: 72px; border: 1.5px dashed #e2e8f0; border-radius: 10px; background: transparent; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #e2e8f0; cursor: pointer; transition: all 0.15s; }
 .tt-add-btn:hover { border-color: {{ $accentColor }}; color: {{ $accentColor }}; background: {{ $p['light'] }}; }
 
-/* ── Nav ── */
-.tt-nav-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 7px 14px; font-size: 12px; font-weight: 600;
-    border-radius: 10px; border: 1.5px solid #e2e8f0;
-    background: white; color: #475569;
-    text-decoration: none; transition: all 0.15s; cursor: pointer;
-}
+.tt-nav-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; color: #475569; text-decoration: none; transition: all 0.15s; cursor: pointer; }
 .tt-nav-btn:hover { border-color: #cbd5e1; background: #f8fafc; color: #1e293b; }
 .tt-nav-btn.primary { background: {{ $accentColor }}; border-color: {{ $accentColor }}; color: white; }
 .tt-nav-btn.primary:hover { opacity: 0.9; }
 .tt-nav-btn.today-btn { color: {{ $accentColor }}; border-color: {{ $accentColor }}30; background: {{ $p['light'] }}; }
 
-/* ── Tabs ── */
 .tt-tab { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; transition: all 0.15s; text-decoration: none; }
 .tt-tab.active { color: white; }
 .tt-tab.inactive { color: #64748b; }
 .tt-tab.inactive:hover { background: #f8fafc; color: #1e293b; }
 .tt-tab.disabled { color: #cbd5e1; cursor: not-allowed; opacity: 0.55; background: #f8fafc; pointer-events: none; }
 
-/* ── Mode toggle in modal ── */
 .mode-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; }
-.mode-btn {
-    flex: 1; padding: 9px; font-size: 12px; font-weight: 600;
-    border: none; background: white; cursor: pointer; transition: all 0.15s;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-}
+.mode-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; border: none; background: white; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .mode-btn.active-pres { background: {{ $accentColor }}; color: white; }
 .mode-btn.active-dist { background: #f59e0b; color: white; }
 .mode-btn:not(.active-pres):not(.active-dist) { color: #64748b; }
 
-/* ── Modal ── */
 .tt-modal-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; }
 .tt-modal-overlay.open { display: flex; }
 .tt-modal-box { background: white; border-radius: 20px; width: 100%; max-width: 440px; margin: 16px; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.18); }
 .tt-modal-label { display: block; font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
 .tt-modal-input { width: 100%; height: 42px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 13px; color: #1e293b; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
 .tt-modal-input:focus { border-color: {{ $accentColor }}; background: white; }
-
-/* ── Draft card — visible only to admin/gestionnaire ── */
-.card-brouillon {
-    opacity: 0.72;
-    border-style: dashed !important;
-    border-color: #94a3b8 !important;
-    background: #f8fafc !important;
-    border-left: 3px dashed #94a3b8 !important;
-}
-.card-brouillon .tt-card-module { color: #475569; }
-.draft-badge {
-    position: absolute; top: 7px; left: 9px;
-    font-size: 7px; font-weight: 800; letter-spacing: .5px;
-    background: #f1f5f9; color: #64748b;
-    padding: 2px 6px; border-radius: 99px;
-    border: 1px solid #cbd5e1; text-transform: uppercase;
-}
-.card-brouillon .tt-card-module { padding-top: 18px; }
 </style>
 
 {{-- ════ FLASH ════ --}}
@@ -275,12 +233,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             $tab1Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 1;
             $tab2Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 2;
         @endphp
-
-        {{-- Tab 1 --}}
         @if($tab1Disabled)
-            <span class="tt-tab disabled" title="Vous êtes inscrit en 2ème année">
-                Année 1 &nbsp;🔒
-            </span>
+            <span class="tt-tab disabled" title="Vous êtes inscrit en 2ème année">Année 1 &nbsp;🔒</span>
         @else
             <a href="{{ route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()]) }}"
                class="tt-tab {{ $year === 1 ? 'active' : 'inactive' }}"
@@ -291,13 +245,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                            : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">1ère</span>
             </a>
         @endif
-
-        {{-- Tab 2 --}}
         @if($tab2Disabled)
-            <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;"
-                  title="Vous êtes inscrit en 1ère année">
-                Année 2 / 2.5 &nbsp;🔒
-            </span>
+            <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en 1ère année">Année 2 / 2.5 &nbsp;🔒</span>
         @else
             <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()]) }}"
                class="tt-tab {{ $year === 2 ? 'active' : 'inactive' }}"
@@ -317,15 +266,11 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             &nbsp;–&nbsp;
             <strong style="color:#334155;">{{ $weekEnd->translatedFormat('d M Y') }}</strong>
         </div>
-        <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString()]) }}"
-           class="tt-nav-btn">
-            <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-            </svg>
+        <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString()]) }}" class="tt-nav-btn">
+            <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         </a>
         <a href="{{ route('emplois.index', ['year' => $year]) }}" class="tt-nav-btn today-btn">Aujourd'hui</a>
-        
-        {{-- Bouton semaine suivante avec restriction pour stagiaire --}}
+
         @php
             $semaineSuivante = $weekStart->copy()->addWeek();
             $prochainLundiNav = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
@@ -334,28 +279,20 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
         @endphp
         @if($peutNaviguerSuivante)
-            <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()]) }}"
-               class="tt-nav-btn">
-                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-                </svg>
+            <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()]) }}" class="tt-nav-btn">
+                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </a>
         @else
             <span class="tt-nav-btn" style="opacity:0.35; cursor:not-allowed;" title="Non disponible encore">
-                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-                </svg>
+                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </span>
         @endif
 
-        {{-- PDF --}}
         <a href="{{ route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
-           class="tt-nav-btn"
-           title="Télécharger l'emploi du temps en PDF"
+           class="tt-nav-btn" title="Télécharger l'emploi du temps en PDF"
            style="color:#dc2626; border-color:#fecdd3; background:#fff1f2;">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
             </svg>
             PDF
         </a>
@@ -374,13 +311,11 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                         : 'opacity:.45; cursor:not-allowed;' }}"
                     title="{{ $draftCount > 0 ? 'Publier '.$draftCount.' séance(s) en brouillon' : 'Aucun brouillon cette semaine' }}">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                          d="M5 13l4 4L19 7"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                 </svg>
                 Publier
                 @if($draftCount > 0)
-                    <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800;
-                                 padding:1px 6px; border-radius:99px;">{{ $draftCount }}</span>
+                    <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800; padding:1px 6px; border-radius:99px;">{{ $draftCount }}</span>
                 @endif
             </button>
         </form>
@@ -405,9 +340,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                        border-bottom:{{ $isToday ? '2px solid '.$accentColor : '1px solid #e9edf2' }};">
                 <div class="tt-day-name">{{ $date->translatedFormat('D') }}</div>
                 <div class="tt-day-date">{{ $date->format('d') }}</div>
-                <div style="font-size:9px; {{ $isToday ? 'color:rgba(255,255,255,0.85)' : 'color:#64748b' }};">
-                    {{ $date->translatedFormat('M') }}
-                </div>
+                <div style="font-size:9px; {{ $isToday ? 'color:rgba(255,255,255,0.85)' : 'color:#64748b' }};">{{ $date->translatedFormat('M') }}</div>
                 @if($isToday)<div class="tt-today-pill">AUJOURD'HUI</div>@endif
             </th>
         @endforeach
@@ -419,8 +352,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             @foreach(EmploiDuTempsController::SEANCES as $sNum => $seance)
                 @php $isLastS = $sNum === 4; @endphp
                 <th class="tt-seance-head"
-                    style="border-right:{{ $isLastS ? ($isLastDay ? 'none' : '3px solid #cbd5e1') : '1px solid #e9edf2' }};
-                           border-bottom:2px solid #e2e8f0;"
+                    style="border-right:{{ $isLastS ? ($isLastDay ? 'none' : '3px solid #cbd5e1') : '1px solid #e9edf2' }}; border-bottom:2px solid #e2e8f0;"
                     title="{{ $seance['start'] }}–{{ $seance['end'] }}">
                     <div class="tt-seance-label" style="color:{{ $accentColor }};">{{ $seance['label'] }}</div>
                     <div class="tt-seance-time">{{ $seance['start'] }}</div>
@@ -434,7 +366,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     @forelse($groupesByFiliere as $filiereId => $groupes)
         @php $filiere = $groupes->first()->filiere; @endphp
 
-        {{-- Filière row --}}
         <tr class="tt-filiere-row">
             <td class="tt-filiere-sticky-cell">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -444,8 +375,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     </span>
                 </div>
             </td>
-            <td colspan="24" style="background:{{ $p['light'] }}; padding:0;
-                                    border-top:1px solid {{ $accentColor }}30; border-bottom:1px solid {{ $accentColor }}30;"></td>
+            <td colspan="24" style="background:{{ $p['light'] }}; padding:0; border-top:1px solid {{ $accentColor }}30; border-bottom:1px solid {{ $accentColor }}30;"></td>
         </tr>
 
         @foreach($groupes as $groupe)
@@ -470,106 +400,135 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     @endphp
 
                     @if($cell['type'] === 'skip')
-                        {{-- skip --}}
-@elseif($cell['type'] === 'session')
-    @php
-        $emploi    = $cell['emploi'];
-        $colspan   = $cell['colspan'];
-        $spanLbl   = EmploiDuTempsController::spanLabel($sNum, $colspan);
-        $totalH    = EmploiDuTempsController::totalHours($sNum, $colspan);
-        $isRemote  = ($emploi->mode ?? 'presentiel') === 'distance';
-        $isDraft   = $emploi->statut === 'brouillon';  // ← AJOUTÉ
+                        {{-- merged --}}
+                    @elseif($cell['type'] === 'session')
+                        @php
+                            $emploi   = $cell['emploi'];
+                            $colspan  = $cell['colspan'];
+                            $spanLbl  = EmploiDuTempsController::spanLabel($sNum, $colspan);
+                            $totalH   = EmploiDuTempsController::totalHours($sNum, $colspan);
+                            $isRemote = ($emploi->mode ?? 'presentiel') === 'distance';
+                            $isDraft  = $emploi->statut === 'brouillon';
 
-        // Logique pour la classe CSS
-        if ($isDraft) {
-            $cardClass = 'card-brouillon';
-        } elseif ($isRemote) {
-            $cardClass = 'card-distance';
-        } else {
-            $rawColor  = EmploiDuTempsController::cardColor($emploi->id_module);
-            $colorIdx  = match(true) {
-                in_array($rawColor, ['blue', 'violet']) => 1,
-                in_array($rawColor, ['green', 'teal'])  => 2,
-                in_array($rawColor, ['amber', 'red'])   => 3,
-                default                                 => 4,
-            };
-            $cardClass = 'card-role-'.$colorIdx;
-        }
+                            if ($isDraft) {
+                                $cardClass = 'card-brouillon';
+                            } elseif ($isRemote) {
+                                $cardClass = 'card-distance';
+                            } else {
+                                $rawColor = EmploiDuTempsController::cardColor($emploi->id_module);
+                                $colorIdx = match(true) {
+                                    in_array($rawColor, ['blue', 'violet']) => 1,
+                                    in_array($rawColor, ['green', 'teal'])  => 2,
+                                    in_array($rawColor, ['amber', 'red'])   => 3,
+                                    default                                 => 4,
+                                };
+                                $cardClass = 'card-role-'.$colorIdx;
+                            }
 
-        $lastOfSpan    = $sNum + $colspan - 1;
-        $isLastSOfSpan = ($lastOfSpan % 4 === 0);
-        $spanBorder    = $isLastSOfSpan ? ($isLastDay ? '' : 'border-right:3px solid #94a3b8;') : 'border-right:1px solid #e2e8f0;';
-    @endphp
-    <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
-        <div class="tt-card {{ $cardClass }}">
-            @if($isDraft)
-                <div class="draft-badge">Brouillon</div>
-            @endif
-            <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
-            <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
-            <div class="tt-card-row">
-                <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
-                {{ $emploi->gestionnaire->name ?? '—' }}
-            </div>
+                            $lastOfSpan    = $sNum + $colspan - 1;
+                            $isLastSOfSpan = ($lastOfSpan % 4 === 0);
+                            $spanBorder    = $isLastSOfSpan ? ($isLastDay ? '' : 'border-right:3px solid #94a3b8;') : 'border-right:1px solid #e2e8f0;';
 
-            @if($isRemote && $emploi->lien_distance)
-                <div class="tt-card-row" style="margin-top:4px;">
-                    <div class="tt-card-dot" style="background:#f59e0b;"></div>
-                    <a href="{{ $emploi->lien_distance }}" target="_blank"
-                       style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
-                        Rejoindre la réunion
-                    </a>
-                </div>
-            @elseif(!$isRemote)
-                <div class="tt-card-row">
-                    <div class="tt-card-dot" style="background:#94a3b8;"></div>
-                    {{ $emploi->salle->name ?? '—' }}
-                </div>
-            @endif
+                            // Progress calculation for this module + groupe
+                            $progDone  = 0;
+                            $progTotal = 0;
+                            $progPct   = 0;
+                            if ($emploi->id_module && $emploi->module && $emploi->module->nbr_heure > 0) {
+                                $progDone  = $moduleProgress[$emploi->id_groupe][$emploi->id_module] ?? 0;
+                                $progTotal = $emploi->module->nbr_heure;
+                                $progPct   = min(100, round(($progDone / $progTotal) * 100));
+                            }
+                        @endphp
+                        <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
+                            <div class="tt-card {{ $cardClass }}">
+                                @if($isDraft)
+                                    <div class="draft-badge">Brouillon</div>
+                                @endif
+                                <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
+                                <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
+                                <div class="tt-card-row">
+                                    <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
+                                    {{ $emploi->gestionnaire->name ?? '—' }}
+                                </div>
 
-            <div class="tt-card-row" style="color:#64748b; font-style:italic;">
-                {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
-            </div>
+                                @if($isRemote && $emploi->lien_distance)
+                                    <div class="tt-card-row" style="margin-top:4px;">
+                                        <div class="tt-card-dot" style="background:#f59e0b;"></div>
+                                        <a href="{{ $emploi->lien_distance }}" target="_blank"
+                                           style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
+                                            Rejoindre la réunion
+                                        </a>
+                                    </div>
+                                @elseif(!$isRemote)
+                                    <div class="tt-card-row">
+                                        <div class="tt-card-dot" style="background:#94a3b8;"></div>
+                                        {{ $emploi->salle->name ?? '—' }}
+                                    </div>
+                                @endif
 
-            @if($canEdit || $canDelete || $canLien)
-            <div class="tt-actions">
-                @if($canEdit)
-                    <button class="tt-btn-edit"
-                            style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
-                            onclick="openEditModal({{ $emploi->id }})">✎</button>
-                @endif
+                                <div class="tt-card-row" style="color:#64748b; font-style:italic;">
+                                    {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
+                                </div>
 
-                @if($canDelete)
-                    <form method="POST" action="{{ route('emplois.destroy', $emploi) }}" style="display:inline;">
-                        @csrf @method('DELETE')
-                        <button class="tt-btn-del"
-                                onclick="openDeleteModal(
-                                    '{{ route('emplois.destroy', $emploi) }}',
-                                    '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
-                                    '{{ addslashes($emploi->module->name ?? 'Module') }}',
-                                    '{{ $emploi->date_debut->translatedFormat('l d M') }}',
-                                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                    '{{ $emploi->date_debut->format('H:i') }}',
-                                    '{{ $emploi->date_fin->format('H:i') }}',
-                                    '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
-                                )">✕</button>
-                    </form>
-                @endif
+                                {{-- ── Progress bar (shown when module has nbr_heure) ── --}}
+                                @if($progTotal > 0)
+                                <div class="card-progress">
+                                    <div class="card-progress-track">
+                                        <div class="card-progress-fill"
+                                             style="width:{{ $progPct }}%; background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};"></div>
+                                    </div>
+                                    <div class="card-progress-meta">
+                                        <span>{{ number_format($progDone, 1) }}h / {{ $progTotal }}h</span>
+                                        <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">{{ $progPct }}%</span>
+                                    </div>
+                                </div>
+                                @endif
 
-                @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
-                    <button class="tt-btn-edit"
-                            style="background:#fef3c7; color:#92400e;"
-                            onclick="openLienModal(
-                                {{ $emploi->id }},
-                                '{{ addslashes($emploi->lien_distance ?? '') }}',
-                                '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
-                                '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
-                            )">🔗 Lien</button>
-                @endif
-            </div>
-            @endif
-        </div>
-    </td>
+                                @if($canEdit || $canDelete || $canLien || $canChangeModule)
+                                <div class="tt-actions">
+                                    @if($canEdit)
+                                        <button class="tt-btn-edit"
+                                                style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
+                                                onclick="openEditModal({{ $emploi->id }})">✎</button>
+                                    @endif
+
+                                    @if($canDelete)
+                                        <form method="POST" action="{{ route('emplois.destroy', $emploi) }}" style="display:inline;">
+                                            @csrf @method('DELETE')
+                                            <button class="tt-btn-del"
+                                                    onclick="openDeleteModal(
+                                                        '{{ route('emplois.destroy', $emploi) }}',
+                                                        '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
+                                                        '{{ addslashes($emploi->module->name ?? 'Module') }}',
+                                                        '{{ $emploi->date_debut->translatedFormat('l d M') }}',
+                                                        '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                                                        '{{ $emploi->date_debut->format('H:i') }}',
+                                                        '{{ $emploi->date_fin->format('H:i') }}',
+                                                        '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
+                                                    )">✕</button>
+                                        </form>
+                                    @endif
+
+                                    @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
+                                        <button class="tt-btn-edit"
+                                                style="background:#fef3c7; color:#92400e;"
+                                                onclick="openLienModal(
+                                                    {{ $emploi->id }},
+                                                    '{{ addslashes($emploi->lien_distance ?? '') }}',
+                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
+                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
+                                                )">🔗 Lien</button>
+                                    @endif
+
+                                    @if($canChangeModule && !$canEdit && $emploi->id_user === Auth::user()->id)
+                                        <button class="tt-btn-edit"
+                                                style="background:{{ $p['light'] }}; color:{{ $p['text'] }};"
+                                                onclick="openEditModal({{ $emploi->id }})">📚</button>
+                                    @endif
+                                </div>
+                                @endif
+                            </div>
+                        </td>
 
                     @else
                         <td class="tt-empty-td" style="{{ $cellBorder }}">
@@ -631,15 +590,11 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
      onclick="if(event.target===this)closeDeleteModal()">
     <div style="background:white; border-radius:20px; width:100%; max-width:420px;
                 margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
-
-        <div style="display:flex; align-items:center; justify-content:space-between;
-                    margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #dc2626;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #dc2626;">
             <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:40px; height:40px; border-radius:12px; background:#fee2e2;
-                            display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <div style="width:40px; height:40px; border-radius:12px; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                     <svg width="18" height="18" fill="none" stroke="#dc2626" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
                 </div>
                 <div>
@@ -647,50 +602,24 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     <div style="font-size:10px; color:#64748b; margin-top:1px;">Cette action est irréversible</div>
                 </div>
             </div>
-            <button onclick="closeDeleteModal()"
-                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
-                           color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-                ×
-            </button>
+            <button onclick="closeDeleteModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
-
-        <div id="delete-session-info"
-             style="display:flex; align-items:center; gap:10px; padding:10px 12px;
-                    border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:14px;">
+        <div id="delete-session-info" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:14px;">
             <div style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;"></div>
             <div>
                 <div id="delete-session-label" style="font-size:11px; font-weight:700; color:#1e293b;"></div>
                 <div id="delete-session-meta"  style="font-size:9px; color:#64748b; margin-top:1px;"></div>
             </div>
         </div>
-
-        <div style="font-size:12px; color:#9f1239; line-height:1.6; margin-bottom:18px;
-                    padding:12px 14px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3;">
-            La suppression de cette séance retirera définitivement le créneau de l'emploi du temps.
-            Les stagiaires n'auront plus accès à cette session.
+        <div style="font-size:12px; color:#9f1239; line-height:1.6; margin-bottom:18px; padding:12px 14px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3;">
+            La suppression de cette séance retirera définitivement le créneau de l'emploi du temps. Les stagiaires n'auront plus accès à cette session.
         </div>
-
         <div style="display:flex; gap:10px;">
-            <button onclick="closeDeleteModal()"
-                    style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
-                           background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;"
-                    onmouseover="this.style.background='#f8fafc'"
-                    onmouseout="this.style.background='white'">
-                Annuler
-            </button>
+            <button onclick="closeDeleteModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Annuler</button>
             <form id="delete-form" method="POST" style="flex:1;">
                 @csrf @method('DELETE')
-                <button type="submit"
-                        style="width:100%; height:44px; border-radius:12px; border:none;
-                               background:#dc2626; font-size:13px; font-weight:700; color:white;
-                               cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3);
-                               display:flex; align-items:center; justify-content:center; gap:6px;"
-                        onmouseover="this.style.opacity='0.9'"
-                        onmouseout="this.style.opacity='1'">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6"/>
-                    </svg>
+                <button type="submit" style="width:100%; height:44px; border-radius:12px; border:none; background:#dc2626; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3); display:flex; align-items:center; justify-content:center; gap:6px;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6"/></svg>
                     Supprimer
                 </button>
             </form>
@@ -703,83 +632,43 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
      onclick="if(event.target===this)closeLienModal()">
-    <div style="background:white; border-radius:20px; width:100%; max-width:420px;
-                margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
-
-        <div style="display:flex; align-items:center; justify-content:space-between;
-                    margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #f59e0b;">
+    <div style="background:white; border-radius:20px; width:100%; max-width:420px; margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #f59e0b;">
             <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:40px; height:40px; border-radius:12px; background:#fef3c7;
-                            display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <svg width="18" height="18" fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
+                <div style="width:40px; height:40px; border-radius:12px; background:#fef3c7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="18" height="18" fill="none" stroke="#f59e0b" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                 </div>
                 <div>
                     <div style="font-size:14px; font-weight:800; color:#1e293b;">Mettre à jour le lien</div>
                     <div style="font-size:10px; color:#64748b; margin-top:1px;">Séance à distance</div>
                 </div>
             </div>
-            <button onclick="closeLienModal()"
-                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
-                           color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-                ×
-            </button>
+            <button onclick="closeLienModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
-
-        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px;
-                    border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:14px;">
             <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
             <div style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:center; gap:6px;">
                     <span id="lien-session-label" style="font-size:11px; font-weight:700; color:#1e293b;"></span>
-                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:8px; font-weight:700;
-                                 background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:99px; border:1px solid #fde68a;">
-                        À distance
-                    </span>
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:8px; font-weight:700; background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:99px; border:1px solid #fde68a;">À distance</span>
                 </div>
                 <div id="lien-session-meta" style="font-size:9px; color:#64748b; margin-top:1px;"></div>
             </div>
         </div>
-
         <div style="margin-bottom:18px;">
-            <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
-                          letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">
-                Lien de réunion (Teams / Zoom…)
-            </label>
+            <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">Lien de réunion (Teams / Zoom…)</label>
             <input type="text" id="lien-input" placeholder="https://teams.microsoft.com/..."
-                   style="width:100%; height:42px; padding:0 12px; border-radius:10px;
-                          border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px;
-                          color:#1e293b; outline:none; box-sizing:border-box;"
+                   style="width:100%; height:42px; padding:0 12px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; color:#1e293b; outline:none; box-sizing:border-box;"
                    onfocus="this.style.borderColor='#f59e0b'; this.style.background='white';"
                    onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';">
-            <p style="font-size:9px; color:#94a3b8; margin-top:5px;">
-                Ce lien sera visible par tous les stagiaires du groupe.
-            </p>
         </div>
-
         <form id="lien-form" method="POST" style="display:contents;">
             @csrf @method('PATCH')
             <input type="hidden" name="lien_distance" id="lien-hidden">
             <div style="display:flex; gap:10px;">
-                <button type="button" onclick="closeLienModal()"
-                        style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
-                               background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;"
-                        onmouseover="this.style.background='#f8fafc'"
-                        onmouseout="this.style.background='white'">
-                    Annuler
-                </button>
-                <button type="button" onclick="submitLien()"
-                        style="flex:1; height:44px; border-radius:12px; border:none;
-                               background:#f59e0b; font-size:13px; font-weight:700; color:white;
-                               cursor:pointer; box-shadow:0 4px 12px rgba(245,158,11,0.35);
-                               display:flex; align-items:center; justify-content:center; gap:6px;"
-                        onmouseover="this.style.opacity='0.9'"
-                        onmouseout="this.style.opacity='1'">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
+                <button type="button" onclick="closeLienModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Annuler</button>
+                <button type="button" onclick="submitLien()" style="flex:1; height:44px; border-radius:12px; border:none; background:#f59e0b; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(245,158,11,0.35); display:flex; align-items:center; justify-content:center; gap:6px;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     Enregistrer
                 </button>
             </div>
@@ -790,21 +679,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 </div>{{-- .tt-wrap --}}
 
 {{-- ════ MODAL CREATE / EDIT ════ --}}
-@if($canCreate || $canEdit)
+@if($canCreate || $canEdit || $canChangeModule)
 <div id="emploi-modal" class="tt-modal-overlay" onclick="if(event.target===this)closeModal()">
     <div class="tt-modal-box">
 
-        <div style="display:flex; align-items:center; justify-content:space-between;
-                    margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid {{ $accentColor }};">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid {{ $accentColor }};">
             <div>
                 <h3 id="modal-title" style="font-size:14px; font-weight:800; color:#1e293b; margin:0;">Nouvelle séance</h3>
                 <div id="modal-slot-info" style="font-size:10px; color:#64748b; margin-top:2px;"></div>
             </div>
-            <button onclick="closeModal()"
-                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
-                           color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-                ×
-            </button>
+            <button onclick="closeModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
 
         <form id="emploi-form" method="POST" action="{{ route('emplois.store') }}"
@@ -814,41 +698,36 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             <input type="hidden" name="id_groupe"  id="m-groupe-hidden">
             <input type="hidden" name="date_debut" id="m-debut">
             <input type="hidden" name="date_fin"   id="m-fin">
-            <input type="hidden" name="id_module"  value="">
 
             <div id="m-groupe-row" style="display:none;">
                 <label class="tt-modal-label">Groupe</label>
                 <select id="m-groupe-select" class="tt-modal-input"
-                        onchange="document.getElementById('m-groupe-hidden').value=this.value">
+                        onchange="document.getElementById('m-groupe-hidden').value=this.value; loadAvailable();">
                     <option value="">— Sélectionner —</option>
                     @foreach($allGroupes as $g)
-                        <option value="{{ $g->id }}">{{ $g->name ?? 'G'.$g->id }} – {{ $g->filiere->name ?? '' }}</option>
+                        <option value="{{ $g->id }}" data-filiere="{{ $g->id_filiere }}">{{ $g->name ?? 'G'.$g->id }} – {{ $g->filiere->name ?? '' }}</option>
                     @endforeach
                 </select>
             </div>
 
+            {{-- Mode toggle --}}
+            @if($canCreate || $canEdit)
             <div>
                 <label class="tt-modal-label">Mode de séance</label>
                 <div class="mode-toggle">
                     <button type="button" id="btn-pres" class="mode-btn active-pres" onclick="setMode('presentiel')">
-                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
-                        </svg>
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
                         Présentiel
                     </button>
-                    <button type="button" id="btn-dist" class="mode-btn" onclick="setMode('distance')"
-                            style="border-left:1px solid #e2e8f0;">
-                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                        </svg>
+                    <button type="button" id="btn-dist" class="mode-btn" onclick="setMode('distance')" style="border-left:1px solid #e2e8f0;">
+                        <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                         À distance
                     </button>
                 </div>
                 <input type="hidden" name="mode" id="m-mode" value="presentiel">
             </div>
 
+            {{-- Durée --}}
             <div>
                 <label class="tt-modal-label">Durée</label>
                 <select id="m-dur" onchange="onDurationChange()" class="tt-modal-input">
@@ -859,6 +738,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
+            {{-- Preview bar --}}
             <div style="border-radius:12px; padding:12px; background:{{ $p['light'] }}; border:1px solid {{ $accentColor }}20;">
                 <div style="display:flex; justify-content:space-between; font-size:9px; color:#475569; margin-bottom:8px;">
                     <span id="prev-start" style="font-weight:700;">08:30</span>
@@ -867,8 +747,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </div>
                 <div style="display:flex; gap:4px;">
                     @foreach(EmploiDuTempsController::SEANCES as $sNum => $s)
-                        <div id="prev-bar-{{ $sNum }}"
-                             style="flex:1; height:8px; border-radius:4px; background:#e2e8f0; transition:background 0.2s;"></div>
+                        <div id="prev-bar-{{ $sNum }}" style="flex:1; height:8px; border-radius:4px; background:#e2e8f0; transition:background 0.2s;"></div>
                     @endforeach
                 </div>
                 <div style="display:flex; gap:4px; margin-top:4px;">
@@ -878,6 +757,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </div>
             </div>
 
+            {{-- Formateur --}}
             <div>
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">Formateur</label>
@@ -892,6 +772,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
+            {{-- Salle (présentiel only) --}}
             <div id="salle-row">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">Salle</label>
@@ -906,36 +787,60 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
+            {{-- Teams link (distance only) --}}
             <div id="lien-row" style="display:none;">
                 <label class="tt-modal-label">Lien de réunion (Teams / Zoom…)</label>
-                <input type="text" name="lien_distance" id="m-lien"
-                       placeholder="https://teams.microsoft.com/..."
-                       class="tt-modal-input"
-                       style="height:42px;">
-                <p style="font-size:9px; color:#94a3b8; margin-top:4px;">
-                    Ce lien sera visible par les stagiaires dans leur emploi du temps.
-                </p>
+                <input type="text" name="lien_distance" id="m-lien" placeholder="https://teams.microsoft.com/..." class="tt-modal-input" style="height:42px;">
             </div>
+            @endif {{-- end canCreate || canEdit --}}
 
-            <div style="font-size:9px; color:#64748b; background:#f8fafc; border-radius:8px; padding:8px 12px; line-height:1.8;">
-                S1 08:30→11:00 &nbsp;·&nbsp; S2 11:00→13:30 &nbsp;·&nbsp;
-                S3 13:30→16:00 &nbsp;·&nbsp; S4 16:00→18:30
+            {{-- ════ MODULE SELECT (gestionnaire: required | formateur+permission: optional) ════ --}}
+            @if($canSelectModule)
+            <div id="module-row">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <label class="tt-modal-label" style="margin:0;">
+                        Module
+                        @if($isGestionnaire)
+                            <span style="color:#ef4444; font-size:10px;">*</span>
+                        @else
+                            <span style="font-size:8px; color:#94a3b8; font-weight:400; text-transform:none; letter-spacing:0;">(optionnel)</span>
+                        @endif
+                    </label>
+                    <span id="avail-loading-module" style="font-size:9px; color:#64748b; display:none;">chargement…</span>
+                </div>
+                <select name="id_module" id="m-module"
+                        {{ $isGestionnaire ? 'required' : '' }}
+                        onchange="updateModuleProgress()"
+                        class="tt-modal-input">
+                    <option value="">— Sélectionner un module —</option>
+                </select>
+
+                {{-- Mini progress bar inside modal --}}
+                <div id="module-progress-wrap" style="display:none; margin-top:8px; padding:8px 10px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+                    <div style="display:flex; justify-content:space-between; font-size:9px; color:#475569; margin-bottom:5px;">
+                        <span style="font-weight:700;">Progression du module</span>
+                        <span id="module-progress-pct" style="font-weight:800; color:{{ $accentColor }};">0%</span>
+                    </div>
+                    <div style="height:5px; background:#e2e8f0; border-radius:99px; overflow:hidden;">
+                        <div id="module-progress-bar" style="height:100%; width:0%; background:{{ $accentColor }}; border-radius:99px; transition:width 0.4s;"></div>
+                    </div>
+                    <div style="font-size:8px; color:#64748b; margin-top:4px; display:flex; justify-content:space-between;">
+                        <span id="module-progress-label">0h planifiées</span>
+                        <span id="module-progress-total">0h total</span>
+                    </div>
+                </div>
             </div>
+            @endif
+
+            @if($canCreate || $canEdit)
+            <div style="font-size:9px; color:#64748b; background:#f8fafc; border-radius:8px; padding:8px 12px; line-height:1.8;">
+                S1 08:30→11:00 &nbsp;·&nbsp; S2 11:00→13:30 &nbsp;·&nbsp; S3 13:30→16:00 &nbsp;·&nbsp; S4 16:00→18:30
+            </div>
+            @endif
 
             <div style="display:flex; gap:10px; margin-top:4px;">
-                <button type="button" onclick="closeModal()"
-                        style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
-                               background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;"
-                        onmouseover="this.style.background='#f8fafc'"
-                        onmouseout="this.style.background='white'">
-                    Annuler
-                </button>
-                <button type="submit" id="btn-submit"
-                        style="flex:1; height:44px; border-radius:12px; border:none;
-                               background:{{ $accentColor }}; font-size:13px; font-weight:700;
-                               color:white; cursor:pointer; box-shadow:0 4px 12px {{ $accentColor }}40; transition:background 0.2s;"
-                        onmouseover="this.style.opacity='0.9'"
-                        onmouseout="this.style.opacity='1'">
+                <button type="button" onclick="closeModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Annuler</button>
+                <button type="submit" id="btn-submit" style="flex:1; height:44px; border-radius:12px; border:none; background:{{ $accentColor }}; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px {{ $accentColor }}40; transition:background 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                     Enregistrer
                 </button>
             </div>
@@ -952,6 +857,12 @@ const SEANCE_LABELS  = ['S1','S2','S3','S4'];
 const ACCENT         = '{{ $accentColor }}';
 const AVAILABLE_URL  = '{{ route('emplois.available') }}';
 const emploisData    = @json($emploisJson);
+const CAN_SELECT_MODULE = {{ $canSelectModule ? 'true' : 'false' }};
+const IS_GESTIONNAIRE   = {{ $isGestionnaire ? 'true' : 'false' }};
+
+// Module progress: "groupeId_moduleId" => hours done
+@php $progressFlat2 = []; foreach ($moduleProgress as $gId => $mods) { foreach ($mods as $mId => $h) { $progressFlat2[$gId.'_'.$mId] = round($h, 2); } } @endphp
+const moduleProgressData = @json($progressFlat2);
 
 let _slotGroupeId  = null;
 let _slotDate      = null;
@@ -963,16 +874,15 @@ let _currentMode   = 'presentiel';
 let _allFormateurs = @json($formateurs->map(fn($f) => ['id'=>$f->id,'name'=>$f->name]));
 let _allSalles     = @json($salles->map(fn($s) => ['id'=>$s->id,'name'=>$s->name,'capacity'=>$s->capacity]));
 
+// ── Mode toggle ──────────────────────────────────────────────
 function setMode(mode) {
     _currentMode = mode;
     document.getElementById('m-mode').value = mode;
-
     const btnPres  = document.getElementById('btn-pres');
     const btnDist  = document.getElementById('btn-dist');
     const salleRow = document.getElementById('salle-row');
     const lienRow  = document.getElementById('lien-row');
     const submit   = document.getElementById('btn-submit');
-
     if (mode === 'distance') {
         btnPres.className = 'mode-btn';
         btnDist.className = 'mode-btn active-dist';
@@ -993,6 +903,7 @@ function setMode(mode) {
     loadAvailable();
 }
 
+// ── Preview bar ──────────────────────────────────────────────
 function updatePreview(seanceIdx, duration) {
     let totalH = 0;
     for (let i = 1; i <= 4; i++) {
@@ -1005,65 +916,99 @@ function updatePreview(seanceIdx, duration) {
     const endIdx = Math.min(seanceIdx + duration, 4);
     document.getElementById('prev-start').textContent = SEANCE_STARTS[seanceIdx];
     document.getElementById('prev-end').textContent   = SEANCE_ENDS[endIdx - 1] || '18:30';
-    document.getElementById('prev-label').textContent =
-        totalH + 'h · ' + duration + ' séance' + (duration > 1 ? 's' : '');
+    document.getElementById('prev-label').textContent = totalH + 'h · ' + duration + ' séance' + (duration > 1 ? 's' : '');
 }
 
+// ── Populate select ──────────────────────────────────────────
 function populateSelect(selectId, items, labelFn, countSpanId, loadingSpanId) {
     const sel    = document.getElementById(selectId);
+    if (!sel) return;
     const curVal = sel.value;
     document.getElementById(loadingSpanId).style.display = 'none';
-
     const available = items.filter(i => i.available);
     const busy      = items.filter(i => !i.available);
-
     sel.innerHTML = '<option value="">— Sélectionner —</option>';
-
     if (available.length) {
         const grp = document.createElement('optgroup');
         grp.label = '✓ Disponibles (' + available.length + ')';
-        available.forEach(i => {
-            const o = document.createElement('option');
-            o.value = i.id; o.textContent = labelFn(i);
-            grp.appendChild(o);
-        });
+        available.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.textContent = labelFn(i); grp.appendChild(o); });
         sel.appendChild(grp);
     }
     if (busy.length) {
         const grp = document.createElement('optgroup');
         grp.label = '✗ Occupés (' + busy.length + ')';
-        busy.forEach(i => {
-            const o = document.createElement('option');
-            o.value = i.id; o.textContent = '✗ ' + labelFn(i);
-            o.disabled = true; o.style.color = '#cbd5e1';
-            grp.appendChild(o);
-        });
+        busy.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.textContent = '✗ ' + labelFn(i); o.disabled = true; o.style.color = '#cbd5e1'; grp.appendChild(o); });
         sel.appendChild(grp);
     }
-
     if (curVal) sel.value = curVal;
-
     const countEl = document.getElementById(countSpanId);
-    countEl.textContent = available.length + ' dispo.';
-    countEl.style.display = available.length < items.length ? 'inline' : 'none';
+    if (countEl) { countEl.textContent = available.length + ' dispo.'; countEl.style.display = available.length < items.length ? 'inline' : 'none'; }
 }
 
+// ── Populate module select ───────────────────────────────────
+function populateModuleSelect(modules) {
+    const sel = document.getElementById('m-module');
+    if (!sel) return;
+    const curVal = sel.value;
+    const loading = document.getElementById('avail-loading-module');
+    if (loading) loading.style.display = 'none';
+    sel.innerHTML = '<option value="">— Sélectionner un module —</option>';
+    modules.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.id;
+        o.textContent = m.name + ' (' + m.nbr_heure + 'h)';
+        o.dataset.nbrHeure = m.nbr_heure;
+        sel.appendChild(o);
+    });
+    if (curVal) sel.value = curVal;
+    updateModuleProgress();
+}
+
+// ── Module progress inside modal ─────────────────────────────
+function updateModuleProgress() {
+    const sel  = document.getElementById('m-module');
+    const wrap = document.getElementById('module-progress-wrap');
+    if (!sel || !wrap) return;
+
+    const moduleId = parseInt(sel.value);
+    if (!moduleId || !_slotGroupeId) { wrap.style.display = 'none'; return; }
+
+    const opt    = sel.options[sel.selectedIndex];
+    const totalH = parseFloat(opt.dataset.nbrHeure || 0);
+    const key    = _slotGroupeId + '_' + moduleId;
+    const doneH  = moduleProgressData[key] || 0;
+    const pct    = totalH > 0 ? Math.min(100, Math.round((doneH / totalH) * 100)) : 0;
+
+    wrap.style.display = 'block';
+    const bar = document.getElementById('module-progress-bar');
+    bar.style.width      = pct + '%';
+    bar.style.background = pct >= 100 ? '#22c55e' : ACCENT;
+    document.getElementById('module-progress-pct').textContent   = pct + '%';
+    document.getElementById('module-progress-pct').style.color   = pct >= 100 ? '#22c55e' : ACCENT;
+    document.getElementById('module-progress-label').textContent = doneH.toFixed(1) + 'h planifiées';
+    document.getElementById('module-progress-total').textContent = totalH + 'h total';
+}
+
+// ── Load available resources (formateurs + salles + modules) ──
 function loadAvailable() {
     if (!_slotGroupeId || !_slotDate || !_slotSeance) return;
-
-    const duration   = parseInt(document.getElementById('m-dur').value);
+    const duration   = parseInt(document.getElementById('m-dur') ? document.getElementById('m-dur').value : 1);
     const seanceIdx0 = _slotSeance - 1;
     const endIdx     = Math.min(seanceIdx0 + duration, 4);
 
-    document.getElementById('m-debut').value = _slotDate + 'T' + SEANCE_STARTS[seanceIdx0];
-    document.getElementById('m-fin').value   = _slotDate + 'T' + SEANCE_ENDS[endIdx - 1];
+    const debutEl = document.getElementById('m-debut');
+    const finEl   = document.getElementById('m-fin');
+    if (debutEl) debutEl.value = _slotDate + 'T' + SEANCE_STARTS[seanceIdx0];
+    if (finEl)   finEl.value   = _slotDate + 'T' + SEANCE_ENDS[endIdx - 1];
 
-    updatePreview(seanceIdx0, duration);
+    if (document.getElementById('prev-bar-1')) updatePreview(seanceIdx0, duration);
 
-    document.getElementById('avail-loading-user').style.display = 'inline';
-    if (_currentMode === 'presentiel') {
-        document.getElementById('avail-loading-salle').style.display = 'inline';
-    }
+    const loadingUser  = document.getElementById('avail-loading-user');
+    const loadingSalle = document.getElementById('avail-loading-salle');
+    const loadingMod   = document.getElementById('avail-loading-module');
+    if (loadingUser)  loadingUser.style.display  = 'inline';
+    if (loadingSalle && _currentMode === 'presentiel') loadingSalle.style.display = 'inline';
+    if (loadingMod)   loadingMod.style.display   = 'inline';
 
     clearTimeout(_fetchTimer);
     _fetchTimer = setTimeout(async () => {
@@ -1077,28 +1022,29 @@ function loadAvailable() {
         if (_editExcludeId) params.set('exclude_id', _editExcludeId);
 
         try {
-            const res  = await fetch(AVAILABLE_URL + '?' + params, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
+            const res  = await fetch(AVAILABLE_URL + '?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const data = await res.json();
 
-            populateSelect('m-user', data.formateurs,
-                f => f.name, 'avail-count-user', 'avail-loading-user');
-
-            if (_currentMode === 'presentiel') {
-                populateSelect('m-salle', data.salles,
-                    s => s.name + ' (cap. ' + s.capacity + ')',
-                    'avail-count-salle', 'avail-loading-salle');
+            if (document.getElementById('m-user')) {
+                populateSelect('m-user', data.formateurs, f => f.name, 'avail-count-user', 'avail-loading-user');
+            }
+            if (_currentMode === 'presentiel' && document.getElementById('m-salle')) {
+                populateSelect('m-salle', data.salles, s => s.name + ' (cap. ' + s.capacity + ')', 'avail-count-salle', 'avail-loading-salle');
+            }
+            if (CAN_SELECT_MODULE && data.modules) {
+                populateModuleSelect(data.modules);
             }
         } catch {
-            document.getElementById('avail-loading-user').style.display  = 'none';
-            document.getElementById('avail-loading-salle').style.display = 'none';
+            if (loadingUser)  loadingUser.style.display  = 'none';
+            if (loadingSalle) loadingSalle.style.display = 'none';
+            if (loadingMod)   loadingMod.style.display   = 'none';
         }
     }, 250);
 }
 
 function onDurationChange() { loadAvailable(); }
 
+// ── Open from cell click ─────────────────────────────────────
 function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     _slotGroupeId  = groupeId;
     _slotDate      = dateStr;
@@ -1110,43 +1056,21 @@ function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     document.getElementById('form-method').value          = 'POST';
     document.getElementById('m-groupe-hidden').value      = groupeId;
     document.getElementById('m-groupe-row').style.display = 'none';
-    document.getElementById('m-dur').value                = '1';
+    if (document.getElementById('m-dur')) document.getElementById('m-dur').value = '1';
     document.getElementById('modal-slot-info').textContent =
         dateStr + ' · ' + (SEANCE_LABELS[seanceNum-1]||'S'+seanceNum) + ' · ' + SEANCE_STARTS[seanceNum-1];
 
-    setMode('presentiel');
+    const modWrap = document.getElementById('module-progress-wrap');
+    if (modWrap) modWrap.style.display = 'none';
+    const modSel = document.getElementById('m-module');
+    if (modSel) modSel.innerHTML = '<option value="">— Sélectionner un module —</option>';
+
+    if (document.getElementById('btn-pres')) setMode('presentiel');
     loadAvailable();
     showModal();
 }
 
-function openModal() {
-    _slotGroupeId  = null;
-    _slotDate      = null;
-    _slotSeance    = null;
-    _editExcludeId = null;
-
-    document.getElementById('modal-title').textContent    = 'Nouvelle séance';
-    document.getElementById('emploi-form').action         = '{{ route('emplois.store') }}';
-    document.getElementById('form-method').value          = 'POST';
-    document.getElementById('m-groupe-hidden').value      = '';
-    document.getElementById('m-groupe-row').style.display = 'block';
-    document.getElementById('modal-slot-info').textContent = '';
-    document.getElementById('m-debut').value              = '';
-    document.getElementById('m-fin').value                = '';
-    document.getElementById('m-dur').value                = '1';
-
-    setMode('presentiel');
-    updatePreview(0, 1);
-
-    populateSelect('m-user',  _allFormateurs.map(f => ({...f, available:true})),
-        f => f.name, 'avail-count-user', 'avail-loading-user');
-    populateSelect('m-salle', _allSalles.map(s => ({...s, available:true})),
-        s => s.name + ' (cap. ' + s.capacity + ')',
-        'avail-count-salle', 'avail-loading-salle');
-
-    showModal();
-}
-
+// ── Edit existing ────────────────────────────────────────────
 function openEditModal(id) {
     const e = emploisData.find(x => x.id === id);
     if (!e) return;
@@ -1169,57 +1093,59 @@ function openEditModal(id) {
     document.getElementById('m-groupe-hidden').value      = e.id_groupe;
     document.getElementById('m-groupe-row').style.display = 'none';
     document.getElementById('modal-slot-info').textContent = dateStr + ' · ' + (SEANCE_LABELS[seanceNum-1]||'S'+seanceNum);
-    document.getElementById('m-debut').value = e.date_debut;
-    document.getElementById('m-fin').value   = e.date_fin;
-    document.getElementById('m-dur').value   = String(duration);
 
-    setMode(e.mode || 'presentiel');
-    document.getElementById('m-lien').value = e.lien_distance || '';
+    if (document.getElementById('m-debut')) {
+        document.getElementById('m-debut').value = e.date_debut;
+        document.getElementById('m-fin').value   = e.date_fin;
+    }
+    if (document.getElementById('m-dur')) document.getElementById('m-dur').value = String(duration);
 
-    updatePreview(seanceNum - 1, duration);
+    if (document.getElementById('btn-pres')) {
+        setMode(e.mode || 'presentiel');
+        if (document.getElementById('m-lien')) document.getElementById('m-lien').value = e.lien_distance || '';
+        if (document.getElementById('prev-bar-1')) updatePreview(seanceNum - 1, duration);
+    }
+
     loadAvailable();
     showModal();
 
-    const prevUser  = e.id_user;
-    const prevSalle = e.id_salle;
+    // Restore previous values after AJAX populates selects
+    const prevUser   = e.id_user;
+    const prevSalle  = e.id_salle;
+    const prevModule = e.id_module;
     setTimeout(() => {
-        if (prevUser)  document.getElementById('m-user').value  = prevUser;
-        if (prevSalle) document.getElementById('m-salle').value = prevSalle;
-    }, 400);
+        if (prevUser  && document.getElementById('m-user'))   document.getElementById('m-user').value   = prevUser;
+        if (prevSalle && document.getElementById('m-salle'))  document.getElementById('m-salle').value  = prevSalle;
+        if (prevModule && document.getElementById('m-module')) {
+            document.getElementById('m-module').value = prevModule;
+            updateModuleProgress();
+        }
+    }, 450);
 }
 
 function showModal()  { document.getElementById('emploi-modal').classList.add('open');    }
 function closeModal() { document.getElementById('emploi-modal').classList.remove('open'); }
 
+// ── Delete modal ─────────────────────────────────────────────
 function openDeleteModal(action, groupe, module, date, span, heureDebut, heureFin, salle) {
     document.getElementById('delete-form').action = action;
     document.getElementById('delete-session-label').textContent = groupe + ' — ' + module;
-    document.getElementById('delete-session-meta').textContent  =
-        date + ' · ' + span + ' · ' + heureDebut + ' → ' + heureFin + ' · ' + salle;
-
+    document.getElementById('delete-session-meta').textContent  = date + ' · ' + span + ' · ' + heureDebut + ' → ' + heureFin + ' · ' + salle;
     const modal = document.getElementById('delete-modal');
     modal.style.display = 'flex';
     requestAnimationFrame(() => modal.style.opacity = '1');
 }
+function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; }
 
-function closeDeleteModal() {
-    document.getElementById('delete-modal').style.display = 'none';
-}
-
+// ── Lien modal ────────────────────────────────────────────────
 function openLienModal(id, currentLien, groupeLabel, dateMeta) {
     document.getElementById('lien-form').action  = '/emplois/' + id + '/lien';
     document.getElementById('lien-input').value  = currentLien || '';
     document.getElementById('lien-session-label').textContent = groupeLabel || 'Séance';
     document.getElementById('lien-session-meta').textContent  = dateMeta   || '';
-
-    const modal = document.getElementById('lien-modal');
-    modal.style.display = 'flex';
+    document.getElementById('lien-modal').style.display = 'flex';
 }
-
-function closeLienModal() {
-    document.getElementById('lien-modal').style.display = 'none';
-}
-
+function closeLienModal() { document.getElementById('lien-modal').style.display = 'none'; }
 function submitLien() {
     document.getElementById('lien-hidden').value = document.getElementById('lien-input').value;
     document.getElementById('lien-form').submit();

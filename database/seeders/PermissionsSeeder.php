@@ -21,13 +21,14 @@ class PermissionsSeeder extends Seeder
             'emploi-edit',            // ✎  Modifier une séance
             'emploi-delete',          // ✕  Supprimer une séance
             'emploi-lien',            // 🔗 Modifier le lien de réunion (distance)
+            'emploi-change-module',   // 📚 Modifier le module d'une séance (formateur optionnel)
 
             // Utilisateurs
             'user-list',
             'user-create',
             'user-edit',
             'user-delete',
-            'stagiaire-list',   // 👥 Voir la liste des stagiaires par filière/groupe
+            'stagiaire-list',         // 👥 Voir la liste des stagiaires par filière/groupe
 
             // Groupes & Filières
             'groupe-list',
@@ -64,22 +65,24 @@ class PermissionsSeeder extends Seeder
             'emploi-create',
             'emploi-edit',
             'emploi-delete',
+            'emploi-change-module',   // ← gestionnaire peut changer le module
             'user-list',
             'user-create',
             'user-edit',
             'groupe-list',
             'groupe-create',
             'groupe-edit',
-            'stagiaire-list',   // ← ADD THIS
-            'edu-view',               // ← voir la page EDU
-            'edu-import',             // ← importer des stagiaires
+            'stagiaire-list',
+            'edu-view',
+            'edu-import',
         ]);
 
-        // ── Formateur — ses séances + lien réunion ────────────
+        // ── Formateur — ses séances + lien + module (optionnel) ──
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
         $formateurRole->syncPermissions([
             'emploi-view',            // ← voit seulement ses propres séances
             'emploi-lien',            // ← peut modifier ses liens de réunion
+            // 'emploi-change-module' ← NON par défaut, à donner manuellement si besoin
             'user-list',
             'groupe-list',
         ]);
