@@ -15,6 +15,14 @@
     $canChangeModule = Auth::user()->hasPermissionTo('emploi-change-module');
     $canSelectModule = Auth::user()->hasPermissionTo('emploi-view-all-groups') || $canChangeModule;
     $isGestionnaire  = Auth::user()->hasPermissionTo('emploi-view-all-groups');
+    $canReport = Auth::user()->hasPermissionTo('reportation-create');
+    // Pass existing pending requests so we can grey out already-reported sessions
+    $pendingReportIds = $canReport
+        ? \App\Models\Reportation::where('id_user', Auth::id())
+            ->where('status', 'en_attente')
+            ->pluck('id_emplois_du_temps')
+            ->toArray()
+        : [];
 
     $isStagiaire = Auth::user()->role === 'stagiaire';
 
@@ -492,22 +500,49 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                                 onclick="openEditModal({{ $emploi->id }})">✎</button>
                                     @endif
 
-                                    @if($canDelete)
-                                        <form method="POST" action="{{ route('emplois.destroy', $emploi) }}" style="display:inline;">
-                                            @csrf @method('DELETE')
-                                            <button class="tt-btn-del"
-                                                    onclick="openDeleteModal(
-                                                        '{{ route('emplois.destroy', $emploi) }}',
-                                                        '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
-                                                        '{{ addslashes($emploi->module->name ?? 'Module') }}',
-                                                        '{{ $emploi->date_debut->translatedFormat('l d M') }}',
-                                                        '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                                        '{{ $emploi->date_debut->format('H:i') }}',
-                                                        '{{ $emploi->date_fin->format('H:i') }}',
-                                                        '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
-                                                    )">✕</button>
-                                        </form>
-                                    @endif
+
+
+@if($canReport && $emploi->id_user === Auth::user()->id)
+    @php $alreadyPending = in_array($emploi->id, $pendingReportIds); @endphp
+    @if($alreadyPending)
+        <span class="tt-btn-edit"
+              style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;"
+              title="Demande déjà en attente">
+            ⏳
+        </span>
+    @else
+        <button class="tt-btn-edit"
+                style="background:#f5f3ff; color:#6d28d9;"
+                onclick="openReportModal(
+                    {{ $emploi->id }},
+                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
+                    '{{ $emploi->date_debut->translatedFormat('l d M Y') }}',
+                    '{{ $emploi->date_debut->format('Y-m-d') }}',
+                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                    '{{ $emploi->date_debut->format('H:i') }}',
+                    '{{ $emploi->date_fin->format('H:i') }}'
+                )"
+                title="Demander un report">
+            📋 Reporter
+        </button>
+    @endif
+@endif
+
+
+
+@if($canDelete)
+    <button type="button" class="tt-btn-del"
+            onclick="openDeleteModal(
+                '{{ route('emplois.destroy', $emploi) }}',
+                '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
+                '{{ addslashes($emploi->module->name ?? 'Module') }}',
+                '{{ $emploi->date_debut->translatedFormat('l d M') }}',
+                '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                '{{ $emploi->date_debut->format('H:i') }}',
+                '{{ $emploi->date_fin->format('H:i') }}',
+                '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
+            )">✕</button>
+@endif
 
                                     @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
                                         <button class="tt-btn-edit"
@@ -675,6 +710,97 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </form>
     </div>
 </div>
+
+ 
+@if($canReport)
+<div id="report-modal" style="display:none; position:fixed; inset:0; z-index:60;
+     background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
+     align-items:center; justify-content:center;"
+     onclick="if(event.target===this)closeReportModal()">
+    <div style="background:white; border-radius:20px; width:100%; max-width:440px;
+                margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
+ 
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    margin-bottom:16px; padding-bottom:14px; border-bottom:2px solid #7c3aed;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:42px; height:42px; border-radius:12px; background:#f5f3ff;
+                            display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="20" height="20" fill="none" stroke="#7c3aed" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#1e293b;">Demander un report</div>
+                    <div id="report-session-label" style="font-size:10px; color:#64748b; margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeReportModal()"
+                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
+                           color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+ 
+        {{-- Current session banner --}}
+        <div style="padding:10px 14px; border-radius:10px; background:#fef3c7;
+                    border:1px solid #fde68a; margin-bottom:16px;
+                    display:flex; align-items:center; gap:8px; font-size:11px; color:#92400e;">
+            📅 <span>Séance actuelle : <strong id="report-current-date"></strong> · <span id="report-current-time"></span></span>
+        </div>
+ 
+        <form id="report-form" method="POST" action="{{ route('reportations.store') }}"
+              style="display:flex; flex-direction:column; gap:14px;">
+            @csrf
+            <input type="hidden" name="id_emplois_du_temps" id="report-emploi-id">
+ 
+            <div>
+                <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
+                              letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">
+                    Raison du report <span style="color:#ef4444;">*</span>
+                </label>
+                <textarea name="raison" id="report-raison" required minlength="10" maxlength="1000" rows="4"
+                          placeholder="Expliquez pourquoi cette séance doit être reportée…"
+                          style="width:100%; padding:10px 12px; border-radius:10px; border:1.5px solid #e2e8f0;
+                                 background:#f8fafc; font-size:13px; color:#1e293b; outline:none;
+                                 resize:vertical; box-sizing:border-box; font-family:inherit; line-height:1.5;"
+                          onfocus="this.style.borderColor='#7c3aed';this.style.background='white';"
+                          onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc';"></textarea>
+                <div style="display:flex; justify-content:space-between; margin-top:3px;">
+                    <p style="font-size:9px; color:#94a3b8; margin:0;">Minimum 10 caractères</p>
+                    <span id="report-raison-count" style="font-size:9px; color:#94a3b8;">0 / 1000</span>
+                </div>
+            </div>
+ 
+            <div style="padding:10px 14px; border-radius:10px; background:#f5f3ff; border:1px solid #ddd6fe;
+                        font-size:11px; color:#5b21b6; display:flex; align-items:flex-start; gap:8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                L'administration choisira la nouvelle date après validation de votre demande.
+            </div>
+ 
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button type="button" onclick="closeReportModal()"
+                        style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
+                               background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">
+                    Annuler
+                </button>
+                <button type="submit"
+                        style="flex:2; height:44px; border-radius:12px; border:none;
+                               background:#7c3aed; font-size:13px; font-weight:700; color:white; cursor:pointer;
+                               box-shadow:0 4px 12px rgba(124,58,237,0.35);
+                               display:flex; align-items:center; justify-content:center; gap:6px;"
+                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                    Envoyer la demande
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+ 
 
 </div>{{-- .tt-wrap --}}
 
@@ -1149,6 +1275,54 @@ function closeLienModal() { document.getElementById('lien-modal').style.display 
 function submitLien() {
     document.getElementById('lien-hidden').value = document.getElementById('lien-input').value;
     document.getElementById('lien-form').submit();
+}
+
+
+
+
+// ── Report modal ──────────────────────────────────────────
+function openReportModal(emploiId, sessionLabel, dateLabel, dateStr, spanLabel, heureDebut, heureFin) {
+    document.getElementById('report-emploi-id').value   = emploiId;
+    document.getElementById('report-session-label').textContent = sessionLabel;
+    document.getElementById('report-current-date').textContent  = dateLabel;
+    document.getElementById('report-current-time').textContent  = spanLabel + ' · ' + heureDebut + ' → ' + heureFin;
+ 
+    // Pre-fill proposed date with current session date as starting point
+    const debutEl = document.getElementById('report-debut');
+    const finEl   = document.getElementById('report-fin');
+    if (dateStr) {
+        // Default to same time next week
+        const d = new Date(dateStr + 'T' + heureDebut);
+        d.setDate(d.getDate() + 7);
+        const pad  = n => String(n).padStart(2, '0');
+        const fmt  = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        if (debutEl) debutEl.value = fmt(d);
+        // fin = debut + same duration as original
+        const [dh, dm] = heureDebut.split(':').map(Number);
+        const [fh, fm] = heureFin.split(':').map(Number);
+        const durMin = (fh * 60 + fm) - (dh * 60 + dm);
+        const df = new Date(d.getTime() + durMin * 60000);
+        if (finEl) finEl.value = fmt(df);
+    }
+ 
+    // Reset textarea
+    const ta = document.getElementById('report-raison');
+    if (ta) { ta.value = ''; document.getElementById('report-raison-count').textContent = '0 / 1000'; }
+ 
+    const modal = document.getElementById('report-modal');
+    modal.style.display = 'flex';
+}
+ 
+function closeReportModal() {
+    document.getElementById('report-modal').style.display = 'none';
+}
+ 
+// Character counter for textarea
+const reportRaison = document.getElementById('report-raison');
+if (reportRaison) {
+    reportRaison.addEventListener('input', function() {
+        document.getElementById('report-raison-count').textContent = this.value.length + ' / 1000';
+    });
 }
 </script>
 

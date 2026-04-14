@@ -115,6 +115,7 @@ class EmploiDuTempsController extends Controller
             $allScheduled = EmploiDuTemps::whereIn('id_groupe', $groupes->pluck('id'))
                 ->whereIn('statut', ['actif', 'brouillon'])
                 ->whereNotNull('id_module')
+                ->where('date_fin', '<=', Carbon::now()) // ← only sessions already finished
                 ->get(['id_groupe', 'id_module', 'date_debut', 'date_fin']);
 
             foreach ($allScheduled as $e) {

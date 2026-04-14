@@ -65,18 +65,33 @@
         @else
             @php
                 $grouped = $rolePermissions->groupBy(fn($p) => explode('-', $p->name)[0]);
+
                 $groupLabels = [
-                    'emploi'  => ['label'=>'Emploi du temps',   'color'=>'#2563eb','bg'=>'#eff6ff'],
-                    'user'    => ['label'=>'Utilisateurs',       'color'=>'#16a34a','bg'=>'#f0fdf4'],
-                    'groupe'  => ['label'=>'Groupes & Filières', 'color'=>'#9333ea','bg'=>'#fdf4ff'],
-                    'edu'     => ['label'=>'Import EDU',          'color'=>'#ea580c','bg'=>'#fff7ed'],
-                    'role'    => ['label'=>'Rôles & Permissions', 'color'=>'#dc2626','bg'=>'#fff1f2'],
+                    'emploi'      => ['label' => 'Emploi du temps',     'color' => '#2563eb', 'bg' => '#eff6ff'],
+                    'user'        => ['label' => 'Utilisateurs',         'color' => '#16a34a', 'bg' => '#f0fdf4'],
+                    'stagiaire'   => ['label' => 'Stagiaires',           'color' => '#0891b2', 'bg' => '#ecfeff'],
+                    'groupe'      => ['label' => 'Groupes & Filières',   'color' => '#9333ea', 'bg' => '#fdf4ff'],
+                    'edu'         => ['label' => 'Import EDU',           'color' => '#ea580c', 'bg' => '#fff7ed'],
+                    'role'        => ['label' => 'Rôles & Permissions',  'color' => '#dc2626', 'bg' => '#fff1f2'],
+                    'reportation' => ['label' => 'Reportations',         'color' => '#7c3aed', 'bg' => '#f5f3ff'],
                 ];
-                $actionLabels = ['list'=>'Voir','create'=>'Créer','edit'=>'Modifier','delete'=>'Supprimer','import'=>'Importer','view'=>'Consulter'];
+
+                $actionLabels = [
+                    'list'    => 'Voir',
+                    'create'  => 'Créer',
+                    'edit'    => 'Modifier',
+                    'delete'  => 'Supprimer',
+                    'import'  => 'Importer',
+                    'view'    => 'Consulter',
+                    'manage'  => 'Gérer',
+                    'lien'    => 'Liens réunion',
+                    'change'  => 'Changer module',
+                ];
             @endphp
+
             <div style="display:flex; flex-direction:column; gap:10px;">
                 @foreach($grouped as $group => $perms)
-                    @php $g = $groupLabels[$group] ?? ['label'=>ucfirst($group),'color'=>'#64748b','bg'=>'#f8fafc']; @endphp
+                    @php $g = $groupLabels[$group] ?? ['label' => ucfirst($group), 'color' => '#64748b', 'bg' => '#f8fafc']; @endphp
                     <div style="border-radius:12px; overflow:hidden; border:1px solid {{ $g['color'] }}20;">
                         <div style="padding:8px 14px; background:{{ $g['bg'] }}; font-size:11px;
                                     font-weight:700; color:{{ $g['color'] }};">
@@ -84,10 +99,16 @@
                         </div>
                         <div style="padding:10px 14px; display:flex; flex-wrap:wrap; gap:6px; background:white;">
                             @foreach($perms as $perm)
-                                @php $action = explode('-', $perm->name)[1] ?? $perm->name; @endphp
+                                @php
+                                    $parts  = explode('-', $perm->name);
+                                    $action = $parts[1] ?? $perm->name;
+                                    $suffix = $parts[2] ?? null;
+                                    $label  = $actionLabels[$action] ?? ucfirst($action);
+                                    if ($suffix) $label .= ' ' . ucfirst($suffix);
+                                @endphp
                                 <span style="font-size:11px; font-weight:700; padding:4px 12px;
                                              border-radius:8px; background:{{ $g['bg'] }}; color:{{ $g['color'] }};">
-                                    ✓ {{ $actionLabels[$action] ?? ucfirst($action) }}
+                                    ✓ {{ $label }}
                                 </span>
                             @endforeach
                         </div>

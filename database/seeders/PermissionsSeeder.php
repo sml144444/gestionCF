@@ -45,6 +45,10 @@ class PermissionsSeeder extends Seeder
             'role-create',
             'role-edit',
             'role-delete',
+
+            // Reportations
+            'reportation-create',     // 📋 Formateur : soumettre une demande de report
+            'reportation-manage',     // ✅ Admin/Gestionnaire : accepter / refuser
         ];
 
         foreach ($permissions as $perm) {
@@ -65,7 +69,7 @@ class PermissionsSeeder extends Seeder
             'emploi-create',
             'emploi-edit',
             'emploi-delete',
-            'emploi-change-module',   // ← gestionnaire peut changer le module
+            'emploi-change-module',
             'user-list',
             'user-create',
             'user-edit',
@@ -75,22 +79,24 @@ class PermissionsSeeder extends Seeder
             'stagiaire-list',
             'edu-view',
             'edu-import',
+            'reportation-manage',     // ← gérer les demandes de report
         ]);
 
-        // ── Formateur — ses séances + lien + module (optionnel) ──
+        // ── Formateur — ses séances + lien + module + report ──
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
         $formateurRole->syncPermissions([
-            'emploi-view',            // ← voit seulement ses propres séances
-            'emploi-lien',            // ← peut modifier ses liens de réunion
-            // 'emploi-change-module' ← NON par défaut, à donner manuellement si besoin
+            'emploi-view',
+            'emploi-lien',
+            // 'emploi-change-module' ← NON par défaut
             'user-list',
             'groupe-list',
+            'reportation-create',     // ← soumettre une demande de report
         ]);
 
         // ── Stagiaire — son groupe seulement ──────────────────
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
         $stagiaireRole->syncPermissions([
-            'emploi-view',            // ← voit seulement son groupe
+            'emploi-view',
         ]);
 
         // ── Assignation des rôles Spatie aux users existants ──

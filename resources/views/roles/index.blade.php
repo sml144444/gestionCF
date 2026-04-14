@@ -33,7 +33,6 @@
         <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Rôles & Permissions</h1>
         <p style="font-size:12px; color:#64748b; margin:4px 0 0;">Gérez les rôles et leurs permissions associées</p>
     </div>
-    {{-- APRÈS : Vérification par rôle admin --}}
     @if(Auth::user()->role === 'admin')
     <a href="{{ route('roles.create') }}"
        style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
@@ -106,15 +105,16 @@
                         @foreach($role->permissions->sortBy('name') as $perm)
                             @php
                                 $prefix = explode('-', $perm->name)[0];
-                                $action = explode('-', $perm->name)[1] ?? '';
                                 $permColors = [
-                                    'emploi'    => ['bg'=>'#eff6ff','text'=>'#1e40af'],
-                                    'user'      => ['bg'=>'#f0fdf4','text'=>'#166534'],
-                                    'groupe'    => ['bg'=>'#fdf4ff','text'=>'#6b21a8'],
-                                    'role'      => ['bg'=>'#fff1f2','text'=>'#9f1239'],
-                                    'edu'       => ['bg'=>'#fff7ed','text'=>'#9a3412'],
+                                    'emploi'      => ['bg' => '#eff6ff', 'text' => '#1e40af'],
+                                    'user'        => ['bg' => '#f0fdf4', 'text' => '#166534'],
+                                    'stagiaire'   => ['bg' => '#ecfeff', 'text' => '#0e7490'],
+                                    'groupe'      => ['bg' => '#fdf4ff', 'text' => '#6b21a8'],
+                                    'role'        => ['bg' => '#fff1f2', 'text' => '#9f1239'],
+                                    'edu'         => ['bg' => '#fff7ed', 'text' => '#9a3412'],
+                                    'reportation' => ['bg' => '#f5f3ff', 'text' => '#5b21b6'],
                                 ];
-                                $pc = $permColors[$prefix] ?? ['bg'=>'#f8fafc','text'=>'#334155'];
+                                $pc = $permColors[$prefix] ?? ['bg' => '#f8fafc', 'text' => '#334155'];
                             @endphp
                             <span style="font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px;
                                          background:{{ $pc['bg'] }}; color:{{ $pc['text'] }};">
@@ -125,7 +125,7 @@
                 @endif
             </div>
 
-            {{-- APRÈS : Actions avec vérification par rôle admin --}}
+            {{-- Actions --}}
             <div style="padding:12px 18px; border-top:1px solid #f1f5f9;
                         display:flex; align-items:center; gap:8px;">
                 @if(Auth::user()->role === 'admin')
@@ -184,7 +184,7 @@
             </div>
             <button onclick="closeDeleteRoleModal()"
                     style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
-                           color:#64748b;font-size:16px;cursor:pointer;">×</button>
+                           color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
         <div style="font-size:12px; color:#9f1239; line-height:1.6; margin-bottom:18px;
                     padding:12px 14px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3;">
@@ -193,7 +193,8 @@
         <div style="display:flex; gap:10px;">
             <button onclick="closeDeleteRoleModal()"
                     style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
-                           background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">
+                           background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;"
+                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                 Annuler
             </button>
             <form id="delete-role-form" method="POST" style="flex:1;">

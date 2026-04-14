@@ -150,3 +150,37 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
         ->name('stagiaire.index')
         ->middleware('can:stagiaire-list');
 });
+
+
+
+Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+ 
+    // Formateur: submit a request
+    Route::post('/reportations', [\App\Http\Controllers\ReportationController::class, 'store'])
+        ->name('reportations.store')
+        ->middleware('can:reportation-create');
+ 
+    // Formateur: view their OWN requests (separate route = no 403)
+    Route::get('/reportations/mes', [\App\Http\Controllers\ReportationController::class, 'myIndex'])
+        ->name('reportations.my')
+        ->middleware('can:reportation-create');
+ 
+    // Admin/gestionnaire: view ALL requests
+    Route::get('/reportations', [\App\Http\Controllers\ReportationController::class, 'index'])
+        ->name('reportations.index')
+        ->middleware('can:reportation-manage');
+ 
+    // Admin picks new date and accepts
+    Route::post('/reportations/{reportation}/accept', [\App\Http\Controllers\ReportationController::class, 'accept'])
+        ->name('reportations.accept')
+        ->middleware('can:reportation-manage');
+ 
+    Route::post('/reportations/{reportation}/refuse', [\App\Http\Controllers\ReportationController::class, 'refuse'])
+        ->name('reportations.refuse')
+        ->middleware('can:reportation-manage');
+ 
+    Route::post('/reportations/{reportation}/delete-session', [\App\Http\Controllers\ReportationController::class, 'deleteSession'])
+        ->name('reportations.delete-session')
+        ->middleware('can:reportation-manage');
+});
+ 

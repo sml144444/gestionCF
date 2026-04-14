@@ -23,8 +23,8 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
             
-            $table->dateTime('nouvelle_date_debut');
-            $table->dateTime('nouvelle_date_fin');
+            $table->dateTime('nouvelle_date_debut')->nullable();
+            $table->dateTime('nouvelle_date_fin')->nullable();
             
             $table->text('raison')->nullable();
             

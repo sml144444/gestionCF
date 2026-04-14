@@ -73,46 +73,75 @@
 
             @php
                 $groupLabels = [
-                    'emploi' => ['label'=>'Emploi du temps',   'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z','color'=>'#2563eb','bg'=>'#eff6ff'],
-                    'user'   => ['label'=>'Utilisateurs',       'icon'=>'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v2h5M7 20v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z','color'=>'#16a34a','bg'=>'#f0fdf4'],
-                    'groupe' => ['label'=>'Groupes & Filières', 'icon'=>'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10','color'=>'#9333ea','bg'=>'#fdf4ff'],
-                    'edu'    => ['label'=>'Import EDU',          'icon'=>'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12','color'=>'#ea580c','bg'=>'#fff7ed'],
-                    'role'   => ['label'=>'Rôles & Permissions', 'icon'=>'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z','color'=>'#dc2626','bg'=>'#fff1f2'],
+                    'emploi' => [
+                        'label' => 'Emploi du temps',
+                        'icon'  => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+                        'color' => '#2563eb', 'bg' => '#eff6ff',
+                    ],
+                    'user' => [
+                        'label' => 'Utilisateurs',
+                        'icon'  => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v2h5M7 20v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+                        'color' => '#16a34a', 'bg' => '#f0fdf4',
+                    ],
+                    'stagiaire' => [
+                        'label' => 'Stagiaires',
+                        'icon'  => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+                        'color' => '#0891b2', 'bg' => '#ecfeff',
+                    ],
+                    'groupe' => [
+                        'label' => 'Groupes & Filières',
+                        'icon'  => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+                        'color' => '#9333ea', 'bg' => '#fdf4ff',
+                    ],
+                    'edu' => [
+                        'label' => 'Import EDU',
+                        'icon'  => 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
+                        'color' => '#ea580c', 'bg' => '#fff7ed',
+                    ],
+                    'role' => [
+                        'label' => 'Rôles & Permissions',
+                        'icon'  => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+                        'color' => '#dc2626', 'bg' => '#fff1f2',
+                    ],
+                    'reportation' => [
+                        'label' => 'Reportations',
+                        'icon'  => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+                        'color' => '#7c3aed', 'bg' => '#f5f3ff',
+                    ],
                 ];
-                
-                // Labels personnalisés pour chaque permission
+
                 $customLabels = [
                     // Emploi du temps
-                    'emploi-view' => '📅 Consulter son planning',
-                    'emploi-view-all-groups' => '👑 Consulter tous les groupes',
-                    'emploi-create' => '➕ Créer une séance',
-                    'emploi-edit' => '✏️ Modifier une séance',
-                    'emploi-delete' => '🗑️ Supprimer une séance',
-                    'emploi-lien' => '🔗 Gérer les liens de réunion',
-                    
+                    'emploi-view'             => '📅 Consulter son planning',
+                    'emploi-view-all-groups'  => '👑 Consulter tous les groupes',
+                    'emploi-create'           => '➕ Créer une séance',
+                    'emploi-edit'             => '✏️ Modifier une séance',
+                    'emploi-delete'           => '🗑️ Supprimer une séance',
+                    'emploi-lien'             => '🔗 Gérer les liens de réunion',
+                    'emploi-change-module'    => '📚 Changer le module d\'une séance',
                     // Utilisateurs
-                    'user-list' => '📋 Voir la liste des utilisateurs',
-                    'user-create' => '➕ Créer un utilisateur',
-                    'user-edit' => '✏️ Modifier un utilisateur',
-                    'user-delete' => '🗑️ Supprimer un utilisateur',
-                    
+                    'user-list'               => '📋 Voir la liste des utilisateurs',
+                    'user-create'             => '➕ Créer un utilisateur',
+                    'user-edit'               => '✏️ Modifier un utilisateur',
+                    'user-delete'             => '🗑️ Supprimer un utilisateur',
+                    // Stagiaires
+                    'stagiaire-list'          => '👥 Voir la liste des stagiaires',
                     // Groupes & Filières
-                    'groupe-list' => '📋 Voir les groupes',
-                    'groupe-create' => '➕ Créer un groupe',
-                    'groupe-edit' => '✏️ Modifier un groupe',
-                    'groupe-delete' => '🗑️ Supprimer un groupe',
-
-                    'stagiaire-list' => '👥 Voir la liste des stagiaires',
-                    
+                    'groupe-list'             => '📋 Voir les groupes',
+                    'groupe-create'           => '➕ Créer un groupe',
+                    'groupe-edit'             => '✏️ Modifier un groupe',
+                    'groupe-delete'           => '🗑️ Supprimer un groupe',
                     // Import EDU
-                    'edu-import' => '📥 Importer des données EDU',
-                    'edu-view' => '📋 Voir les imports',
-                    
+                    'edu-import'              => '📥 Importer des données EDU',
+                    'edu-view'                => '📋 Voir les imports',
                     // Rôles & Permissions
-                    'role-list' => '📋 Voir les rôles',
-                    'role-create' => '➕ Créer un rôle',
-                    'role-edit' => '✏️ Modifier un rôle',
-                    'role-delete' => '🗑️ Supprimer un rôle',
+                    'role-list'               => '📋 Voir les rôles',
+                    'role-create'             => '➕ Créer un rôle',
+                    'role-edit'               => '✏️ Modifier un rôle',
+                    'role-delete'             => '🗑️ Supprimer un rôle',
+                    // Reportations
+                    'reportation-create'      => '📋 Demander un report de séance',
+                    'reportation-manage'      => '✅ Gérer les reportations (accepter/refuser)',
                 ];
             @endphp
 
@@ -142,7 +171,7 @@
                     <div style="padding:12px 16px; display:flex; flex-wrap:wrap; gap:8px; background:white;">
                         @foreach($perms as $perm)
                             @php
-                                $aLabel = $customLabels[$perm->name] ?? ucfirst(str_replace('-', ' ', $perm->name));
+                                $aLabel    = $customLabels[$perm->name] ?? ucfirst(str_replace('-', ' ', $perm->name));
                                 $isChecked = in_array($perm->name, old('permission', []));
                             @endphp
                             <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer;
