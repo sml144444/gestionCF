@@ -175,6 +175,12 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-modal-label { display: block; font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
 .tt-modal-input { width: 100%; height: 42px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 13px; color: #1e293b; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
 .tt-modal-input:focus { border-color: {{ $accentColor }}; background: white; }
+
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+}
 </style>
 
 {{-- ════ FLASH ════ --}}
@@ -479,18 +485,29 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                 </div>
 
                                 {{-- ── Progress bar (shown when module has nbr_heure) ── --}}
-                                @if($progTotal > 0)
-                                <div class="card-progress">
-                                    <div class="card-progress-track">
-                                        <div class="card-progress-fill"
-                                             style="width:{{ $progPct }}%; background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};"></div>
-                                    </div>
-                                    <div class="card-progress-meta">
-                                        <span>{{ number_format($progDone, 1) }}h / {{ $progTotal }}h</span>
-                                        <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">{{ $progPct }}%</span>
-                                    </div>
-                                </div>
-                                @endif
+{{-- ── Progress bar: only on past or ongoing sessions ── --}}
+@if($progTotal > 0 && $emploi->date_debut->isPast())
+    @php
+        $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture();
+    @endphp
+    <div class="card-progress">
+        <div class="card-progress-track">
+            <div class="card-progress-fill"
+                 style="width:{{ $progPct }}%;
+                        background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};
+                        {{ $isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : '' }}">
+            </div>
+        </div>
+        <div class="card-progress-meta">
+            <span style="{{ $isOngoing ? 'color:#f59e0b; font-weight:700;' : '' }}">
+                {{ $isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h' }}
+            </span>
+            <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">
+                {{ $progPct }}%
+            </span>
+        </div>
+    </div>
+@endif
 
                                 @if($canEdit || $canDelete || $canLien || $canChangeModule)
                                 <div class="tt-actions">

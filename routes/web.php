@@ -184,3 +184,64 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
         ->middleware('can:reportation-manage');
 });
  
+
+
+use App\Http\Controllers\FiliereController;
+use App\Http\Controllers\GroupeController;
+
+// Filières — list/create/edit/delete sur la même page (pas de show séparé)
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/filieres', [FiliereController::class, 'index'])
+        ->name('filieres.index')
+        ->middleware('can:groupe-list');
+
+    Route::post('/filieres', [FiliereController::class, 'store'])
+        ->name('filieres.store')
+        ->middleware('can:groupe-create');
+
+    Route::patch('/filieres/{filiere}', [FiliereController::class, 'update'])
+        ->name('filieres.update')
+        ->middleware('can:groupe-edit');
+
+    Route::delete('/filieres/{filiere}', [FiliereController::class, 'destroy'])
+        ->name('filieres.destroy')
+        ->middleware('can:groupe-delete');
+
+    // Groupes
+    Route::get('/groupes', [GroupeController::class, 'index'])
+        ->name('groupes.index')
+        ->middleware('can:groupe-list');
+
+    Route::post('/groupes', [GroupeController::class, 'store'])
+        ->name('groupes.store')
+        ->middleware('can:groupe-create');
+
+    Route::patch('/groupes/{groupe}', [GroupeController::class, 'update'])
+        ->name('groupes.update')
+        ->middleware('can:groupe-edit');
+
+    Route::delete('/groupes/{groupe}', [GroupeController::class, 'destroy'])
+        ->name('groupes.destroy')
+        ->middleware('can:groupe-delete');
+});
+
+use App\Http\Controllers\ModuleController;
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/modules', [ModuleController::class, 'index'])
+        ->name('modules.index')
+        ->middleware('can:groupe-list');
+
+    Route::post('/modules', [ModuleController::class, 'store'])
+        ->name('modules.store')
+        ->middleware('can:groupe-create');
+
+    Route::patch('/modules/{module}', [ModuleController::class, 'update'])
+        ->name('modules.update')
+        ->middleware('can:groupe-edit');
+
+    Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])
+        ->name('modules.destroy')
+        ->middleware('can:groupe-delete');
+});
