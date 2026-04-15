@@ -8,7 +8,7 @@ class Module extends Model
 {
     protected $fillable = [
         'id_filiere', 'id_option', 'name',
-        'coefficience', 'nbr_heure', 'id_user', 'type',
+        'coefficience', 'nbr_heure', 'id_user', 'type','annee',
     ];
 
     public function filiere()

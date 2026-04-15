@@ -49,13 +49,18 @@ class ModuleController extends Controller
 
         // ── Real progress: hours already done (past sessions) per module ──
         // Sum minutes of all PAST sessions (date_fin <= now) grouped by module
-        $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
-            ->whereIn('statut', ['actif', 'brouillon'])
-            ->where('date_fin', '<=', Carbon::now())   // only finished sessions
-            ->selectRaw('id_module, SUM(TIMESTAMPDIFF(MINUTE, date_debut, date_fin)) as total_minutes')
-            ->groupBy('id_module')
-            ->pluck('total_minutes', 'id_module');     // [module_id => total_minutes]
-
+// APRÈS (correct — séparé par année de groupe)
+$moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
+    ->whereIn('statut', ['actif', 'brouillon'])
+    ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
+    ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
+    ->selectRaw('emplois_du_temps.id_module, groupes.annee as groupe_annee,
+                 SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) as total_minutes')
+    ->groupBy('emplois_du_temps.id_module', 'groupes.annee')
+    ->get()
+    ->groupBy('id_module')
+    ->map(fn($rows) => $rows->pluck('total_minutes', 'groupe_annee'));
+// Résultat : [module_id => [1 => minutes_A1, 2 => minutes_A2]]
         // Stats
         $totalModules  = Module::count();
         $totalHeures   = Module::sum('nbr_heure');

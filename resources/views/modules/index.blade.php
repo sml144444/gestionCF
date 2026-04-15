@@ -184,37 +184,55 @@
     </div>
 
     {{-- Group by annee within filière --}}
-    @php
-        $byAnnee = $filiereModules->groupBy(fn($m) => $m->annee ?? 'both');
-        $anneeOrder = ['both', 1, 2];
-    @endphp
+{{-- Group by annee within filière --}}
+@php
+    $byAnnee    = $filiereModules->groupBy(fn($m) => $m->annee ?? 'both');
+    $anneeOrder = ['both', 1, 2];
+@endphp
 
-    @foreach($anneeOrder as $anneeKey)
-        @if(!$byAnnee->has($anneeKey)) @continue @endif
-        @php $anneeModules = $byAnnee[$anneeKey]; @endphp
+@foreach($anneeOrder as $anneeKey)
+    @if(!$byAnnee->has($anneeKey)) @continue @endif
+    @php $anneeModules = $byAnnee[$anneeKey]; @endphp  {{-- ← cette ligne manquait --}}
 
-        @if($anneeKey !== 'both' || $byAnnee->count() > 1)
-        <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin:10px 0 8px;padding-left:4px;">
-            @if($anneeKey === 1) 1ère Année
-            @elseif($anneeKey === 2) 2ème Année
-            @else Toutes années
-            @endif
-        </div>
+    @if($anneeKey !== 'both' || $byAnnee->count() > 1)
+    <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin:10px 0 8px;padding-left:4px;">
+        @if($anneeKey === 1) 1ère Année
+        @elseif($anneeKey === 2) 2ème Année
+        @else Toutes années
         @endif
+    </div>
+    @endif
 
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:8px;">
     @foreach($anneeModules as $module)
+
         @php
-            // ── REAL progress from DB ──────────────────────
-            $doneMins  = $moduleProgressMap[$module->id] ?? 0;
-            $doneHours = round($doneMins / 60, 1);
+            $anneeMap  = $moduleProgressMap[$module->id] ?? collect();
             $totalH    = $module->nbr_heure;
-            $pct       = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
-            $pctColor  = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
+            $isLesDeux = $module->annee === null;
+
+            if (!$isLesDeux) {
+                $doneMins  = $anneeMap[$module->annee] ?? 0;
+                $doneHours = round($doneMins / 60, 1);
+                $pct       = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
+                $pctColor  = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
+            } else {
+                $doneMins1  = $anneeMap[1] ?? 0;
+                $doneMins2  = $anneeMap[2] ?? 0;
+                $doneHours1 = round($doneMins1 / 60, 1);
+                $doneHours2 = round($doneMins2 / 60, 1);
+                $pct1 = $totalH > 0 ? min(100, round(($doneHours1 / $totalH) * 100)) : 0;
+                $pct2 = $totalH > 0 ? min(100, round(($doneHours2 / $totalH) * 100)) : 0;
+                $pctColor1 = $pct1 >= 100 ? '#22c55e' : ($pct1 >= 75 ? '#f59e0b' : '#1d4ed8');
+                $pctColor2 = $pct2 >= 100 ? '#22c55e' : ($pct2 >= 75 ? '#f59e0b' : '#7e22ce');
+                $doneHours = round(($doneHours1 + $doneHours2) / 2, 1);
+                $pct       = round(($pct1 + $pct2) / 2);
+                $pctColor  = $accent;
+            }
         @endphp
 
         <div class="mod-card">
-            {{-- Badges top-right --}}
+            {{-- Badges --}}
             <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
                 <span class="mod-badge mod-badge-{{ $module->type }}">
                     {{ $module->type === 'regional' ? '🌍 Régional' : '📍 Local' }}
@@ -253,25 +271,48 @@
                 </div>
             </div>
 
-            {{-- REAL progress bar --}}
-            <div style="margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
-                    <span>Progression réelle</span>
-                    <span style="font-weight:800;color:{{ $pctColor }};">
-                        {{ $pct }}%
-                        @if($pct >= 100) ✓ @endif
-                    </span>
+            {{-- Barres de progression --}}
+            @if(!$isLesDeux)
+                <div style="margin-bottom:6px;">
+                    <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
+                        <span>Progression réelle</span>
+                        <span style="font-weight:800;color:{{ $pctColor }};">{{ $pct }}% @if($pct >= 100) ✓ @endif</span>
+                    </div>
+                    <div class="mod-progress-track">
+                        <div class="mod-progress-fill" style="width:{{ $pct }}%; background:{{ $pctColor }};"></div>
+                    </div>
+                    <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
+                        {{ $doneHours }}h / {{ $totalH }}h effectuées
+                        @if($totalH - $doneHours > 0) · {{ round($totalH - $doneHours, 1) }}h restantes @endif
+                    </div>
                 </div>
-                <div class="mod-progress-track">
-                    <div class="mod-progress-fill" style="width:{{ $pct }}%; background:{{ $pctColor }};"></div>
+            @else
+                <div style="margin-bottom:6px;">
+                    <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
+                        <span style="color:#1d4ed8;font-weight:700;">1ère Année</span>
+                        <span style="font-weight:800;color:{{ $pctColor1 }};">{{ $pct1 }}% @if($pct1 >= 100) ✓ @endif</span>
+                    </div>
+                    <div class="mod-progress-track" style="margin-bottom:5px;">
+                        <div class="mod-progress-fill" style="width:{{ $pct1 }}%; background:{{ $pctColor1 }};"></div>
+                    </div>
+                    <div style="font-size:8px;color:#94a3b8;margin-bottom:6px;">
+                        {{ $doneHours1 }}h / {{ $totalH }}h
+                        @if($totalH - $doneHours1 > 0) · {{ round($totalH - $doneHours1, 1) }}h restantes @endif
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
+                        <span style="color:#7e22ce;font-weight:700;">2ème Année</span>
+                        <span style="font-weight:800;color:{{ $pctColor2 }};">{{ $pct2 }}% @if($pct2 >= 100) ✓ @endif</span>
+                    </div>
+                    <div class="mod-progress-track">
+                        <div class="mod-progress-fill" style="width:{{ $pct2 }}%; background:{{ $pctColor2 }};"></div>
+                    </div>
+                    <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
+                        {{ $doneHours2 }}h / {{ $totalH }}h
+                        @if($totalH - $doneHours2 > 0) · {{ round($totalH - $doneHours2, 1) }}h restantes @endif
+                    </div>
                 </div>
-                <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
-                    {{ $doneHours }}h / {{ $totalH }}h effectuées
-                    @if($totalH - $doneHours > 0)
-                        · {{ round($totalH - $doneHours, 1) }}h restantes
-                    @endif
-                </div>
-            </div>
+            @endif
 
             {{-- Formateur --}}
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
@@ -295,9 +336,7 @@
                             '{{ $module->id_user }}',
                             '{{ $module->type }}',
                             '{{ $module->annee ?? '' }}'
-                        )">
-                    ✎ Modifier
-                </button>
+                        )">✎ Modifier</button>
                 @endif
                 @if($canDelete)
                 <button class="mod-btn mod-btn-red"
@@ -311,9 +350,110 @@
             </div>
             @endif
         </div>
+
     @endforeach
     </div>
-    @endforeach
+
+@endforeach {{-- fin $anneeOrder --}}
+
+   @foreach($anneeModules as $module)
+
+    {{-- ① @php EN PREMIER, avant tout HTML --}}
+    @php
+        $anneeMap  = $moduleProgressMap[$module->id] ?? collect();
+        $totalH    = $module->nbr_heure;
+        $isLesDeux = $module->annee === null;
+
+        if (!$isLesDeux) {
+            $doneMins  = $anneeMap[$module->annee] ?? 0;
+            $doneHours = round($doneMins / 60, 1);
+            $pct       = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
+            $pctColor  = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
+        } else {
+            $doneMins1  = $anneeMap[1] ?? 0;
+            $doneMins2  = $anneeMap[2] ?? 0;
+            $doneHours1 = round($doneMins1 / 60, 1);
+            $doneHours2 = round($doneMins2 / 60, 1);
+            $pct1 = $totalH > 0 ? min(100, round(($doneHours1 / $totalH) * 100)) : 0;
+            $pct2 = $totalH > 0 ? min(100, round(($doneHours2 / $totalH) * 100)) : 0;
+            $pctColor1 = $pct1 >= 100 ? '#22c55e' : ($pct1 >= 75 ? '#f59e0b' : '#1d4ed8');
+            $pctColor2 = $pct2 >= 100 ? '#22c55e' : ($pct2 >= 75 ? '#f59e0b' : '#7e22ce');
+            $doneHours = round(($doneHours1 + $doneHours2) / 2, 1);
+            $pct       = round(($pct1 + $pct2) / 2);
+            $pctColor  = $accent;
+        }
+    @endphp
+
+    {{-- ② Ensuite seulement la carte --}}
+    <div class="mod-card">
+        ...
+        {{-- Stats row (utilise $doneHours, $pctColor, etc.) --}}
+        <div style="display:flex;gap:16px;margin-bottom:8px;">
+            <div>
+                <div style="font-size:16px;font-weight:800;color:{{ $accent }};">{{ $module->nbr_heure }}h</div>
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Total</div>
+            </div>
+            <div>
+                <div style="font-size:16px;font-weight:800;color:{{ $pctColor }};">{{ $doneHours }}h</div>
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Fait</div>
+            </div>
+            <div>
+                <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->coefficience }}</div>
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Coeff.</div>
+            </div>
+            <div>
+                <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->emplois_du_temps_count }}</div>
+                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Séances</div>
+            </div>
+        </div>
+
+        {{-- ③ Barres de progression --}}
+        @if(!$isLesDeux)
+            <div style="margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
+                    <span>Progression réelle</span>
+                    <span style="font-weight:800;color:{{ $pctColor }};">{{ $pct }}% @if($pct >= 100) ✓ @endif</span>
+                </div>
+                <div class="mod-progress-track">
+                    <div class="mod-progress-fill" style="width:{{ $pct }}%; background:{{ $pctColor }};"></div>
+                </div>
+                <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
+                    {{ $doneHours }}h / {{ $totalH }}h effectuées
+                    @if($totalH - $doneHours > 0) · {{ round($totalH - $doneHours, 1) }}h restantes @endif
+                </div>
+            </div>
+        @else
+            <div style="margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
+                    <span style="color:#1d4ed8;font-weight:700;">1ère Année</span>
+                    <span style="font-weight:800;color:{{ $pctColor1 }};">{{ $pct1 }}% @if($pct1 >= 100) ✓ @endif</span>
+                </div>
+                <div class="mod-progress-track" style="margin-bottom:5px;">
+                    <div class="mod-progress-fill" style="width:{{ $pct1 }}%; background:{{ $pctColor1 }};"></div>
+                </div>
+                <div style="font-size:8px;color:#94a3b8;margin-bottom:6px;">
+                    {{ $doneHours1 }}h / {{ $totalH }}h
+                    @if($totalH - $doneHours1 > 0) · {{ round($totalH - $doneHours1, 1) }}h restantes @endif
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
+                    <span style="color:#7e22ce;font-weight:700;">2ème Année</span>
+                    <span style="font-weight:800;color:{{ $pctColor2 }};">{{ $pct2 }}% @if($pct2 >= 100) ✓ @endif</span>
+                </div>
+                <div class="mod-progress-track">
+                    <div class="mod-progress-fill" style="width:{{ $pct2 }}%; background:{{ $pctColor2 }};"></div>
+                </div>
+                <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
+                    {{ $doneHours2 }}h / {{ $totalH }}h
+                    @if($totalH - $doneHours2 > 0) · {{ round($totalH - $doneHours2, 1) }}h restantes @endif
+                </div>
+            </div>
+        @endif
+
+        {{-- reste de la carte (formateur, actions...) --}}
+        ...
+    </div>
+@endforeach
 
 @empty
     <div style="padding:64px 32px;text-align:center;background:white;border-radius:16px;border:1px solid #e2e8f0;">
