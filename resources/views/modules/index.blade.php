@@ -39,9 +39,9 @@
 .mod-badge-local    { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; }
 .mod-badge-annee1   { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
 .mod-badge-annee2   { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; }
-.mod-badge-both     { background:#f8fafc; color:#475569; border:1px solid #e2e8f0; }
+.mod-badge-annee3   { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
 
-/* Real progress bar */
+/* Progress bar */
 .mod-progress-track { height:6px; background:#f1f5f9; border-radius:99px; overflow:hidden; }
 .mod-progress-fill  { height:100%; border-radius:99px; transition:width .5s; }
 
@@ -134,6 +134,8 @@
        class="annee-tab {{ $anneeFilter == 1 ? 'active' : '' }}">1ère année</a>
     <a href="{{ route('modules.index', array_merge(request()->except('annee','page'), ['annee'=>2])) }}"
        class="annee-tab {{ $anneeFilter == 2 ? 'active' : '' }}">2ème année</a>
+    <a href="{{ route('modules.index', array_merge(request()->except('annee','page'), ['annee'=>3])) }}"
+       class="annee-tab {{ $anneeFilter == 3 ? 'active' : '' }}">3ème année</a>
 </div>
 
 {{-- FILTER BAR --}}
@@ -184,95 +186,79 @@
     </div>
 
     {{-- Group by annee within filière --}}
-{{-- Group by annee within filière --}}
-@php
-    $byAnnee    = $filiereModules->groupBy(fn($m) => $m->annee ?? 'both');
-    $anneeOrder = ['both', 1, 2];
-@endphp
+    @php
+        $byAnnee    = $filiereModules->groupBy(fn($m) => $m->annee ?? 3); // legacy null → 3
+        $anneeOrder = [1, 2, 3];
+    @endphp
 
-@foreach($anneeOrder as $anneeKey)
-    @if(!$byAnnee->has($anneeKey)) @continue @endif
-    @php $anneeModules = $byAnnee[$anneeKey]; @endphp  {{-- ← cette ligne manquait --}}
+    @foreach($anneeOrder as $anneeKey)
+        @if(!$byAnnee->has($anneeKey)) @continue @endif
+        @php $anneeModules = $byAnnee[$anneeKey]; @endphp
 
-    @if($anneeKey !== 'both' || $byAnnee->count() > 1)
-    <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin:10px 0 8px;padding-left:4px;">
-        @if($anneeKey === 1) 1ère Année
-        @elseif($anneeKey === 2) 2ème Année
-        @else Toutes années
+        @if($byAnnee->count() > 1)
+        <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin:10px 0 8px;padding-left:4px;">
+            @if($anneeKey === 1) 1ère Année
+            @elseif($anneeKey === 2) 2ème Année
+            @else 3ème Année
+            @endif
+        </div>
         @endif
-    </div>
-    @endif
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:8px;">
-    @foreach($anneeModules as $module)
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:8px;">
+        @foreach($anneeModules as $module)
 
-        @php
-            $anneeMap  = $moduleProgressMap[$module->id] ?? collect();
-            $totalH    = $module->nbr_heure;
-            $isLesDeux = $module->annee === null;
+            @php
+                $anneeMap    = $moduleProgressMap[$module->id] ?? collect();
+                $totalH      = $module->nbr_heure;
+                $moduleAnnee = $module->annee ?? 3; // legacy null → treat as 3
 
-            if (!$isLesDeux) {
-                $doneMins  = $anneeMap[$module->annee] ?? 0;
+                $doneMins  = $anneeMap[$moduleAnnee] ?? 0;
                 $doneHours = round($doneMins / 60, 1);
                 $pct       = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
                 $pctColor  = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
-            } else {
-                $doneMins1  = $anneeMap[1] ?? 0;
-                $doneMins2  = $anneeMap[2] ?? 0;
-                $doneHours1 = round($doneMins1 / 60, 1);
-                $doneHours2 = round($doneMins2 / 60, 1);
-                $pct1 = $totalH > 0 ? min(100, round(($doneHours1 / $totalH) * 100)) : 0;
-                $pct2 = $totalH > 0 ? min(100, round(($doneHours2 / $totalH) * 100)) : 0;
-                $pctColor1 = $pct1 >= 100 ? '#22c55e' : ($pct1 >= 75 ? '#f59e0b' : '#1d4ed8');
-                $pctColor2 = $pct2 >= 100 ? '#22c55e' : ($pct2 >= 75 ? '#f59e0b' : '#7e22ce');
-                $doneHours = round(($doneHours1 + $doneHours2) / 2, 1);
-                $pct       = round(($pct1 + $pct2) / 2);
-                $pctColor  = $accent;
-            }
-        @endphp
+            @endphp
 
-        <div class="mod-card">
-            {{-- Badges --}}
-            <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
-                <span class="mod-badge mod-badge-{{ $module->type }}">
-                    {{ $module->type === 'regional' ? '🌍 Régional' : '📍 Local' }}
-                </span>
-                @if($module->annee)
-                    <span class="mod-badge mod-badge-annee{{ $module->annee }}" style="margin-top:2px;">
-                        {{ $module->annee == 1 ? '1ère An.' : '2ème An.' }}
+            <div class="mod-card">
+                {{-- Badges --}}
+                <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+                    <span class="mod-badge mod-badge-{{ $module->type }}">
+                        {{ $module->type === 'regional' ? '🌍 Régional' : '📍 Local' }}
                     </span>
-                @else
-                    <span class="mod-badge mod-badge-both" style="margin-top:2px;">Les 2</span>
-                @endif
-            </div>
+                    @php $displayAnnee = $module->annee ?? 3; @endphp
+                    <span class="mod-badge mod-badge-annee{{ $displayAnnee }}" style="margin-top:2px;">
+                        @if($displayAnnee == 1) 1ère An.
+                        @elseif($displayAnnee == 2) 2ème An.
+                        @else 3ème An.
+                        @endif
+                    </span>
+                </div>
 
-            {{-- Name --}}
-            <div style="font-size:13px;font-weight:800;color:#1e293b;padding-right:80px;line-height:1.3;margin-bottom:10px;">
-                {{ $module->name }}
-            </div>
+                {{-- Name --}}
+                <div style="font-size:13px;font-weight:800;color:#1e293b;padding-right:80px;line-height:1.3;margin-bottom:10px;">
+                    {{ $module->name }}
+                </div>
 
-            {{-- Stats row --}}
-            <div style="display:flex;gap:16px;margin-bottom:8px;">
-                <div>
-                    <div style="font-size:16px;font-weight:800;color:{{ $accent }};">{{ $module->nbr_heure }}h</div>
-                    <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Total</div>
+                {{-- Stats row --}}
+                <div style="display:flex;gap:16px;margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:16px;font-weight:800;color:{{ $accent }};">{{ $module->nbr_heure }}h</div>
+                        <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Total</div>
+                    </div>
+                    <div>
+                        <div style="font-size:16px;font-weight:800;color:{{ $pctColor }};">{{ $doneHours }}h</div>
+                        <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Fait</div>
+                    </div>
+                    <div>
+                        <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->coefficience }}</div>
+                        <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Coeff.</div>
+                    </div>
+                    <div>
+                        <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->emplois_du_temps_count }}</div>
+                        <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Séances</div>
+                    </div>
                 </div>
-                <div>
-                    <div style="font-size:16px;font-weight:800;color:{{ $pctColor }};">{{ $doneHours }}h</div>
-                    <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Fait</div>
-                </div>
-                <div>
-                    <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->coefficience }}</div>
-                    <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Coeff.</div>
-                </div>
-                <div>
-                    <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->emplois_du_temps_count }}</div>
-                    <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Séances</div>
-                </div>
-            </div>
 
-            {{-- Barres de progression --}}
-            @if(!$isLesDeux)
+                {{-- Progress bar --}}
                 <div style="margin-bottom:6px;">
                     <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
                         <span>Progression réelle</span>
@@ -286,174 +272,48 @@
                         @if($totalH - $doneHours > 0) · {{ round($totalH - $doneHours, 1) }}h restantes @endif
                     </div>
                 </div>
-            @else
-                <div style="margin-bottom:6px;">
-                    <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
-                        <span style="color:#1d4ed8;font-weight:700;">1ère Année</span>
-                        <span style="font-weight:800;color:{{ $pctColor1 }};">{{ $pct1 }}% @if($pct1 >= 100) ✓ @endif</span>
-                    </div>
-                    <div class="mod-progress-track" style="margin-bottom:5px;">
-                        <div class="mod-progress-fill" style="width:{{ $pct1 }}%; background:{{ $pctColor1 }};"></div>
-                    </div>
-                    <div style="font-size:8px;color:#94a3b8;margin-bottom:6px;">
-                        {{ $doneHours1 }}h / {{ $totalH }}h
-                        @if($totalH - $doneHours1 > 0) · {{ round($totalH - $doneHours1, 1) }}h restantes @endif
-                    </div>
 
-                    <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
-                        <span style="color:#7e22ce;font-weight:700;">2ème Année</span>
-                        <span style="font-weight:800;color:{{ $pctColor2 }};">{{ $pct2 }}% @if($pct2 >= 100) ✓ @endif</span>
+                {{-- Formateur --}}
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                    <div style="width:20px;height:20px;border-radius:50%;background:{{ $light }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="11" height="11" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     </div>
-                    <div class="mod-progress-track">
-                        <div class="mod-progress-fill" style="width:{{ $pct2 }}%; background:{{ $pctColor2 }};"></div>
-                    </div>
-                    <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
-                        {{ $doneHours2 }}h / {{ $totalH }}h
-                        @if($totalH - $doneHours2 > 0) · {{ round($totalH - $doneHours2, 1) }}h restantes @endif
-                    </div>
+                    <span style="font-size:10px;color:#64748b;font-weight:500;">{{ $module->formateur->name ?? '—' }}</span>
                 </div>
-            @endif
 
-            {{-- Formateur --}}
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
-                <div style="width:20px;height:20px;border-radius:50%;background:{{ $light }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <svg width="11" height="11" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {{-- Actions --}}
+                @if($canEdit || $canDelete)
+                <div style="display:flex;gap:6px;padding-top:8px;border-top:1px solid #f1f5f9;">
+                    @if($canEdit)
+                    <button class="mod-btn mod-btn-yellow"
+                            style="flex:1;justify-content:center;padding:6px 10px;font-size:10px;"
+                            onclick="openEditModal(
+                                {{ $module->id }},
+                                '{{ addslashes($module->name) }}',
+                                {{ $module->nbr_heure }},
+                                {{ $module->coefficience }},
+                                '{{ $module->id_user }}',
+                                '{{ $module->type }}',
+                                '{{ $module->annee ?? 3 }}'
+                            )">✎ Modifier</button>
+                    @endif
+                    @if($canDelete)
+                    <button class="mod-btn mod-btn-red"
+                            style="padding:6px 10px;font-size:10px;"
+                            onclick="openDeleteModal(
+                                '{{ route('modules.destroy', $module) }}',
+                                '{{ addslashes($module->name) }}',
+                                {{ $module->emplois_du_temps_count }}
+                            )">✕</button>
+                    @endif
                 </div>
-                <span style="font-size:10px;color:#64748b;font-weight:500;">{{ $module->formateur->name ?? '—' }}</span>
-            </div>
-
-            {{-- Actions --}}
-            @if($canEdit || $canDelete)
-            <div style="display:flex;gap:6px;padding-top:8px;border-top:1px solid #f1f5f9;">
-                @if($canEdit)
-                <button class="mod-btn mod-btn-yellow"
-                        style="flex:1;justify-content:center;padding:6px 10px;font-size:10px;"
-                        onclick="openEditModal(
-                            {{ $module->id }},
-                            '{{ addslashes($module->name) }}',
-                            {{ $module->nbr_heure }},
-                            {{ $module->coefficience }},
-                            '{{ $module->id_user }}',
-                            '{{ $module->type }}',
-                            '{{ $module->annee ?? '' }}'
-                        )">✎ Modifier</button>
-                @endif
-                @if($canDelete)
-                <button class="mod-btn mod-btn-red"
-                        style="padding:6px 10px;font-size:10px;"
-                        onclick="openDeleteModal(
-                            '{{ route('modules.destroy', $module) }}',
-                            '{{ addslashes($module->name) }}',
-                            {{ $module->emplois_du_temps_count }}
-                        )">✕</button>
                 @endif
             </div>
-            @endif
+
+        @endforeach
         </div>
 
-    @endforeach
-    </div>
-
-@endforeach {{-- fin $anneeOrder --}}
-
-   @foreach($anneeModules as $module)
-
-    {{-- ① @php EN PREMIER, avant tout HTML --}}
-    @php
-        $anneeMap  = $moduleProgressMap[$module->id] ?? collect();
-        $totalH    = $module->nbr_heure;
-        $isLesDeux = $module->annee === null;
-
-        if (!$isLesDeux) {
-            $doneMins  = $anneeMap[$module->annee] ?? 0;
-            $doneHours = round($doneMins / 60, 1);
-            $pct       = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
-            $pctColor  = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
-        } else {
-            $doneMins1  = $anneeMap[1] ?? 0;
-            $doneMins2  = $anneeMap[2] ?? 0;
-            $doneHours1 = round($doneMins1 / 60, 1);
-            $doneHours2 = round($doneMins2 / 60, 1);
-            $pct1 = $totalH > 0 ? min(100, round(($doneHours1 / $totalH) * 100)) : 0;
-            $pct2 = $totalH > 0 ? min(100, round(($doneHours2 / $totalH) * 100)) : 0;
-            $pctColor1 = $pct1 >= 100 ? '#22c55e' : ($pct1 >= 75 ? '#f59e0b' : '#1d4ed8');
-            $pctColor2 = $pct2 >= 100 ? '#22c55e' : ($pct2 >= 75 ? '#f59e0b' : '#7e22ce');
-            $doneHours = round(($doneHours1 + $doneHours2) / 2, 1);
-            $pct       = round(($pct1 + $pct2) / 2);
-            $pctColor  = $accent;
-        }
-    @endphp
-
-    {{-- ② Ensuite seulement la carte --}}
-    <div class="mod-card">
-        ...
-        {{-- Stats row (utilise $doneHours, $pctColor, etc.) --}}
-        <div style="display:flex;gap:16px;margin-bottom:8px;">
-            <div>
-                <div style="font-size:16px;font-weight:800;color:{{ $accent }};">{{ $module->nbr_heure }}h</div>
-                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Total</div>
-            </div>
-            <div>
-                <div style="font-size:16px;font-weight:800;color:{{ $pctColor }};">{{ $doneHours }}h</div>
-                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Fait</div>
-            </div>
-            <div>
-                <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->coefficience }}</div>
-                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Coeff.</div>
-            </div>
-            <div>
-                <div style="font-size:16px;font-weight:800;color:#475569;">{{ $module->emplois_du_temps_count }}</div>
-                <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">Séances</div>
-            </div>
-        </div>
-
-        {{-- ③ Barres de progression --}}
-        @if(!$isLesDeux)
-            <div style="margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
-                    <span>Progression réelle</span>
-                    <span style="font-weight:800;color:{{ $pctColor }};">{{ $pct }}% @if($pct >= 100) ✓ @endif</span>
-                </div>
-                <div class="mod-progress-track">
-                    <div class="mod-progress-fill" style="width:{{ $pct }}%; background:{{ $pctColor }};"></div>
-                </div>
-                <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
-                    {{ $doneHours }}h / {{ $totalH }}h effectuées
-                    @if($totalH - $doneHours > 0) · {{ round($totalH - $doneHours, 1) }}h restantes @endif
-                </div>
-            </div>
-        @else
-            <div style="margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
-                    <span style="color:#1d4ed8;font-weight:700;">1ère Année</span>
-                    <span style="font-weight:800;color:{{ $pctColor1 }};">{{ $pct1 }}% @if($pct1 >= 100) ✓ @endif</span>
-                </div>
-                <div class="mod-progress-track" style="margin-bottom:5px;">
-                    <div class="mod-progress-fill" style="width:{{ $pct1 }}%; background:{{ $pctColor1 }};"></div>
-                </div>
-                <div style="font-size:8px;color:#94a3b8;margin-bottom:6px;">
-                    {{ $doneHours1 }}h / {{ $totalH }}h
-                    @if($totalH - $doneHours1 > 0) · {{ round($totalH - $doneHours1, 1) }}h restantes @endif
-                </div>
-
-                <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;">
-                    <span style="color:#7e22ce;font-weight:700;">2ème Année</span>
-                    <span style="font-weight:800;color:{{ $pctColor2 }};">{{ $pct2 }}% @if($pct2 >= 100) ✓ @endif</span>
-                </div>
-                <div class="mod-progress-track">
-                    <div class="mod-progress-fill" style="width:{{ $pct2 }}%; background:{{ $pctColor2 }};"></div>
-                </div>
-                <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
-                    {{ $doneHours2 }}h / {{ $totalH }}h
-                    @if($totalH - $doneHours2 > 0) · {{ round($totalH - $doneHours2, 1) }}h restantes @endif
-                </div>
-            </div>
-        @endif
-
-        {{-- reste de la carte (formateur, actions...) --}}
-        ...
-    </div>
-@endforeach
+    @endforeach {{-- fin $anneeOrder --}}
 
 @empty
     <div style="padding:64px 32px;text-align:center;background:white;border-radius:16px;border:1px solid #e2e8f0;">
@@ -516,12 +376,12 @@
 
             {{-- Année --}}
             <div>
-                <label class="mod-label">Année concernée</label>
+                <label class="mod-label">Année concernée <span style="color:#ef4444;">*</span></label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    @foreach([[1,'1ère An.'],[2,'2ème An.'],[null,'Les 2']] as [$val,$lbl])
+                    @foreach([[1,'1ère An.'],[2,'2ème An.'],[3,'3ème An.']] as [$val,$lbl])
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;transition:all .15s;font-size:12px;font-weight:600;color:#475569;">
-                        <input type="radio" name="annee" value="{{ $val ?? '' }}"
-                               {{ (old('annee', '') === ($val === null ? '' : (string)$val)) ? 'checked' : '' }}
+                        <input type="radio" name="annee" value="{{ $val }}"
+                               {{ (old('annee', '1') === (string)$val) ? 'checked' : '' }}
                                style="accent-color:{{ $accent }};">
                         {{ $lbl }}
                     </label>
@@ -592,11 +452,11 @@
 
             {{-- Année --}}
             <div>
-                <label class="mod-label">Année concernée</label>
+                <label class="mod-label">Année concernée <span style="color:#ef4444;">*</span></label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    @foreach([[1,'1ère An.'],[2,'2ème An.'],[null,'Les 2']] as [$val,$lbl])
+                    @foreach([[1,'1ère An.'],[2,'2ème An.'],[3,'3ème An.']] as [$val,$lbl])
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:12px;font-weight:600;color:#475569;">
-                        <input type="radio" name="annee" value="{{ $val ?? '' }}" id="edit-annee-{{ $val ?? 'both' }}" style="accent-color:#f59e0b;">
+                        <input type="radio" name="annee" value="{{ $val }}" id="edit-annee-{{ $val }}" style="accent-color:#f59e0b;">
                         {{ $lbl }}
                     </label>
                     @endforeach
@@ -664,18 +524,17 @@ function setCreateType(type) {
 }
 
 function openEditModal(id, name, heure, coeff, userId, type, annee) {
-    document.getElementById('edit-form').action     = '/modules/' + id;
-    document.getElementById('edit-name').value      = name;
-    document.getElementById('edit-heure').value     = heure;
-    document.getElementById('edit-coeff').value     = coeff;
-    document.getElementById('edit-user').value      = userId;
+    document.getElementById('edit-form').action          = '/modules/' + id;
+    document.getElementById('edit-name').value           = name;
+    document.getElementById('edit-heure').value          = heure;
+    document.getElementById('edit-coeff').value          = coeff;
+    document.getElementById('edit-user').value           = userId;
     document.getElementById('edit-subtitle').textContent = 'Modification : ' + name;
     setEditType(type);
-    // Set annee radio
-    const anneeVal = annee === '' ? 'both' : annee;
-    ['1','2','both'].forEach(v => {
+    // Set annee radio (annee is 1, 2 or 3)
+    ['1','2','3'].forEach(v => {
         const r = document.getElementById('edit-annee-' + v);
-        if (r) r.checked = (String(anneeVal) === v);
+        if (r) r.checked = (String(annee) === v);
     });
     document.getElementById('modal-edit').classList.add('open');
 }
@@ -686,9 +545,9 @@ function setEditType(type) {
 }
 
 function openDeleteModal(action, name, emploisCount) {
-    document.getElementById('delete-form').action   = action;
+    document.getElementById('delete-form').action     = action;
     document.getElementById('delete-name').textContent = name;
-    const btn = document.getElementById('delete-btn');
+    const btn  = document.getElementById('delete-btn');
     const warn = document.getElementById('delete-warning');
     if (emploisCount > 0) {
         warn.innerHTML = '⚠️ Impossible : ce module est utilisé dans <strong>' + emploisCount + '</strong> séance(s).';

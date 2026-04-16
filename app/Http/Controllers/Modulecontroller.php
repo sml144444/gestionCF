@@ -22,10 +22,10 @@ class ModuleController extends Controller
     // ── INDEX ─────────────────────────────────────────────
     public function index(Request $request): View
     {
-        $filiereId  = $request->get('filiere');
-        $search     = $request->get('search', '');
-        $typeFilter = $request->get('type', '');
-        $anneeFilter = $request->integer('annee', 0) ?: null; // 1 or 2
+        $filiereId   = $request->get('filiere');
+        $search      = $request->get('search', '');
+        $typeFilter  = $request->get('type', '');
+        $anneeFilter = $request->integer('annee', 0) ?: null; // 1, 2 or 3
 
         $filieres   = Filiere::orderBy('name')->get();
         $formateurs = User::where('role', 'formateur')->orderBy('name')->get();
@@ -36,8 +36,10 @@ class ModuleController extends Controller
             ->when($search,      fn($q) => $q->where('name', 'like', "%{$search}%"))
             ->when($typeFilter,  fn($q) => $q->where('type', $typeFilter))
             ->when($anneeFilter, fn($q) => $q->where(fn($q2) =>
-                // annee matches OR annee is null (shared both years)
-                $q2->where('annee', $anneeFilter)->orWhereNull('annee')
+                // annee=3 also catches legacy null records
+                $anneeFilter == 3
+                    ? $q2->where('annee', 3)->orWhereNull('annee')
+                    : $q2->where('annee', $anneeFilter)
             ))
             ->orderBy('id_filiere')
             ->orderBy('annee')
@@ -48,19 +50,18 @@ class ModuleController extends Controller
         $selectedFiliere = $filiereId ? Filiere::find($filiereId) : null;
 
         // ── Real progress: hours already done (past sessions) per module ──
-        // Sum minutes of all PAST sessions (date_fin <= now) grouped by module
-// APRÈS (correct — séparé par année de groupe)
-$moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
-    ->whereIn('statut', ['actif', 'brouillon'])
-    ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
-    ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
-    ->selectRaw('emplois_du_temps.id_module, groupes.annee as groupe_annee,
-                 SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) as total_minutes')
-    ->groupBy('emplois_du_temps.id_module', 'groupes.annee')
-    ->get()
-    ->groupBy('id_module')
-    ->map(fn($rows) => $rows->pluck('total_minutes', 'groupe_annee'));
-// Résultat : [module_id => [1 => minutes_A1, 2 => minutes_A2]]
+        $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
+            ->whereIn('statut', ['actif', 'brouillon'])
+            ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
+            ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
+            ->selectRaw('emplois_du_temps.id_module, groupes.annee as groupe_annee,
+                         SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) as total_minutes')
+            ->groupBy('emplois_du_temps.id_module', 'groupes.annee')
+            ->get()
+            ->groupBy('id_module')
+            ->map(fn($rows) => $rows->pluck('total_minutes', 'groupe_annee'));
+        // Result: [module_id => [1 => minutes_A1, 2 => minutes_A2, 3 => minutes_A3]]
+
         // Stats
         $totalModules  = Module::count();
         $totalHeures   = Module::sum('nbr_heure');
@@ -87,7 +88,7 @@ $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
             'nbr_heure'    => 'required|integer|min:1|max:500',
             'id_user'      => 'required|exists:users,id',
             'type'         => 'required|in:regional,local',
-            'annee'        => 'nullable|integer|in:1,2',
+            'annee'        => 'required|integer|in:1,2,3',
         ]);
 
         $exists = Module::where('id_filiere', $data['id_filiere'])
@@ -116,7 +117,7 @@ $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
             'nbr_heure'    => 'required|integer|min:1|max:500',
             'id_user'      => 'required|exists:users,id',
             'type'         => 'required|in:regional,local',
-            'annee'        => 'nullable|integer|in:1,2',
+            'annee'        => 'required|integer|in:1,2,3',
         ]);
 
         $exists = Module::where('id_filiere', $module->id_filiere)

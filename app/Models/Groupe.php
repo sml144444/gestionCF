@@ -11,7 +11,8 @@ class Groupe extends Model
         'id_option',
         'nbr_limit',
         'annee',   // ← 1 = première année, 2 = deuxième année (2 ans ou 2.5 ans)
-        'name',    // ← optional: human readable name like "G1A"
+        'name', 
+        'code'   // ← optional: human readable name like "G1A"
     ];
 
     public function filiere()

@@ -142,13 +142,13 @@ class EmploiDuTempsController extends Controller
             : 0;
 
         // Modules grouped by filiere_id for JS (used in modal select)
-        $modulesByFiliere = Module::orderBy('name')->get()->groupBy('id_filiere')->map(
-            fn($mods) => $mods->map(fn($m) => [
-                'id'        => $m->id,
-                'name'      => $m->name,
-                'nbr_heure' => $m->nbr_heure,
-            ])->values()
-        );
+$modulesByFiliereAndAnnee = Module::orderBy('name')->get()
+    ->groupBy(fn($m) => $m->id_filiere . '_' . ($m->annee ?? 1))
+    ->map(fn($mods) => $mods->map(fn($m) => [
+        'id'        => $m->id,
+        'name'      => $m->name,
+        'nbr_heure' => $m->nbr_heure,
+    ])->values());
 
         $emploisJson = $emplois->map(fn($e) => [
             'id'            => $e->id,
@@ -167,7 +167,7 @@ class EmploiDuTempsController extends Controller
             'grid', 'year', 'weekStart', 'weekEnd', 'dayDates',
             'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
             'emplois', 'emploisJson', 'draftCount', 'canSeeDraft',
-            'moduleProgress', 'modulesByFiliere'
+            'moduleProgress', 'modulesByFiliereAndAnnee' 
         ));
     }
 
@@ -380,16 +380,17 @@ class EmploiDuTempsController extends Controller
 
         // ── Modules filtered by the groupe's filiere ─────────
         $groupe  = Groupe::find($groupeId);
-        $modules = $groupe
-            ? Module::where('id_filiere', $groupe->id_filiere)
-                ->orderBy('name')
-                ->get()
-                ->map(fn($m) => [
-                    'id'        => $m->id,
-                    'name'      => $m->name,
-                    'nbr_heure' => $m->nbr_heure,
-                ])
-            : collect();
+$modules = $groupe
+    ? Module::where('id_filiere', $groupe->id_filiere)
+        ->where('annee', $groupe->annee)          // ← add this line
+        ->orderBy('name')
+        ->get()
+        ->map(fn($m) => [
+            'id'        => $m->id,
+            'name'      => $m->name,
+            'nbr_heure' => $m->nbr_heure,
+        ])
+    : collect();
 
         return response()->json([
             'formateurs' => $formateurs,
@@ -489,7 +490,12 @@ class EmploiDuTempsController extends Controller
         $groupesByFiliere = $groupes->groupBy('id_filiere');
         $grid             = $this->buildGrid($groupes, $emplois);
 
-        $yearLabel = $year === 1 ? '1ère Année' : '2ème Année / 2.5 ans';
+        $yearLabel = match($year) {
+    1 => '1ère Année',
+    2 => '2ème Année',
+    3 => '3ème Année',
+    default => 'Année ' . $year,
+};
         $filename  = 'emploi_semaine_' . $weekStart->format('Y-m-d') . '_annee' . $year . '.pdf';
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('emplois.pdf', compact(

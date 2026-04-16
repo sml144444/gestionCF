@@ -124,6 +124,7 @@
     @php
         $groupes1        = $filiere->groupes->where('annee', 1);
         $groupes2        = $filiere->groupes->where('annee', 2);
+        $groupes3        = $filiere->groupes->where('annee', 3);
         $totalStagiaires = $filiere->stagiaires_count ?? 0;
         $totalPlaces     = $filiere->groupes->sum('nbr_limit');
     @endphp
@@ -181,6 +182,7 @@
                     <p style="font-size:12px;color:var(--gray-400);margin:0;">Aucun groupe — <a href="{{ route('groupes.index', ['filiere'=>$filiere->id]) }}" style="color:var(--primary);font-weight:600;">en créer un</a></p>
                 </div>
             @else
+                {{-- 1ère Année --}}
                 @if($groupes1->isNotEmpty())
                     <div style="font-size:9px;font-weight:800;color:var(--gray-400);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1ère année</div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
@@ -193,14 +195,30 @@
                         @endforeach
                     </div>
                 @endif
+
+                {{-- 2ème Année --}}
                 @if($groupes2->isNotEmpty())
-                    <div style="font-size:9px;font-weight:800;color:var(--gray-400);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">2ème année / 2.5</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    <div style="font-size:9px;font-weight:800;color:#6b21a8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">2ème année</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
                         @foreach($groupes2 as $g)
-                            <div class="group-pill">
-                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:var(--primary);color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
+                            <div class="group-pill" style="background:#fdf4ff;color:#6b21a8;border-color:rgba(107,33,168,.18);">
+                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:#7e22ce;color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
                                 {{ $g->name }}
-                                <span class="group-count">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
+                                <span class="group-count" style="background:#7e22ce;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- 3ème Année --}}
+                @if($groupes3->isNotEmpty())
+                    <div style="font-size:9px;font-weight:800;color:#c2410c;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">3ème année</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        @foreach($groupes3 as $g)
+                            <div class="group-pill" style="background:#fff7ed;color:#c2410c;border-color:rgba(194,65,12,.18);">
+                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:#c2410c;color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
+                                {{ $g->name }}
+                                <span class="group-count" style="background:#c2410c;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -381,7 +399,6 @@ function openDeleteModal(action, name, groupeCount) {
     openModal('delete');
 }
 
-// Auto-generate code from filière name (only while code is still untouched)
 function autoCode(nameInput) {
     const codeInput = document.getElementById('create-fil-code');
     if (codeInput && !codeInput.dataset.touched) {
@@ -390,10 +407,12 @@ function autoCode(nameInput) {
         codeInput.value = code;
     }
 }
+
 document.addEventListener('DOMContentLoaded', () => {
     const c = document.getElementById('create-fil-code');
     if (c) c.addEventListener('input', () => { c.dataset.touched = '1'; });
 });
+
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
 });

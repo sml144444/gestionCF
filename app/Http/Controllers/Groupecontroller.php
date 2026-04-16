@@ -46,7 +46,7 @@ class GroupeController extends Controller
                 'unique:groupes,code',
                 'regex:/^[A-Za-z0-9\-_]+$/',
             ],
-            'annee'      => 'required|integer|in:1,2',
+            'annee'      => 'required|integer|in:1,2,3',
             'nbr_limit'  => 'required|integer|min:1|max:100',
         ], [
             'code.regex'  => 'Le code ne peut contenir que des lettres, chiffres, tirets et underscores.',

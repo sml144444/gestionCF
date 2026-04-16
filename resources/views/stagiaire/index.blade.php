@@ -308,6 +308,25 @@
         </select>
     </div>
 
+        {{-- ← ADD THIS: Année scolaire select --}}
+    @if($hasAnneeScolaireColumn && $anneesScolaires->count())
+    <div style="flex:1;min-width:140px;">
+        <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;
+                      text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">
+            Promo / Saison
+        </label>
+        <select name="annee_scolaire" class="sg-input"
+                style="width:100%;appearance:none;cursor:pointer;">
+            <option value="">Toutes les promos</option>
+            @foreach($anneesScolaires as $as)
+                <option value="{{ $as }}" {{ $anneeScolaire === $as ? 'selected' : '' }}>
+                    📅 {{ $as }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+    @endif
+
     {{-- Option --}}
     @if($options->count())
     <div style="flex:1;min-width:130px;">

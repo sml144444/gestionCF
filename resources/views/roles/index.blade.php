@@ -3,208 +3,215 @@
 @section('page-title', 'Gestion des rôles')
 
 @section('content')
-<div style="font-family:'Segoe UI',system-ui,sans-serif;">
+@php
+    $user = Auth::user();
+    $role = $user->role;
+    $palettes = [
+        'admin'        => ['primary'=>'#0a6640','medium'=>'#1a8c56','light'=>'#e8f5ee','lighter'=>'#f0fdf4','text'=>'#065f38','border'=>'#bbf7d0','shadow'=>'rgba(10,102,64,0.15)','gradient'=>'linear-gradient(135deg,#0a6640 0%,#1a8c56 100%)'],
+        'gestionnaire' => ['primary'=>'#1e293b','medium'=>'#334155','light'=>'#f1f5f9','lighter'=>'#f8fafc','text'=>'#1e293b','border'=>'#cbd5e1','shadow'=>'rgba(30,41,59,0.15)','gradient'=>'linear-gradient(135deg,#1e293b 0%,#334155 100%)'],
+        'formateur'    => ['primary'=>'#1a4f8a','medium'=>'#2563eb','light'=>'#eff6ff','lighter'=>'#f0f7ff','text'=>'#1e40af','border'=>'#bfdbfe','shadow'=>'rgba(26,79,138,0.15)','gradient'=>'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)'],
+    ];
+    $p = $palettes[$role] ?? $palettes['gestionnaire'];
+@endphp
 
-{{-- ════ FLASH ════ --}}
+<style>
+:root {
+    --accent:    {{ $p['primary'] }};
+    --accent-md: {{ $p['medium'] }};
+    --accent-lt: {{ $p['light'] }};
+    --accent-ltr:{{ $p['lighter'] }};
+    --accent-tx: {{ $p['text'] }};
+    --accent-bd: {{ $p['border'] }};
+    --accent-sh: {{ $p['shadow'] }};
+    --accent-gr: {{ $p['gradient'] }};
+}
+.role-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:1200px; margin:0 auto; }
+.role-hero { background:var(--accent-gr); border-radius:20px; padding:28px 32px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; position:relative; overflow:hidden; }
+.role-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
+.role-hero-icon { width:52px; height:52px; border-radius:16px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.role-hero-title { font-size:20px; font-weight:800; color:white; margin:0; }
+.role-hero-sub { font-size:12px; color:rgba(255,255,255,0.75); margin-top:3px; }
+.role-hero-badge { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); color:white; font-size:11px; font-weight:700; padding:6px 14px; border-radius:99px; }
+.flash-ok { display:flex; align-items:center; gap:12px; padding:14px 18px; border-radius:14px; margin-bottom:18px; background:var(--accent-ltr); border:1px solid var(--accent-bd); animation:fadeIn .3s ease; }
+.flash-ok-icon { width:38px; height:38px; border-radius:50%; background:var(--accent-gr); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.role-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px; }
+.role-card { background:white; border-radius:18px; border:1px solid #e2e8f0; overflow:hidden; transition:all .2s; }
+.role-card:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(0,0,0,0.1); }
+.role-card-header { padding:18px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f1f5f9; }
+.role-card-icon { width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.role-card-name { font-size:16px; font-weight:800; margin:0; }
+.role-card-badge { font-size:9px; font-weight:700; padding:4px 12px; border-radius:99px; background:rgba(0,0,0,0.05); }
+.role-card-badge.system { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+.role-card-body { padding:16px 20px; min-height:100px; }
+.role-perms-list { display:flex; flex-wrap:wrap; gap:6px; }
+.role-perm-tag { font-size:9px; font-weight:700; padding:4px 10px; border-radius:8px; }
+.role-card-footer { padding:14px 20px; border-top:1px solid #f1f5f9; display:flex; gap:8px; }
+.btn-sm { font-size:11px; font-weight:600; padding:7px 14px; border-radius:10px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; cursor:pointer; transition:all .15s; border:none; }
+.btn-sm-outline { background:white; border:1.5px solid #e2e8f0; color:#64748b; }
+.btn-sm-outline:hover { border-color:var(--accent-bd); background:var(--accent-lt); color:var(--accent-tx); }
+.btn-sm-primary { background:var(--accent-gr); color:white; box-shadow:0 2px 8px var(--accent-sh); }
+.btn-sm-primary:hover { opacity:.88; }
+.btn-sm-danger { background:#fee2e2; color:#dc2626; border:1px solid #fecaca; }
+.btn-sm-danger:hover { background:#fecaca; }
+.role-stats { display:flex; gap:12px; margin-top:12px; font-size:10px; color:#94a3b8; }
+</style>
+
+<div class="role-wrap">
+
+{{-- FLASH --}}
 @if(session('success'))
-    <div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
-                display:flex; align-items:center; gap:8px;
-                background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d;">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-        </svg>
-        {{ session('success') }}
+    <div class="flash-ok">
+        <div class="flash-ok-icon"><svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>
+        <p style="font-size:13px;font-weight:600;color:var(--accent-tx);margin:0;">{{ session('success') }}</p>
     </div>
 @endif
 @if(session('error'))
-    <div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
-                display:flex; align-items:center; gap:8px;
-                background:#fff1f2; border:1px solid #fecdd3; color:#be123c;">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-5h2v2h-2zm0-8h2v6h-2z" clip-rule="evenodd"/>
-        </svg>
-        {{ session('error') }}
+    <div style="padding:14px 18px;background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;margin-bottom:16px;">
+        <p style="font-size:12px;color:#be123c;margin:0;">✕ {{ session('error') }}</p>
     </div>
 @endif
 
-{{-- ════ HEADER ════ --}}
-<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
-    <div>
-        <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Rôles & Permissions</h1>
-        <p style="font-size:12px; color:#64748b; margin:4px 0 0;">Gérez les rôles et leurs permissions associées</p>
+{{-- HERO --}}
+<div class="role-hero">
+    <div style="display:flex;align-items:center;gap:16px;">
+        <div class="role-hero-icon">
+            <svg width="26" height="26" fill="none" stroke="white" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+        </div>
+        <div>
+            <h1 class="role-hero-title">Rôles & Permissions</h1>
+            <p class="role-hero-sub">
+                <strong style="color:white;">{{ $roles->count() }}</strong> rôles configurés
+            </p>
+        </div>
     </div>
-    @if(Auth::user()->role === 'admin')
-    <a href="{{ route('roles.create') }}"
-       style="display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
-              border-radius:10px; background:#0a6640; color:white; font-size:12px;
-              font-weight:700; text-decoration:none; border:none;
-              box-shadow:0 4px 12px rgba(10,102,64,0.3);">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-        </svg>
+    <span class="role-hero-badge">{{ ucfirst($role) }}</span>
+</div>
+
+{{-- ACTIONS BAR --}}
+@if(Auth::user()->role === 'admin')
+<div style="margin-bottom:24px; display:flex; justify-content:flex-end;">
+    <a href="{{ route('roles.create') }}" class="btn-sm btn-sm-primary" style="padding:10px 20px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
         Nouveau rôle
     </a>
-    @endif
 </div>
+@endif
 
-{{-- ════ ROLES GRID ════ --}}
-<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
-    @forelse($roles as $role)
-        @php
-            $isSystem = in_array($role->name, ['admin','gestionnaire','formateur','stagiaire']);
-            $colors = [
-                'admin'        => ['bg'=>'#e8f5ee','border'=>'#0a6640','text'=>'#065f38','badge'=>'#0a6640'],
-                'gestionnaire' => ['bg'=>'#eff6ff','border'=>'#2563eb','text'=>'#1e40af','badge'=>'#2563eb'],
-                'formateur'    => ['bg'=>'#fdf4ff','border'=>'#9333ea','text'=>'#6b21a8','badge'=>'#9333ea'],
-                'stagiaire'    => ['bg'=>'#fff7ed','border'=>'#ea580c','text'=>'#9a3412','badge'=>'#ea580c'],
-            ];
-            $c = $colors[$role->name] ?? ['bg'=>'#f8fafc','border'=>'#64748b','text'=>'#334155','badge'=>'#64748b'];
-        @endphp
-        <div style="background:white; border-radius:16px; border:1px solid #e2e8f0;
-                    overflow:hidden; transition:box-shadow 0.15s;"
-             onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.08)'"
-             onmouseout="this.style.boxShadow='none'">
-
-            {{-- Card header --}}
-            <div style="padding:16px 18px; background:{{ $c['bg'] }}; border-bottom:1px solid {{ $c['border'] }}20;
-                        display:flex; align-items:center; justify-content:space-between;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="width:36px; height:36px; border-radius:10px; background:{{ $c['border'] }};
-                                display:flex; align-items:center; justify-content:center;">
-                        <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
+{{-- ROLES GRID --}}
+<div class="role-grid">
+@forelse($roles as $roleItem)
+    @php
+        $isSystem = in_array($roleItem->name, ['admin','gestionnaire','formateur','stagiaire']);
+        $roleColors = [
+            'admin'        => ['bg'=>'#0a6640','light'=>'#e8f5ee','text'=>'#065f38'],
+            'gestionnaire' => ['bg'=>'#1e293b','light'=>'#f1f5f9','text'=>'#1e293b'],
+            'formateur'    => ['bg'=>'#1a4f8a','light'=>'#eff6ff','text'=>'#1e40af'],
+            'stagiaire'    => ['bg'=>'#ea580c','light'=>'#fff7ed','text'=>'#9a3412'],
+        ];
+        $rc = $roleColors[$roleItem->name] ?? ['bg'=>'#64748b','light'=>'#f8fafc','text'=>'#334155'];
+        
+        $permGroups = $roleItem->permissions->groupBy(fn($p) => explode('-', $p->name)[0]);
+        $permColors = [
+            'emploi'      => ['bg'=>'#eff6ff','text'=>'#1e40af'],
+            'user'        => ['bg'=>'#f0fdf4','text'=>'#166534'],
+            'stagiaire'   => ['bg'=>'#ecfeff','text'=>'#0e7490'],
+            'groupe'      => ['bg'=>'#fdf4ff','text'=>'#6b21a8'],
+            'role'        => ['bg'=>'#fff1f2','text'=>'#9f1239'],
+            'edu'         => ['bg'=>'#fff7ed','text'=>'#9a3412'],
+            'reportation' => ['bg'=>'#f5f3ff','text'=>'#5b21b6'],
+            'salle'       => ['bg'=>'#f0fdfa','text'=>'#0f766e'],
+        ];
+    @endphp
+    <div class="role-card">
+        <div class="role-card-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="role-card-icon" style="background:{{ $rc['light'] }};">
+                    <svg width="22" height="22" fill="none" stroke="{{ $rc['bg'] }}" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="role-card-name" style="color:{{ $rc['text'] }}; text-transform:capitalize;">
+                        {{ $roleItem->name }}
                     </div>
-                    <div>
-                        <div style="font-size:14px; font-weight:800; color:{{ $c['text'] }}; text-transform:capitalize;">
-                            {{ $role->name }}
-                        </div>
-                        <div style="font-size:10px; color:{{ $c['text'] }}80; margin-top:1px;">
-                            {{ $role->permissions->count() }} permission{{ $role->permissions->count() > 1 ? 's' : '' }}
-                        </div>
+                    <div class="role-stats">
+                        <span>📋 {{ $roleItem->permissions->count() }} permission(s)</span>
                     </div>
                 </div>
-                @if($isSystem)
-                    <span style="font-size:9px; font-weight:700; background:{{ $c['border'] }}15;
-                                 color:{{ $c['text'] }}; padding:3px 9px; border-radius:99px;
-                                 border:1px solid {{ $c['border'] }}30;">
-                        Système
-                    </span>
-                @endif
             </div>
+            @if($isSystem)
+                <span class="role-card-badge system">🔒 Système</span>
+            @endif
+        </div>
 
-            {{-- Permissions list --}}
-            <div style="padding:14px 18px;">
-                @if($role->permissions->isEmpty())
-                    <p style="font-size:11px; color:#94a3b8; font-style:italic; margin:0;">
-                        Aucune permission assignée
-                    </p>
-                @else
-                    <div style="display:flex; flex-wrap:wrap; gap:5px;">
-                        @foreach($role->permissions->sortBy('name') as $perm)
-                            @php
-                                $prefix = explode('-', $perm->name)[0];
-                                $permColors = [
-                                    'emploi'      => ['bg' => '#eff6ff', 'text' => '#1e40af'],
-                                    'user'        => ['bg' => '#f0fdf4', 'text' => '#166534'],
-                                    'stagiaire'   => ['bg' => '#ecfeff', 'text' => '#0e7490'],
-                                    'groupe'      => ['bg' => '#fdf4ff', 'text' => '#6b21a8'],
-                                    'role'        => ['bg' => '#fff1f2', 'text' => '#9f1239'],
-                                    'edu'         => ['bg' => '#fff7ed', 'text' => '#9a3412'],
-                                    'reportation' => ['bg' => '#f5f3ff', 'text' => '#5b21b6'],
-                                ];
-                                $pc = $permColors[$prefix] ?? ['bg' => '#f8fafc', 'text' => '#334155'];
-                            @endphp
-                            <span style="font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px;
-                                         background:{{ $pc['bg'] }}; color:{{ $pc['text'] }};">
-                                {{ $perm->name }}
-                            </span>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-
-            {{-- Actions --}}
-            <div style="padding:12px 18px; border-top:1px solid #f1f5f9;
-                        display:flex; align-items:center; gap:8px;">
-                @if(Auth::user()->role === 'admin')
-                    <a href="{{ route('roles.show', $role) }}"
-                       style="font-size:11px; font-weight:600; color:#64748b; text-decoration:none;
-                              padding:5px 10px; border-radius:8px; border:1px solid #e2e8f0; background:white;"
-                       onmouseover="this.style.background='#f8fafc'"
-                       onmouseout="this.style.background='white'">
-                       Détails
-                    </a>
-                    <a href="{{ route('roles.edit', $role) }}"
-                       style="font-size:11px; font-weight:600; color:#1e40af; text-decoration:none;
-                              padding:5px 10px; border-radius:8px; background:#eff6ff; border:1px solid #bfdbfe;">
-                       ✎ Modifier
-                    </a>
-                    @if(!$isSystem)
-                        <button onclick="openDeleteRoleModal('{{ route('roles.destroy', $role) }}', '{{ $role->name }}')"
-                                style="font-size:11px; font-weight:600; color:#dc2626; padding:5px 10px;
-                                       border-radius:8px; background:#fee2e2; border:1px solid #fecaca;
-                                       cursor:pointer; margin-left:auto;">
-                            ✕ Supprimer
-                        </button>
+        <div class="role-card-body">
+            @if($roleItem->permissions->isEmpty())
+                <p style="font-size:11px; color:#94a3b8; font-style:italic; margin:0;">Aucune permission assignée</p>
+            @else
+                <div class="role-perms-list">
+                    @foreach($roleItem->permissions->sortBy('name')->take(6) as $perm)
+                        @php $prefix = explode('-', $perm->name)[0]; $pc = $permColors[$prefix] ?? ['bg'=>'#f8fafc','text'=>'#334155']; @endphp
+                        <span class="role-perm-tag" style="background:{{ $pc['bg'] }}; color:{{ $pc['text'] }};">
+                            {{ str_replace('-view', '', $perm->name) }}
+                        </span>
+                    @endforeach
+                    @if($roleItem->permissions->count() > 6)
+                        <span class="role-perm-tag" style="background:#f1f5f9; color:#64748b;">
+                            +{{ $roleItem->permissions->count() - 6 }} autres
+                        </span>
                     @endif
+                </div>
+            @endif
+        </div>
+
+        <div class="role-card-footer">
+            @if(Auth::user()->role === 'admin')
+                <a href="{{ route('roles.show', $roleItem) }}" class="btn-sm btn-sm-outline">📋 Détails</a>
+                <a href="{{ route('roles.edit', $roleItem) }}" class="btn-sm btn-sm-primary">✎ Modifier</a>
+                @if(!$isSystem)
+                    <button onclick="openDeleteRoleModal('{{ route('roles.destroy', $roleItem) }}', '{{ $roleItem->name }}')" class="btn-sm btn-sm-danger" style="margin-left:auto;">🗑️ Supprimer</button>
                 @endif
-            </div>
+            @endif
         </div>
-    @empty
-        <div style="grid-column:1/-1; padding:48px; text-align:center;
-                    background:white; border-radius:16px; border:1px solid #e2e8f0;">
-            <p style="font-size:14px; color:#64748b;">Aucun rôle trouvé.</p>
+    </div>
+@empty
+    <div style="grid-column:1/-1; padding:60px; text-align:center; background:white; border-radius:20px; border:1px solid #e2e8f0;">
+        <div style="width:64px;height:64px;border-radius:20px;background:var(--accent-lt);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
+            <svg width="28" height="28" fill="none" stroke="var(--accent)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
-    @endforelse
+        <p style="font-size:14px;font-weight:700;color:#1e293b;margin:0 0 4px;">Aucun rôle trouvé</p>
+        <p style="font-size:12px;color:#94a3b8;margin:0;">Créez un nouveau rôle pour commencer.</p>
+    </div>
+@endforelse
 </div>
 
-{{-- ════ DELETE MODAL ════ --}}
+{{-- DELETE MODAL --}}
 <div id="delete-role-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
      onclick="if(event.target===this)closeDeleteRoleModal()">
-    <div style="background:white; border-radius:20px; width:100%; max-width:400px;
-                margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
-        <div style="display:flex; align-items:center; justify-content:space-between;
-                    margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #dc2626;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:40px; height:40px; border-radius:12px; background:#fee2e2;
-                            display:flex; align-items:center; justify-content:center;">
-                    <svg width="18" height="18" fill="none" stroke="#dc2626" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                </div>
-                <div>
-                    <div style="font-size:14px; font-weight:800; color:#1e293b;">Supprimer le rôle ?</div>
-                    <div style="font-size:10px; color:#64748b; margin-top:1px;" id="delete-role-name"></div>
-                </div>
+    <div style="background:white; border-radius:20px; width:100%; max-width:400px; margin:16px; padding:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:14px; border-bottom:2px solid #dc2626;">
+            <div style="width:44px;height:44px;border-radius:12px;background:#fee2e2;display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" fill="none" stroke="#dc2626" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </div>
-            <button onclick="closeDeleteRoleModal()"
-                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
-                           color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+            <div>
+                <div style="font-size:15px;font-weight:800;color:#1e293b;">Supprimer le rôle ?</div>
+                <div style="font-size:11px;color:#64748b;" id="delete-role-name"></div>
+            </div>
+            <button onclick="closeDeleteRoleModal()" style="margin-left:auto;width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;cursor:pointer;">×</button>
         </div>
-        <div style="font-size:12px; color:#9f1239; line-height:1.6; margin-bottom:18px;
-                    padding:12px 14px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3;">
+        <div style="padding:12px 14px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3; font-size:12px; color:#9f1239; margin-bottom:20px;">
             Les utilisateurs ayant ce rôle perdront leurs permissions associées.
         </div>
         <div style="display:flex; gap:10px;">
-            <button onclick="closeDeleteRoleModal()"
-                    style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
-                           background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;"
-                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                Annuler
-            </button>
+            <button onclick="closeDeleteRoleModal()" class="btn-sm btn-sm-outline" style="flex:1; justify-content:center;">Annuler</button>
             <form id="delete-role-form" method="POST" style="flex:1;">
                 @csrf @method('DELETE')
-                <button type="submit"
-                        style="width:100%; height:44px; border-radius:12px; border:none;
-                               background:#dc2626; font-size:13px; font-weight:700; color:white;
-                               cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3);">
-                    Supprimer
-                </button>
+                <button type="submit" class="btn-sm btn-sm-danger" style="width:100%; justify-content:center;">🗑️ Supprimer</button>
             </form>
         </div>
     </div>

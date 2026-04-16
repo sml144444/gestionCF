@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Filiere extends Model
 {
-    protected $fillable = ['name', 'duree'];
+    protected $fillable = ['name', 'duree' ,'code'];
 
     public function options()
     {

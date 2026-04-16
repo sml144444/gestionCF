@@ -227,6 +227,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\SalleController;
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/modules', [ModuleController::class, 'index'])
@@ -244,4 +245,24 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])
         ->name('modules.destroy')
         ->middleware('can:groupe-delete');
+});
+
+
+Route::middleware(['auth'])->group(function () {
+ 
+    Route::get('/salles', [SalleController::class, 'index'])
+        ->name('salles.index')
+        ->middleware('can:salle-list');
+ 
+    Route::post('/salles', [SalleController::class, 'store'])
+        ->name('salles.store')
+        ->middleware('can:salle-create');
+ 
+    Route::patch('/salles/{salle}', [SalleController::class, 'update'])
+        ->name('salles.update')
+        ->middleware('can:salle-edit');
+ 
+    Route::delete('/salles/{salle}', [SalleController::class, 'destroy'])
+        ->name('salles.destroy')
+        ->middleware('can:salle-delete');
 });

@@ -241,37 +241,53 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 {{-- ════ HEADER ════ --}}
 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
 
-    {{-- Year tabs --}}
-    <div style="display:inline-flex; border-radius:12px; overflow:hidden; border:1.5px solid #e2e8f0; background:white;">
-        @php
-            $tab1Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 1;
-            $tab2Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 2;
-        @endphp
-        @if($tab1Disabled)
-            <span class="tt-tab disabled" title="Vous êtes inscrit en 2ème année">Année 1 &nbsp;🔒</span>
-        @else
-            <a href="{{ route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()]) }}"
-               class="tt-tab {{ $year === 1 ? 'active' : 'inactive' }}"
-               style="{{ $year === 1 ? 'background:'.$accentYear1.';' : '' }}">
-                Année 1
-                <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
-                             {{ $year === 1 ? 'background:rgba(255,255,255,0.2); color:white;'
-                                           : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">1ère</span>
-            </a>
-        @endif
-        @if($tab2Disabled)
-            <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en 1ère année">Année 2 / 2.5 &nbsp;🔒</span>
-        @else
-            <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()]) }}"
-               class="tt-tab {{ $year === 2 ? 'active' : 'inactive' }}"
-               style="{{ $year === 2 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
-                Année 2 / 2.5
-                <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
-                             {{ $year === 2 ? 'background:rgba(255,255,255,0.2); color:white;'
-                                           : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">2ème</span>
-            </a>
-        @endif
-    </div>
+{{-- Year tabs --}}
+<div style="display:inline-flex; border-radius:12px; overflow:hidden; border:1.5px solid #e2e8f0; background:white;">
+    @php
+        $tab1Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 1;
+        $tab2Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 2;
+        $tab3Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 3;
+    @endphp
+
+    @if($tab1Disabled)
+        <span class="tt-tab disabled" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 1 &nbsp;🔒</span>
+    @else
+        <a href="{{ route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()]) }}"
+           class="tt-tab {{ $year === 1 ? 'active' : 'inactive' }}"
+           style="{{ $year === 1 ? 'background:'.$accentYear1.';' : '' }}">
+            Année 1
+            <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
+                         {{ $year === 1 ? 'background:rgba(255,255,255,0.2); color:white;'
+                                       : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">1ère</span>
+        </a>
+    @endif
+
+    @if($tab2Disabled)
+        <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 2 / 2.5 &nbsp;🔒</span>
+    @else
+        <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()]) }}"
+           class="tt-tab {{ $year === 2 ? 'active' : 'inactive' }}"
+           style="{{ $year === 2 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
+            Année 2 
+            <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
+                         {{ $year === 2 ? 'background:rgba(255,255,255,0.2); color:white;'
+                                       : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">2ème</span>
+        </a>
+    @endif
+
+    @if($tab3Disabled)
+        <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 3 &nbsp;🔒</span>
+    @else
+        <a href="{{ route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString()]) }}"
+           class="tt-tab {{ $year === 3 ? 'active' : 'inactive' }}"
+           style="{{ $year === 3 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
+            Année 3
+            <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
+                         {{ $year === 3 ? 'background:rgba(255,255,255,0.2); color:white;'
+                                       : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">3ème</span>
+        </a>
+    @endif
+</div>
 
     {{-- Week nav --}}
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">

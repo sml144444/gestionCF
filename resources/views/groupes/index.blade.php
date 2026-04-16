@@ -148,6 +148,9 @@
                 @php
                     $occ      = $groupe->nbr_limit > 0 ? min(100,round(($groupe->stagiaires_count/$groupe->nbr_limit)*100)) : 0;
                     $occColor = $occ>=90?'#dc2626':($occ>=70?'#f59e0b':'#16a34a');
+                    $anneeColor = $groupe->annee==1 ? '#1e40af' : ($groupe->annee==2 ? '#6b21a8' : '#c2410c');
+                    $anneeBg    = $groupe->annee==1 ? '#eff6ff' : ($groupe->annee==2 ? '#fdf4ff' : '#fff7ed');
+                    $anneeLabel = $groupe->annee==1 ? '1ère année' : ($groupe->annee==2 ? '2ème année' : '3ème année');
                 @endphp
                 <div class="grp-card">
                     <div style="padding:14px 16px;">
@@ -162,10 +165,10 @@
                                     @endif
                                 </div>
                                 <div style="font-size:9px;font-weight:700;margin-top:4px;
-                                            background:{{ $groupe->annee==1?'#eff6ff':'#fdf4ff' }};
-                                            color:{{ $groupe->annee==1?'#1e40af':'#6b21a8' }};
+                                            background:{{ $anneeBg }};
+                                            color:{{ $anneeColor }};
                                             padding:2px 8px;border-radius:99px;display:inline-block;">
-                                    {{ $groupe->annee==1?'1ère année':'2ème année' }}
+                                    {{ $anneeLabel }}
                                 </div>
                             </div>
                             <div style="display:flex;gap:5px;">
@@ -276,16 +279,30 @@
                 {{-- Année --}}
                 <div class="f-row" style="margin-bottom:0;">
                     <label class="f-label">Année de formation <span style="color:#ef4444;">*</span></label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <label class="radio-card" id="lbl-create-a1" onclick="styleRadio('create',1)">
                             <input type="radio" name="annee" value="1" {{ old('annee',1)==1?'checked':'' }}
                                    style="accent-color:var(--accent);">
-                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div></div>
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div>
+                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div>
+                            </div>
                         </label>
                         <label class="radio-card" id="lbl-create-a2" onclick="styleRadio('create',2)">
                             <input type="radio" name="annee" value="2" {{ old('annee')==2?'checked':'' }}
                                    style="accent-color:var(--accent);">
-                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 2/2.5</div></div>
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div>
+                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 2</div>
+                            </div>
+                        </label>
+                        <label class="radio-card" id="lbl-create-a3" onclick="styleRadio('create',3)">
+                            <input type="radio" name="annee" value="3" {{ old('annee')==3?'checked':'' }}
+                                   style="accent-color:var(--accent);">
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">3ème année</div>
+                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 3</div>
+                            </div>
                         </label>
                     </div>
                 </div>
@@ -340,14 +357,27 @@
 
                 <div class="f-row" style="margin-bottom:0;">
                     <label class="f-label">Année de formation <span style="color:#ef4444;">*</span></label>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <label class="radio-card" id="lbl-edit-a1" onclick="styleRadio('edit',1)">
                             <input type="radio" name="annee" value="1" id="edit-r1" style="accent-color:#f59e0b;">
-                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div></div>
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div>
+                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div>
+                            </div>
                         </label>
                         <label class="radio-card" id="lbl-edit-a2" onclick="styleRadio('edit',2)">
                             <input type="radio" name="annee" value="2" id="edit-r2" style="accent-color:#f59e0b;">
-                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 2/2.5</div></div>
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div>
+                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 2</div>
+                            </div>
+                        </label>
+                        <label class="radio-card" id="lbl-edit-a3" onclick="styleRadio('edit',3)">
+                            <input type="radio" name="annee" value="3" id="edit-r3" style="accent-color:#f59e0b;">
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">3ème année</div>
+                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 3</div>
+                            </div>
                         </label>
                     </div>
                 </div>
@@ -403,7 +433,6 @@ function openCreateForFiliere(filiereId, filiereName, filiereCode) {
     if (sel) sel.value = filiereId;
     const sub = document.getElementById('create-grp-sub');
     if (sub) sub.textContent = 'Filière : ' + filiereName;
-    // Pre-fill code prefix with filière code
     const codeInput = document.getElementById('create-grp-code');
     if (codeInput && !codeInput.dataset.touched && filiereCode) {
         codeInput.value = filiereCode + '-';
@@ -412,8 +441,8 @@ function openCreateForFiliere(filiereId, filiereName, filiereCode) {
 }
 
 function onFiliereChange(sel) {
-    const opt      = sel.options[sel.selectedIndex];
-    const fCode    = opt.dataset.code || '';
+    const opt       = sel.options[sel.selectedIndex];
+    const fCode     = opt.dataset.code || '';
     const nameInput = document.getElementById('create-grp-name');
     const codeInput = document.getElementById('create-grp-code');
     if (codeInput && !codeInput.dataset.touched && fCode) {
@@ -425,28 +454,29 @@ function onFiliereChange(sel) {
 function autoGroupeCode(nameInput) {
     const codeInput = document.getElementById('create-grp-code');
     if (!codeInput || codeInput.dataset.touched) return;
-    const sel    = document.getElementById('create-grp-filiere');
-    const fCode  = sel?.options[sel.selectedIndex]?.dataset.code || '';
-    const gCode  = nameInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0, 10);
+    const sel   = document.getElementById('create-grp-filiere');
+    const fCode = sel?.options[sel.selectedIndex]?.dataset.code || '';
+    const gCode = nameInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0, 10);
     codeInput.value = (fCode ? fCode + '-' : '') + gCode;
 }
 
 function openEditGroupe(id, name, code, annee, limit, filiereId, filiereName) {
-    document.getElementById('edit-grp-form').action  = '/groupes/' + id;
-    document.getElementById('edit-grp-name').value   = name;
-    document.getElementById('edit-grp-code').value   = code;
-    document.getElementById('edit-grp-limit').value  = limit;
-    document.getElementById('edit-grp-sub').textContent = name + ' — ' + filiereName;
+    document.getElementById('edit-grp-form').action         = '/groupes/' + id;
+    document.getElementById('edit-grp-name').value          = name;
+    document.getElementById('edit-grp-code').value          = code;
+    document.getElementById('edit-grp-limit').value         = limit;
+    document.getElementById('edit-grp-sub').textContent     = name + ' — ' + filiereName;
     document.getElementById('edit-grp-filiere-info').textContent = 'Filière : ' + filiereName + ' (non modifiable)';
     document.getElementById('edit-r1').checked = annee == 1;
     document.getElementById('edit-r2').checked = annee == 2;
+    document.getElementById('edit-r3').checked = annee == 3;
     styleRadio('edit', annee);
     document.getElementById('modal-edit-grp').classList.add('open');
 }
 
 function openDeleteGroupe(action, name, stagiaireCount) {
-    document.getElementById('delete-grp-form').action = action;
-    document.getElementById('delete-grp-name').textContent = 'Groupe : ' + name;
+    document.getElementById('delete-grp-form').action       = action;
+    document.getElementById('delete-grp-name').textContent  = 'Groupe : ' + name;
     const btn = document.getElementById('delete-grp-btn');
     const w   = document.getElementById('delete-grp-warning');
     if (stagiaireCount > 0) {
@@ -460,18 +490,18 @@ function openDeleteGroupe(action, name, stagiaireCount) {
 }
 
 function styleRadio(prefix, selected) {
-    [1,2].forEach(v => {
-        const lbl = document.getElementById('lbl-'+(prefix==='create'?'create':'edit')+'-a'+v);
+    [1, 2, 3].forEach(v => {
+        const lbl = document.getElementById('lbl-' + prefix + '-a' + v);
         if (!lbl) return;
-        const isSelected = v === selected;
+        const isSelected = v == selected;
         const color = prefix === 'edit' ? '#f59e0b' : ACCENT;
-        lbl.style.background  = isSelected ? (prefix==='edit' ? '#fef3c7' : LIGHT) : 'white';
+        const bg    = prefix === 'edit' ? '#fef3c7' : LIGHT;
+        lbl.style.background  = isSelected ? bg    : 'white';
         lbl.style.borderColor = isSelected ? color : '#e2e8f0';
     });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Mark code input as touched when user edits it manually
     ['create-grp-code','edit-grp-code'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => { el.dataset.touched = '1'; });
