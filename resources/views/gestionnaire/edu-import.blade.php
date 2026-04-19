@@ -26,7 +26,7 @@
     --accent-sh: {{ $p['shadow'] }};
     --accent-gr: {{ $p['gradient'] }};
 }
-.edu-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:960px; margin:0 auto; }
+.edu-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:1200px; margin:0 auto; }
 .edu-hero { background:var(--accent-gr); border-radius:20px; padding:28px 32px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; position:relative; overflow:hidden; }
 .edu-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
 .edu-hero-icon { width:52px; height:52px; border-radius:16px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -75,7 +75,7 @@
 .edu-table th { padding:10px 14px; font-size:9px; font-weight:800; color:var(--accent-tx); text-transform:uppercase; letter-spacing:.5px; text-align:left; white-space:nowrap; }
 .edu-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background .12s; }
 .edu-table tbody tr:hover { background:var(--accent-ltr); }
-.edu-table td { padding:10px 14px; font-size:11px; color:#334155; }
+.edu-table td { padding:10px 14px; font-size:11px; color:#334155; vertical-align:middle; }
 .edu-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px; }
 .edu-input { width:100%; height:40px; padding:0 12px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; color:#1e293b; outline:none; transition:all .15s; box-sizing:border-box; }
 .edu-input:focus { border-color:var(--accent); background:white; }
@@ -84,6 +84,10 @@
 .btn-primary:hover { opacity:.88; }
 .btn-ghost { height:40px; padding:0 16px; border-radius:10px; border:1.5px solid #e2e8f0; background:white; color:#475569; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; justify-content:center; gap:7px; text-decoration:none; }
 .btn-ghost:hover { border-color:var(--accent-bd); color:var(--accent-tx); background:var(--accent-lt); }
+.btn-action-edit { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:8px; border:1.5px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; font-size:10px; font-weight:700; text-decoration:none; transition:all .15s; }
+.btn-action-edit:hover { background:#dbeafe; }
+.btn-action-delete { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:8px; border:1.5px solid #fecdd3; background:#fff1f2; color:#dc2626; font-size:10px; font-weight:700; cursor:pointer; transition:all .15s; }
+.btn-action-delete:hover { background:#fee2e2; }
 .fmt-header { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent); }
 .fmt-row-a  { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent-lt); }
 .fmt-row-b  { display:grid; grid-template-columns:repeat(6,1fr); }
@@ -96,8 +100,6 @@
 .code-chip-key { font-weight:800; color:var(--accent-tx); }
 .code-chip-val { color:#64748b; }
 .imp-avatar { width:30px; height:30px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:white; flex-shrink:0; }
-
-/* ── Filter bar ── */
 .filter-bar { background:white; border:1px solid #e2e8f0; border-radius:14px; padding:16px 18px; margin-bottom:16px; }
 .filter-bar-title { font-size:9px; font-weight:800; color:var(--accent-tx); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
 .filter-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; align-items:end; }
@@ -106,7 +108,7 @@
 
 <div class="edu-wrap">
 
-{{-- FLASH --}}
+{{-- ── FLASH MESSAGES ── --}}
 @if(session('import_success'))
     @php $s = session('import_success'); @endphp
     <div class="flash-ok">
@@ -114,24 +116,37 @@
         <div>
             <p style="font-size:13px;font-weight:700;color:var(--accent-tx);margin:0;">Import terminé !</p>
             <p style="font-size:11px;color:var(--accent-tx);opacity:.8;margin-top:2px;">
-                <strong>{{ $s['imported'] }}</strong> importés · <strong>{{ $s['skipped'] }}</strong> ignorés · <strong>{{ $s['errors'] }}</strong> erreurs
+                <strong>{{ $s['imported'] }}</strong> importés &nbsp;·&nbsp;
+                <strong>{{ $s['skipped'] }}</strong> ignorés &nbsp;·&nbsp;
+                <strong>{{ $s['errors'] }}</strong> erreurs
             </p>
         </div>
     </div>
 @endif
+
 @if(session('success'))
     <div class="flash-ok">
         <div class="flash-ok-icon"><svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>
         <p style="font-size:13px;font-weight:600;color:var(--accent-tx);margin:0;">{{ session('success') }}</p>
     </div>
 @endif
-@if($errors->any())
-    <div style="padding:14px 18px;background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;margin-bottom:16px;">
-        @foreach($errors->all() as $e)<p style="font-size:12px;color:#be123c;margin:2px 0;">✕ {{ $e }}</p>@endforeach
+
+@if(session('error'))
+    <div class="flash-ok" style="background:#fff1f2;border-color:#fecdd3;">
+        <div class="flash-ok-icon" style="background:#dc2626;"><svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></div>
+        <p style="font-size:13px;font-weight:600;color:#be123c;margin:0;">{{ session('error') }}</p>
     </div>
 @endif
 
-{{-- HERO --}}
+@if($errors->any())
+    <div style="padding:14px 18px;background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;margin-bottom:16px;">
+        @foreach($errors->all() as $e)
+            <p style="font-size:12px;color:#be123c;margin:2px 0;">✕ {{ $e }}</p>
+        @endforeach
+    </div>
+@endif
+
+{{-- ── HERO ── --}}
 <div class="edu-hero">
     <div style="display:flex;align-items:center;gap:16px;">
         <div class="edu-hero-icon">
@@ -151,7 +166,7 @@
     <span class="edu-hero-badge">{{ ucfirst($role) }}</span>
 </div>
 
-{{-- TABS --}}
+{{-- ── TABS ── --}}
 <div class="edu-tabs">
     @can('edu-import')
     <button class="edu-tab {{ $activeTab==='import' ? 'active' : '' }}" id="tab-btn-import" onclick="showTab('import')">
@@ -180,73 +195,161 @@
     @endcan
 </div>
 
-{{-- ══════════════════════════════════
-     TAB: IMPORT EXCEL
-══════════════════════════════════ --}}
+{{-- ══════════════════════════════════════════════════
+     TAB : IMPORT EXCEL
+══════════════════════════════════════════════════ --}}
 @can('edu-import')
 <div id="tab-import" style="display:none;">
+
+    {{-- Steps --}}
     <div class="edu-steps">
         @foreach([['1','Fichier'],['2','Validation'],['3','Confirmation'],['✓','Terminé']] as $i => [$n,$l])
-        <div class="edu-step {{ $i===0?'active':'' }}" id="edu-step-{{ $i+1 }}">
+        <div class="edu-step {{ $i===0 ? 'active' : '' }}" id="edu-step-{{ $i+1 }}">
             <div class="edu-step-circle" id="step-circle-{{ $i+1 }}">{{ $n }}</div>
             <div class="edu-step-label"  id="step-label-{{ $i+1 }}">{{ $l }}</div>
         </div>
         @endforeach
     </div>
+
+    {{-- Step 1 : Upload --}}
     <div id="step-1">
         <div class="edu-card">
             <div class="edu-card-head">
-                <div><p class="edu-card-title">Importer un fichier Excel</p><p class="edu-card-sub">Formats acceptés : .xlsx, .xls, .csv — max 5 Mo</p></div>
-                <a href="{{ route('edu-import.template') }}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--accent-lt);border:1.5px solid var(--accent-bd);border-radius:10px;font-size:11px;font-weight:700;color:var(--accent-tx);text-decoration:none;">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <div>
+                    <p class="edu-card-title">Importer un fichier Excel</p>
+                    <p class="edu-card-sub">Formats acceptés : .xlsx, .xls, .csv — max 5 Mo</p>
+                </div>
+                <a href="{{ route('edu-import.template') }}"
+                   style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+                          background:var(--accent-lt);border:1.5px solid var(--accent-bd);
+                          border-radius:10px;font-size:11px;font-weight:700;
+                          color:var(--accent-tx);text-decoration:none;">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
                     Modèle Excel
                 </a>
             </div>
             <div class="edu-card-body">
-                <label for="file-input" class="upload-zone" id="upload-zone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
-                    <div class="upload-zone-icon"><svg width="28" height="28" fill="none" stroke="var(--accent)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg></div>
-                    <p id="upload-label" style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">Glisser le fichier ici ou cliquer pour choisir</p>
+                <label for="file-input" class="upload-zone" id="upload-zone"
+                       ondragover="event.preventDefault();this.classList.add('drag-over')"
+                       ondragleave="this.classList.remove('drag-over')"
+                       ondrop="handleDrop(event)">
+                    <div class="upload-zone-icon">
+                        <svg width="28" height="28" fill="none" stroke="var(--accent)" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                    </div>
+                    <p id="upload-label" style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">
+                        Glisser le fichier ici ou cliquer pour choisir
+                    </p>
                     <p style="font-size:11px;color:#94a3b8;">.xlsx · .xls · .csv</p>
-                    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="onFileSelected(this)">
+                    <input type="file" id="file-input" accept=".xlsx,.xls,.csv"
+                           style="display:none;" onchange="onFileSelected(this)">
                 </label>
             </div>
         </div>
+
+        {{-- Format reference --}}
         <div class="edu-card">
-            <div class="edu-card-head"><div><p class="edu-card-title">Format attendu</p><p class="edu-card-sub">6 colonnes dans cet ordre exact</p></div></div>
+            <div class="edu-card-head">
+                <div>
+                    <p class="edu-card-title">Format attendu</p>
+                    <p class="edu-card-sub">6 colonnes dans cet ordre exact</p>
+                </div>
+            </div>
             <div class="edu-card-body">
                 <div style="border-radius:12px;overflow:hidden;margin-bottom:18px;border:1px solid var(--accent-bd);">
-                    <div class="fmt-header">@foreach(['edu_email','password','nom','prenom','filiere_code','groupe_code'] as $h)<div class="fmt-cell">{{ $h }}</div>@endforeach</div>
-                    <div class="fmt-row-a">@foreach(['ahmed@ofppt.ma','pass1234','Ali','Ahmed','DEVDIG','DD-G1A'] as $v)<div class="fmt-cell">{{ $v }}</div>@endforeach</div>
-                    <div class="fmt-row-b">@foreach(['sara@ofppt.ma','pass5678','Idrissi','Sara','GI','GI-G1C'] as $v)<div class="fmt-cell">{{ $v }}</div>@endforeach</div>
+                    <div class="fmt-header">
+                        @foreach(['edu_email','password','nom','prenom','filiere_code','groupe_code'] as $h)
+                            <div class="fmt-cell">{{ $h }}</div>
+                        @endforeach
+                    </div>
+                    <div class="fmt-row-a">
+                        @foreach(['m.alami@ofppt.ma','pass1234','Alami','Mohammed','DEVDIG','DD-G1A'] as $v)
+                            <div class="fmt-cell">{{ $v }}</div>
+                        @endforeach
+                    </div>
+                    <div class="fmt-row-b">
+                        @foreach(['s.idrissi@ofppt.ma','pass5678','Idrissi','Sara','GI','GI-G1C'] as $v)
+                            <div class="fmt-cell">{{ $v }}</div>
+                        @endforeach
+                    </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                    <div><p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Codes filières</p><div style="display:flex;flex-direction:column;gap:5px;">@foreach($filieres as $f)<div class="code-chip"><span class="code-chip-key">{{ $f->code??'—' }}</span><span style="color:#cbd5e1;">·</span><span class="code-chip-val">{{ $f->name }}</span></div>@endforeach</div></div>
-                    <div><p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Codes groupes</p><div style="display:flex;flex-direction:column;gap:5px;">@foreach($groupes as $g)<div class="code-chip"><span class="code-chip-key" style="color:#059669;">{{ $g->code??'—' }}</span><span style="color:#cbd5e1;">·</span><span class="code-chip-val">{{ $g->filiere->name??'' }}@if($g->name) — {{ $g->name }}@endif</span></div>@endforeach</div></div>
+                    <div>
+                        <p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Codes filières</p>
+                        <div style="display:flex;flex-direction:column;gap:5px;">
+                            @foreach($filieres as $f)
+                                <div class="code-chip">
+                                    <span class="code-chip-key">{{ $f->code ?? '—' }}</span>
+                                    <span style="color:#cbd5e1;">·</span>
+                                    <span class="code-chip-val">{{ $f->name }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div>
+                        <p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Codes groupes</p>
+                        <div style="display:flex;flex-direction:column;gap:5px;">
+                            @foreach($groupes as $g)
+                                <div class="code-chip">
+                                    <span class="code-chip-key" style="color:#059669;">{{ $g->code ?? '—' }}</span>
+                                    <span style="color:#cbd5e1;">·</span>
+                                    <span class="code-chip-val">{{ $g->filiere->name ?? '' }}@if($g->name) — {{ $g->name }}@endif</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Step 2 : Validation results --}}
     <div id="step-2" style="display:none;">
         <div class="edu-card">
-            <div class="edu-card-head"><div><p class="edu-card-title" id="val-title">Validation du fichier</p><p class="edu-card-sub" id="val-subtitle"></p></div></div>
+            <div class="edu-card-head">
+                <div>
+                    <p class="edu-card-title" id="val-title">Validation du fichier</p>
+                    <p class="edu-card-sub" id="val-subtitle"></p>
+                </div>
+            </div>
             <div class="edu-card-body">
                 <div class="stat-grid" style="margin-bottom:16px;">
-                    <div class="stat-box green"><div class="stat-val" id="stat-valid">0</div><div class="stat-lbl">Valides</div></div>
-                    <div class="stat-box amber"><div class="stat-val" id="stat-warn">0</div><div class="stat-lbl">Avertissements</div></div>
-                    <div class="stat-box red">  <div class="stat-val" id="stat-err">0</div><div class="stat-lbl">Erreurs</div></div>
+                    <div class="stat-box green">
+                        <div class="stat-val" id="stat-valid">0</div>
+                        <div class="stat-lbl">Valides</div>
+                    </div>
+                    <div class="stat-box amber">
+                        <div class="stat-val" id="stat-warn">0</div>
+                        <div class="stat-lbl">Avertissements</div>
+                    </div>
+                    <div class="stat-box red">
+                        <div class="stat-val" id="stat-err">0</div>
+                        <div class="stat-lbl">Erreurs</div>
+                    </div>
                 </div>
-                <div class="progress-bar-track"><div class="progress-bar-fill" id="val-progress" style="width:0%"></div></div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="val-progress" style="width:0%"></div>
+                </div>
                 <p id="val-progress-label" style="font-size:10px;color:#64748b;margin-bottom:14px;"></p>
-                <div id="val-messages" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;margin-bottom:18px;"></div>
+                <div id="val-messages"
+                     style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;margin-bottom:18px;">
+                </div>
                 <div style="display:flex;gap:10px;">
                     <button onclick="goStep(1)" class="btn-ghost" style="flex:1;">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                        </svg>
                         Retour
                     </button>
                     <form method="POST" action="{{ route('edu-import.confirm') }}" style="flex:2;">
                         @csrf
                         <button type="submit" id="btn-confirm" class="btn-primary" style="width:100%;height:44px;">
-                            <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                            </svg>
                             Confirmer l'import
                         </button>
                     </form>
@@ -254,15 +357,16 @@
             </div>
         </div>
     </div>
+
 </div>
 @endcan
 
-{{-- ══════════════════════════════════
-     TAB: COMPTES EDU  (with filters)
-══════════════════════════════════ --}}
+{{-- ══════════════════════════════════════════════════
+     TAB : COMPTES EDU
+══════════════════════════════════════════════════ --}}
 <div id="tab-accounts" style="display:none;">
 
-    {{-- ── FILTER BAR ── --}}
+    {{-- Filter bar --}}
     <div class="filter-bar">
         <div class="filter-bar-title">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,11 +381,10 @@
 
         <form method="GET" action="{{ route('edu-import.index') }}" id="filter-form">
             <input type="hidden" name="tab" value="accounts">
-
             <div class="filter-grid">
 
                 {{-- Search --}}
-                <div style="grid-column: span 2;">
+                <div style="grid-column:span 2;">
                     <label class="edu-label">Recherche</label>
                     <div style="position:relative;">
                         <svg width="14" height="14" fill="none" stroke="#94a3b8" viewBox="0 0 24 24"
@@ -302,7 +405,7 @@
                             onchange="updateGroupeOptions(this.value)">
                         <option value="">Toutes</option>
                         @foreach($eduFiliereCodes as $fc)
-                            <option value="{{ $fc }}" {{ $filterFiliere===$fc ? 'selected' : '' }}>{{ $fc }}</option>
+                            <option value="{{ $fc }}" {{ $filterFiliere===$fc ? 'selected':'' }}>{{ $fc }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -313,7 +416,7 @@
                     <select name="groupe_code" id="filter-groupe" class="edu-input edu-select">
                         <option value="">Tous</option>
                         @foreach($eduGroupeCodes as $gc)
-                            <option value="{{ $gc }}" {{ $filterGroupe===$gc ? 'selected' : '' }}>{{ $gc }}</option>
+                            <option value="{{ $gc }}" {{ $filterGroupe===$gc ? 'selected':'' }}>{{ $gc }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -324,7 +427,7 @@
                     <select name="annee_scolaire" class="edu-input edu-select">
                         <option value="">Toutes</option>
                         @foreach($anneesScolaires as $annee)
-                            <option value="{{ $annee }}" {{ $filterAnnee===$annee ? 'selected' : '' }}>{{ $annee }}</option>
+                            <option value="{{ $annee }}" {{ $filterAnnee===$annee ? 'selected':'' }}>{{ $annee }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -352,7 +455,7 @@
                 </div>
 
                 {{-- Buttons --}}
-                <div style="display:flex; gap:8px; align-items:flex-end;">
+                <div style="display:flex;gap:8px;align-items:flex-end;">
                     <button type="submit" class="btn-primary" style="flex:1;">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
@@ -362,24 +465,25 @@
                     </button>
                     @if($hasFilters)
                     <a href="{{ route('edu-import.index', ['tab'=>'accounts']) }}"
-                       class="btn-ghost" style="flex:1; text-align:center;">
+                       class="btn-ghost" style="flex:1;text-align:center;">
                         ✕ Reset
                     </a>
                     @endif
                 </div>
+
             </div>
         </form>
     </div>
 
-    {{-- ── RESULTS TABLE ── --}}
+    {{-- Results table --}}
     <div class="edu-card">
         <div class="edu-card-head">
             <div>
                 <p class="edu-card-title">Comptes EDU importés</p>
                 <p class="edu-card-sub">
                     @if($hasFilters)
-                        <strong style="color:var(--accent);">{{ $eduAccounts->total() }}</strong> résultat(s) filtrés
-                        sur {{ $eduStats['total'] }} total
+                        <strong style="color:var(--accent);">{{ $eduAccounts->total() }}</strong>
+                        résultat(s) filtrés sur {{ $eduStats['total'] }} total
                     @else
                         <span style="color:#15803d;font-weight:700;">{{ $eduStats['used'] }} utilisés</span>
                         &nbsp;·&nbsp;
@@ -389,15 +493,22 @@
                 </p>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ {{ $eduStats['used'] }} utilisés</span>
-                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">⏳ {{ $eduStats['pending'] }} en attente</span>
+                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
+                    ✓ {{ $eduStats['used'] }} utilisés
+                </span>
+                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
+                    ⏳ {{ $eduStats['pending'] }} en attente
+                </span>
             </div>
         </div>
 
         @if($eduAccounts->isEmpty())
             <div class="edu-card-body" style="padding:48px;text-align:center;">
                 <div style="width:56px;height:56px;border-radius:16px;background:var(--accent-lt);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-                    <svg width="26" height="26" fill="none" stroke="var(--accent)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg width="26" height="26" fill="none" stroke="var(--accent)" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
                 </div>
                 <p style="font-size:14px;font-weight:700;color:#1e293b;margin:0 0 4px;">
                     {{ $hasFilters ? 'Aucun résultat pour ces filtres' : 'Aucun compte EDU' }}
@@ -418,36 +529,47 @@
                             <th>Groupe</th>
                             <th>Statut</th>
                             <th>Importé le</th>
+                            @can('edu-import')
+                            <th>Actions</th>
+                            @endcan
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($eduAccounts as $edu)
                         @php
-                            $initials = strtoupper(substr($edu->prenom??'?',0,1)) . strtoupper(substr($edu->nom??'?',0,1));
+                            $initials = strtoupper(substr($edu->prenom ?? '?', 0, 1))
+                                      . strtoupper(substr($edu->nom    ?? '?', 0, 1));
                         @endphp
                         <tr>
                             <td style="color:#94a3b8;font-size:10px;">{{ $edu->id }}</td>
                             <td>
                                 <div style="display:flex;align-items:center;gap:8px;">
-                                    <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:var(--accent-lt);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--accent-tx);">
+                                    <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;
+                                                background:var(--accent-lt);border:1px solid var(--accent-bd);
+                                                display:flex;align-items:center;justify-content:center;
+                                                font-size:10px;font-weight:800;color:var(--accent-tx);">
                                         {{ $initials }}
                                     </div>
                                     <div style="font-weight:700;color:#0f172a;font-size:12px;">
-                                        {{ $edu->prenom??'' }} {{ $edu->nom??'' }}
+                                        {{ $edu->prenom ?? '' }} {{ $edu->nom ?? '' }}
                                     </div>
                                 </div>
                             </td>
                             <td style="color:#1e40af;font-weight:600;">{{ $edu->edu_email }}</td>
                             <td>
                                 @if($edu->filiere_code)
-                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">{{ $edu->filiere_code }}</span>
+                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">
+                                        {{ $edu->filiere_code }}
+                                    </span>
                                 @else
                                     <span style="color:#94a3b8;">—</span>
                                 @endif
                             </td>
                             <td>
                                 @if($edu->groupe_code)
-                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">{{ $edu->groupe_code }}</span>
+                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">
+                                        {{ $edu->groupe_code }}
+                                    </span>
                                 @else
                                     <span style="color:#94a3b8;">—</span>
                                 @endif
@@ -455,18 +577,55 @@
                             <td>
                                 @if($edu->used)
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
-                                        <span style="width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block;"></span>Compte créé
+                                        <span style="width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+                                        Compte créé
                                     </span>
                                 @else
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
-                                        <span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>En attente
+                                        <span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+                                        En attente
                                     </span>
                                 @endif
                             </td>
                             <td>
-                                <div style="font-size:11px;font-weight:600;color:#334155;">{{ $edu->created_at->format('d M Y') }}</div>
-                                <div style="font-size:9px;color:#94a3b8;">{{ $edu->created_at->format('H:i') }}</div>
+                                <div style="font-size:11px;font-weight:600;color:#334155;">
+                                    {{ $edu->created_at->format('d M Y') }}
+                                </div>
+                                <div style="font-size:9px;color:#94a3b8;">
+                                    {{ $edu->created_at->format('H:i') }}
+                                </div>
                             </td>
+                            @can('edu-import')
+                            <td>
+                                <div style="display:flex;gap:6px;align-items:center;">
+                                    {{-- Bouton Modifier --}}
+                                    <a href="{{ route('edu-import.edit', $edu->id) }}"
+                                       class="btn-action-edit">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
+                                                     m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        Modifier
+                                    </a>
+
+                                    {{-- Bouton Supprimer --}}
+                                    <form method="POST" action="{{ route('edu-import.destroy', $edu->id) }}"
+                                          onsubmit="return confirm('Supprimer {{ $edu->prenom }} {{ $edu->nom }} ? Cette action est irréversible.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-action-delete">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
+                                                         L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                            @endcan
                         </tr>
                         @endforeach
                     </tbody>
@@ -481,14 +640,18 @@
     </div>
 </div>
 
-{{-- ══════════════════════════════════
-     TAB: HISTORIQUE
-══════════════════════════════════ --}}
+{{-- ══════════════════════════════════════════════════
+     TAB : HISTORIQUE
+══════════════════════════════════════════════════ --}}
 <div id="tab-history" style="display:none;">
     <div class="edu-card">
         <div class="edu-card-head">
-            <div><p class="edu-card-title">Historique des imports</p><p class="edu-card-sub">{{ $history->count() }} opération(s) — données persistantes</p></div>
+            <div>
+                <p class="edu-card-title">Historique des imports</p>
+                <p class="edu-card-sub">{{ $history->count() }} opération(s) — données persistantes</p>
+            </div>
         </div>
+
         @if($history->isEmpty())
             <div class="edu-card-body" style="padding:48px;text-align:center;">
                 <p style="font-size:14px;font-weight:700;color:#1e293b;margin:0 0 4px;">Aucun import effectué</p>
@@ -511,10 +674,11 @@
                     <tbody>
                         @foreach($history as $log)
                         @php
-                            $importerRole = $log->user?->role ?? 'admin';
-                            $avatarBg = ['admin'=>'#0a6640','gestionnaire'=>'#1e293b','formateur'=>'#1a4f8a'][$importerRole] ?? '#475569';
-                            $name = $log->user?->name ?? 'Inconnu';
-                            $importerInitials = strtoupper(substr($name,0,1)) . strtoupper(substr(explode(' ',$name.' ')[1]??'',0,1));
+                            $importerRole    = $log->user?->role ?? 'admin';
+                            $avatarBg        = ['admin'=>'#0a6640','gestionnaire'=>'#1e293b','formateur'=>'#1a4f8a'][$importerRole] ?? '#475569';
+                            $name            = $log->user?->name ?? 'Inconnu';
+                            $importerInitials = strtoupper(substr($name,0,1))
+                                             . strtoupper(substr(explode(' ',$name.' ')[1] ?? '',0,1));
                         @endphp
                         <tr>
                             <td style="white-space:nowrap;">
@@ -533,9 +697,14 @@
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--accent);font-size:11px;">
                                     @if($log->filename === 'Ajout manuel')
-                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
                                     @else
-                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/></svg>
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+                                        </svg>
                                     @endif
                                     {{ $log->filename }}
                                 </span>
@@ -544,9 +713,9 @@
                             <td><span style="font-size:14px;font-weight:800;color:#b45309;">{{ $log->skipped }}</span></td>
                             <td><span style="font-size:14px;font-weight:800;color:#dc2626;">{{ $log->errors }}</span></td>
                             <td>
-                                @if($log->errors==0 && $log->skipped==0)
+                                @if($log->errors == 0 && $log->skipped == 0)
                                     <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ Succès</span>
-                                @elseif($log->errors==0)
+                                @elseif($log->errors == 0)
                                     <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">! Partiel</span>
                                 @else
                                     <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fff1f2;color:#dc2626;border:1px solid #fecdd3;">✕ Erreurs</span>
@@ -561,34 +730,87 @@
     </div>
 </div>
 
-{{-- ══════════════════════════════════
-     TAB: MANUAL
-══════════════════════════════════ --}}
+{{-- ══════════════════════════════════════════════════
+     TAB : AJOUT MANUEL
+══════════════════════════════════════════════════ --}}
 @can('edu-import')
 <div id="tab-manual" style="display:none;">
     <div class="edu-card">
-        <div class="edu-card-head"><div><p class="edu-card-title">Ajouter un stagiaire manuellement</p><p class="edu-card-sub">Pour les inscriptions exceptionnelles hors fichier Excel</p></div></div>
+        <div class="edu-card-head">
+            <div>
+                <p class="edu-card-title">Ajouter un stagiaire manuellement</p>
+                <p class="edu-card-sub">Pour les inscriptions exceptionnelles hors fichier Excel</p>
+            </div>
+        </div>
         <div class="edu-card-body">
-            <form method="POST" action="{{ route('edu-import.manual') }}" style="display:flex;flex-direction:column;gap:16px;">
+            <form method="POST" action="{{ route('edu-import.manual') }}"
+                  style="display:flex;flex-direction:column;gap:16px;">
                 @csrf
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div><label class="edu-label">Nom</label><input type="text" name="nom" value="{{ old('nom') }}" placeholder="Alami" required class="edu-input"></div>
-                    <div><label class="edu-label">Prénom</label><input type="text" name="prenom" value="{{ old('prenom') }}" placeholder="Mohammed" required class="edu-input"></div>
+                    <div>
+                        <label class="edu-label">Nom</label>
+                        <input type="text" name="nom" value="{{ old('nom') }}"
+                               placeholder="Alami" required class="edu-input">
+                    </div>
+                    <div>
+                        <label class="edu-label">Prénom</label>
+                        <input type="text" name="prenom" value="{{ old('prenom') }}"
+                               placeholder="Mohammed" required class="edu-input">
+                    </div>
                 </div>
-                <div><label class="edu-label">Email EDU</label><input type="email" name="edu_email" value="{{ old('edu_email') }}" placeholder="m.alami@ofppt.ma" required class="edu-input"></div>
-                <div><label class="edu-label">Mot de passe</label><input type="password" name="password" required placeholder="Min. 6 caractères" class="edu-input"></div>
+
+                <div>
+                    <label class="edu-label">Email EDU</label>
+                    <input type="email" name="edu_email" value="{{ old('edu_email') }}"
+                           placeholder="m.alami@ofppt.ma" required class="edu-input">
+                </div>
+
+                <div>
+                    <label class="edu-label">Mot de passe</label>
+                    <input type="password" name="password" required
+                           placeholder="Min. 6 caractères" class="edu-input">
+                </div>
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div><label class="edu-label">Filière</label><select name="filiere_code" id="manual-filiere" required onchange="filterGroups(this.value)" class="edu-input edu-select"><option value="">— Sélectionner —</option>@foreach($filieres as $f)<option value="{{ $f->code }}">{{ $f->code }} — {{ $f->name }}</option>@endforeach</select></div>
-                    <div><label class="edu-label">Groupe</label><select name="groupe_code" id="manual-groupe" required class="edu-input edu-select"><option value="">— Filière d'abord —</option></select></div>
+                    <div>
+                        <label class="edu-label">Filière</label>
+                        <select name="filiere_code" id="manual-filiere" required
+                                onchange="filterGroups(this.value)"
+                                class="edu-input edu-select">
+                            <option value="">— Sélectionner —</option>
+                            @foreach($filieres as $f)
+                                <option value="{{ $f->code }}" {{ old('filiere_code')===$f->code ? 'selected':'' }}>
+                                    {{ $f->code }} — {{ $f->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="edu-label">Groupe</label>
+                        <select name="groupe_code" id="manual-groupe" required
+                                class="edu-input edu-select">
+                            <option value="">— Filière d'abord —</option>
+                        </select>
+                    </div>
                 </div>
-                <div style="padding:12px 14px;border-radius:10px;background:var(--accent-lt);border:1px solid var(--accent-bd);font-size:11px;color:var(--accent-tx);display:flex;align-items:center;gap:8px;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+                <div style="padding:12px 14px;border-radius:10px;background:var(--accent-lt);
+                            border:1px solid var(--accent-bd);font-size:11px;color:var(--accent-tx);
+                            display:flex;align-items:center;gap:8px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                     Le stagiaire pourra utiliser ces identifiants pour créer son compte.
                 </div>
+
                 <div style="display:flex;gap:10px;padding-top:4px;">
                     <button type="reset" class="btn-ghost" style="flex:1;">Réinitialiser</button>
                     <button type="submit" class="btn-primary" style="flex:2;height:44px;">
-                        <svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        <svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
                         Ajouter à la base EDU
                     </button>
                 </div>
@@ -598,9 +820,10 @@
 </div>
 @endcan
 
-</div>{{-- .edu-wrap --}}
+</div>{{-- /.edu-wrap --}}
 
 <script>
+// ── Tab switching ──
 const TABS = ['import','accounts','history','manual'];
 function showTab(name) {
     TABS.forEach(t => {
@@ -614,54 +837,88 @@ document.addEventListener('DOMContentLoaded', () => showTab('{{ $activeTab }}'))
 
 // ── Steps ──
 function goStep(n) {
-    [1,2].forEach(i => { const el = document.getElementById('step-'+i); if(el) el.style.display = i===n?'block':'none'; });
-    [1,2,3,4].forEach(i => {
-        const c = document.getElementById('step-circle-'+i);
-        const w = document.getElementById('edu-step-'+i);
-        if(!c||!w) return;
-        w.className = 'edu-step '+(i<n?'done':i===n?'active':'');
-        c.textContent = i<n?'✓':(i===4?'✓':String(i));
+    [1, 2].forEach(i => {
+        const el = document.getElementById('step-' + i);
+        if (el) el.style.display = i === n ? 'block' : 'none';
+    });
+    [1, 2, 3, 4].forEach(i => {
+        const c = document.getElementById('step-circle-' + i);
+        const w = document.getElementById('edu-step-' + i);
+        if (!c || !w) return;
+        w.className   = 'edu-step ' + (i < n ? 'done' : i === n ? 'active' : '');
+        c.textContent = i < n ? '✓' : (i === 4 ? '✓' : String(i));
     });
 }
 
 // ── File upload ──
 function onFileSelected(input) {
-    if (input.files&&input.files[0]) { document.getElementById('upload-label').textContent='📄 '+input.files[0].name+' — Validation…'; uploadAndValidate(input.files[0]); }
+    if (input.files && input.files[0]) {
+        document.getElementById('upload-label').textContent = '📄 ' + input.files[0].name + ' — Validation…';
+        uploadAndValidate(input.files[0]);
+    }
 }
 function handleDrop(event) {
     event.preventDefault();
     document.getElementById('upload-zone').classList.remove('drag-over');
     const file = event.dataTransfer.files[0];
-    if (file) { document.getElementById('upload-label').textContent='📄 '+file.name; uploadAndValidate(file); }
+    if (file) {
+        document.getElementById('upload-label').textContent = '📄 ' + file.name;
+        uploadAndValidate(file);
+    }
 }
 async function uploadAndValidate(file) {
-    const fd = new FormData(); fd.append('file',file); fd.append('_token',document.querySelector('meta[name="csrf-token"]')?.content||'');
-    try { const res=await fetch('{{ route('edu-import.preview') }}',{method:'POST',body:fd}); const data=await res.json(); renderValidation(data); goStep(2); }
-    catch { document.getElementById('upload-label').textContent='Erreur — vérifiez le format.'; }
+    const fd = new FormData();
+    fd.append('file',   file);
+    fd.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+    try {
+        const res  = await fetch('{{ route('edu-import.preview') }}', { method:'POST', body:fd });
+        const data = await res.json();
+        renderValidation(data);
+        goStep(2);
+    } catch {
+        document.getElementById('upload-label').textContent = 'Erreur — vérifiez le format.';
+    }
 }
 function renderValidation(data) {
-    document.getElementById('val-subtitle').textContent=data.total+' lignes analysées';
-    document.getElementById('stat-valid').textContent=data.valid;
-    document.getElementById('stat-warn').textContent=data.warn_count;
-    document.getElementById('stat-err').textContent=data.error_count;
-    const pct=data.total>0?Math.round((data.valid/data.total)*100):0;
-    document.getElementById('val-progress').style.width=pct+'%';
-    document.getElementById('val-progress-label').textContent=pct+'% des lignes prêtes';
-    const box=document.getElementById('val-messages');
-    box.innerHTML='';
-    if(data.valid>0) box.innerHTML+=msgRow('ok',data.valid+' stagiaires prêts.');
-    data.warnings.forEach(w=>box.innerHTML+=msgRow('warn',w));
-    data.errors.forEach(e=>box.innerHTML+=msgRow('err',e));
-    document.getElementById('btn-confirm').innerHTML=`<svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> Confirmer l'import (${data.valid} lignes)`;
+    document.getElementById('val-subtitle').textContent      = data.total + ' lignes analysées';
+    document.getElementById('stat-valid').textContent        = data.valid;
+    document.getElementById('stat-warn').textContent         = data.warn_count;
+    document.getElementById('stat-err').textContent          = data.error_count;
+    const pct = data.total > 0 ? Math.round((data.valid / data.total) * 100) : 0;
+    document.getElementById('val-progress').style.width      = pct + '%';
+    document.getElementById('val-progress-label').textContent = pct + '% des lignes prêtes';
+
+    const box = document.getElementById('val-messages');
+    box.innerHTML = '';
+    if (data.valid > 0)      box.innerHTML += msgRow('ok',   data.valid + ' stagiaire(s) prêt(s) à importer.');
+    data.warnings.forEach(w => box.innerHTML += msgRow('warn', w));
+    data.errors.forEach(e   => box.innerHTML += msgRow('err',  e));
+
+    document.getElementById('btn-confirm').innerHTML =
+        `<svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+         </svg> Confirmer l'import (${data.valid} lignes)`;
+
+    // Disable confirm button if nothing valid
+    document.getElementById('btn-confirm').disabled = data.valid === 0;
+    document.getElementById('btn-confirm').style.opacity = data.valid === 0 ? '.5' : '1';
 }
-function msgRow(type,text) {
-    const c={ok:{bg:'#f0fdf4',bd:'#bbf7d0',tx:'#15803d',ic:'✓',icBg:'#22c55e'},warn:{bg:'#fffbeb',bd:'#fde68a',tx:'#92400e',ic:'!',icBg:'#f59e0b'},err:{bg:'#fff1f2',bd:'#fecdd3',tx:'#be123c',ic:'✕',icBg:'#ef4444'}}[type];
-    return `<div class="val-msg" style="background:${c.bg};border:1px solid ${c.bd};"><div class="val-msg-icon" style="background:${c.icBg};">${c.ic}</div><span style="color:${c.tx};">${text}</span></div>`;
+function msgRow(type, text) {
+    const c = {
+        ok:   { bg:'#f0fdf4', bd:'#bbf7d0', tx:'#15803d', ic:'✓', icBg:'#22c55e' },
+        warn: { bg:'#fffbeb', bd:'#fde68a', tx:'#92400e', ic:'!', icBg:'#f59e0b' },
+        err:  { bg:'#fff1f2', bd:'#fecdd3', tx:'#be123c', ic:'✕', icBg:'#ef4444' },
+    }[type];
+    return `<div class="val-msg" style="background:${c.bg};border:1px solid ${c.bd};">
+                <div class="val-msg-icon" style="background:${c.icBg};">${c.ic}</div>
+                <span style="color:${c.tx};">${text}</span>
+            </div>`;
 }
 
-// ── Dynamic groupe filter (filter tab) ──
+// ── Dynamic groupe filter (filter bar) ──
 @php
-$allEduGroupes = \App\Models\Edu::select('filiere_code','groupe_code')->distinct()->orderBy('groupe_code')->get()->groupBy('filiere_code');
+$allEduGroupes = \App\Models\Edu::select('filiere_code','groupe_code')
+    ->distinct()->orderBy('groupe_code')->get()->groupBy('filiere_code');
 @endphp
 const eduGroupesByFiliere = @json($allEduGroupes->map(fn($g) => $g->pluck('groupe_code')));
 
@@ -669,20 +926,46 @@ function updateGroupeOptions(filiereCode) {
     const sel = document.getElementById('filter-groupe');
     if (!sel) return;
     sel.innerHTML = '<option value="">Tous</option>';
-    const codes = filiereCode ? (eduGroupesByFiliere[filiereCode] || []) : Object.values(eduGroupesByFiliere).flat();
+    const codes = filiereCode
+        ? (eduGroupesByFiliere[filiereCode] || [])
+        : Object.values(eduGroupesByFiliere).flat();
     codes.forEach(gc => {
-        const o = document.createElement('option'); o.value=gc; o.textContent=gc; sel.appendChild(o);
+        const o = document.createElement('option');
+        o.value = gc; o.textContent = gc;
+        sel.appendChild(o);
     });
 }
 
 // ── Manual form groupe filter ──
-@php $groupesJs = $groupes->map(fn($g) => ['code'=>$g->code,'name'=>$g->name??'G'.$g->id,'filiere_code'=>$g->filiere?->code])->values(); @endphp
+@php
+$groupesJs = $groupes->map(fn($g) => [
+    'code'         => $g->code,
+    'name'         => $g->name ?? 'G'.$g->id,
+    'filiere_code' => $g->filiere?->code,
+])->values();
+@endphp
 const allGroupes = @json($groupesJs);
+
 function filterGroups(fc) {
     const sel = document.getElementById('manual-groupe');
     if (!sel) return;
     sel.innerHTML = '<option value="">— Sélectionner —</option>';
-    allGroupes.filter(g=>g.filiere_code===fc).forEach(g => { const o=document.createElement('option'); o.value=g.code; o.textContent=g.code+' — '+g.name; sel.appendChild(o); });
+    allGroupes
+        .filter(g => g.filiere_code === fc)
+        .forEach(g => {
+            const o = document.createElement('option');
+            o.value = g.code;
+            o.textContent = g.code + ' — ' + g.name;
+            sel.appendChild(o);
+        });
 }
+
+// Initialiser le filtre groupe sur la page des comptes
+document.addEventListener('DOMContentLoaded', function() {
+    const filiereSelect = document.getElementById('filter-filiere');
+    if (filiereSelect && filiereSelect.value) {
+        updateGroupeOptions(filiereSelect.value);
+    }
+});
 </script>
 @endsection

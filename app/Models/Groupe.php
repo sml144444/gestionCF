@@ -6,14 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 
 class Groupe extends Model
 {
-    protected $fillable = [
-        'id_filiere',
-        'id_option',
-        'nbr_limit',
-        'annee',   // ← 1 = première année, 2 = deuxième année (2 ans ou 2.5 ans)
-        'name', 
-        'code'   // ← optional: human readable name like "G1A"
-    ];
+ protected $fillable = [
+    'id_filiere',
+    'id_option',
+    'nbr_limit',
+    'annee',
+    'promo',   // ← year the cohort STARTED, e.g. 2024
+    'name',
+    'code',
+];
+
+/**
+ * Returns "2024–2026" using filière duration.
+ * Call: $groupe->promo_label
+ */
+public function getPromoLabelAttribute(): string
+{
+    if (! $this->promo) return '—';
+
+    $duree = $this->filiere?->duree ?? 2;   // fallback 2 years
+    $end   = $this->promo + $duree;
+
+    return $this->promo . '–' . $end;
+}
 
     public function filiere()
     {

@@ -49,29 +49,27 @@ class EmploiDuTempsController extends Controller
 
         $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
 
-        // ── Data filtering based on permissions ──────────────
         if ($canSeeDraft) {
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
 
-            $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->whereIn('statut', ['actif', 'brouillon'])
                 ->whereIn('id_groupe', $groupes->pluck('id'))
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-
             $joursAvance   = 2;
             $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
             $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
 
-            $semaineActuelle              = Carbon::now()->startOfWeek(Carbon::MONDAY);
-            $estSemainePasseeOuActuelle   = $weekStart->lte($semaineActuelle);
-            $estSemaineProchaine          = $weekStart->eq($prochainLundi);
-            $peutVoirSemaineProchaine     = Carbon::now()->gte($visibleDepuis);
+            $semaineActuelle            = Carbon::now()->startOfWeek(Carbon::MONDAY);
+            $estSemainePasseeOuActuelle = $weekStart->lte($semaineActuelle);
+            $estSemaineProchaine        = $weekStart->eq($prochainLundi);
+            $peutVoirSemaineProchaine   = Carbon::now()->gte($visibleDepuis);
 
             if (! $estSemainePasseeOuActuelle && ! ($estSemaineProchaine && $peutVoirSemaineProchaine)) {
                 $emplois = collect();
@@ -80,7 +78,7 @@ class EmploiDuTempsController extends Controller
                     ->where('id', $user->id_groupe)
                     ->get();
             } else {
-                $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+                $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
                     ->whereBetween('date_debut', [$weekStart, $weekEnd])
                     ->where('statut', 'actif')
                     ->where('id_groupe', $user->id_groupe)
@@ -93,8 +91,7 @@ class EmploiDuTempsController extends Controller
             }
 
         } else {
-            // Formateur or restricted user — only their own sessions
-            $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->where('id_user', $user->id)
@@ -108,14 +105,12 @@ class EmploiDuTempsController extends Controller
                 ->get();
         }
 
-        // ── Module progress (dynamic, no DB storage) ─────────
-        // For each groupe+module pair, sum all scheduled hours (all time, not just this week)
         $moduleProgress = [];
         if ($groupes->isNotEmpty()) {
             $allScheduled = EmploiDuTemps::whereIn('id_groupe', $groupes->pluck('id'))
                 ->whereIn('statut', ['actif', 'brouillon'])
                 ->whereNotNull('id_module')
-                ->where('date_fin', '<=', Carbon::now()) // ← only sessions already finished
+                ->where('date_fin', '<=', Carbon::now())
                 ->get(['id_groupe', 'id_module', 'date_debut', 'date_fin']);
 
             foreach ($allScheduled as $e) {
@@ -141,33 +136,33 @@ class EmploiDuTempsController extends Controller
                 ->count()
             : 0;
 
-        // Modules grouped by filiere_id for JS (used in modal select)
-$modulesByFiliereAndAnnee = Module::orderBy('name')->get()
-    ->groupBy(fn($m) => $m->id_filiere . '_' . ($m->annee ?? 1))
-    ->map(fn($mods) => $mods->map(fn($m) => [
-        'id'        => $m->id,
-        'name'      => $m->name,
-        'nbr_heure' => $m->nbr_heure,
-    ])->values());
+        $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
+            ->groupBy(fn($m) => $m->id_filiere . '_' . ($m->annee ?? 1))
+            ->map(fn($mods) => $mods->map(fn($m) => [
+                'id'        => $m->id,
+                'name'      => $m->name,
+                'nbr_heure' => $m->nbr_heure,
+            ])->values());
 
         $emploisJson = $emplois->map(fn($e) => [
-            'id'            => $e->id,
-            'id_groupe'     => $e->id_groupe,
-            'id_salle'      => $e->id_salle,
-            'id_user'       => $e->id_user,
-            'id_module'     => $e->id_module,
-            'date_debut'    => $e->date_debut->format('Y-m-d\TH:i'),
-            'date_fin'      => $e->date_fin->format('Y-m-d\TH:i'),
-            'mode'          => $e->mode ?? 'presentiel',
-            'lien_distance' => $e->lien_distance ?? '',
-            'statut'        => $e->statut,
+            'id'                 => $e->id,
+            'id_groupe'          => $e->id_groupe,
+            'id_salle'           => $e->id_salle,
+            'id_user'            => $e->id_user,
+            'id_user_remplacant' => $e->id_user_remplacant,
+            'id_module'          => $e->id_module,
+            'date_debut'         => $e->date_debut->format('Y-m-d\TH:i'),
+            'date_fin'           => $e->date_fin->format('Y-m-d\TH:i'),
+            'mode'               => $e->mode ?? 'presentiel',
+            'lien_distance'      => $e->lien_distance ?? '',
+            'statut'             => $e->statut,
         ])->values();
 
         return view('emplois.index', compact(
             'grid', 'year', 'weekStart', 'weekEnd', 'dayDates',
             'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
             'emplois', 'emploisJson', 'draftCount', 'canSeeDraft',
-            'moduleProgress', 'modulesByFiliereAndAnnee' 
+            'moduleProgress', 'modulesByFiliereAndAnnee'
         ));
     }
 
@@ -187,7 +182,6 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
             'id_module'     => 'nullable|exists:modules,id',
         ]);
 
-        // Gestionnaire/admin : module obligatoire
         if ($user->hasPermissionTo('emploi-view-all-groups') && empty($data['id_module'])) {
             throw ValidationException::withMessages([
                 'id_module' => 'Le module est obligatoire pour créer une séance.',
@@ -205,7 +199,6 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
 
         $this->checkOverlaps($debut, $fin, $data, null);
 
-        // Determine module to save
         $idModule = null;
         if ($user->hasPermissionTo('emploi-view-all-groups') || $user->hasPermissionTo('emploi-change-module')) {
             $idModule = $data['id_module'] ?? null;
@@ -234,7 +227,51 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
         $year = Groupe::find($data['id_groupe'])->annee ?? 1;
         return redirect()
             ->route('emplois.index', ['week' => $debut->toDateString(), 'year' => $year])
-            ->with('success', 'Séance ajoutée en brouillon. Cliquez « Publier » pour la rendre visible.');
+            ->with('success', 'Séance ajoutée en brouillon.');
+    }
+
+    // ── ASSIGN REPLACEMENT ────────────────────────────────
+    public function assignRemplacant(Request $request, EmploiDuTemps $emploi): RedirectResponse
+    {
+        $user = auth()->user();
+
+        if (! $user->hasPermissionTo('emploi-create')) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'id_user_remplacant' => 'nullable|exists:users,id',
+        ]);
+
+        if (empty($data['id_user_remplacant'])) {
+            $emploi->update(['id_user_remplacant' => null]);
+            return back()->with('success', 'Remplacement annulé — formateur original rétabli.');
+        }
+
+        if ((int) $data['id_user_remplacant'] === (int) $emploi->id_user) {
+            return back()->withErrors(['id_user_remplacant' => 'Le remplaçant ne peut pas être le même formateur.']);
+        }
+
+        $busy = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
+            ->where('id', '!=', $emploi->id)
+            ->where('date_debut', '<', $emploi->date_fin)
+            ->where('date_fin',   '>', $emploi->date_debut)
+            ->where(function ($q) use ($data) {
+                $q->where('id_user', $data['id_user_remplacant'])
+                  ->orWhere('id_user_remplacant', $data['id_user_remplacant']);
+            })
+            ->exists();
+
+        if ($busy) {
+            return back()->withErrors([
+                'id_user_remplacant' => 'Ce formateur est déjà occupé sur ce créneau.',
+            ]);
+        }
+
+        $emploi->update(['id_user_remplacant' => $data['id_user_remplacant']]);
+
+        $remplacant = User::find($data['id_user_remplacant']);
+        return back()->with('success', "Remplacement assigné : {$remplacant->name} remplace {$emploi->gestionnaire->name}.");
     }
 
     // ── PUBLISH ────────────────────────────────────────────
@@ -263,7 +300,7 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
         return redirect()
             ->route('emplois.index', ['week' => $weekStart->toDateString(), 'year' => $year])
             ->with('success', $published > 0
-                ? "{$published} séance(s) publiées — maintenant visibles pour tous ✓"
+                ? "{$published} séance(s) publiées ✓"
                 : 'Aucune séance en brouillon à publier.');
     }
 
@@ -294,22 +331,24 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
 
         $this->checkOverlaps($debut, $fin, $data, $emploi->id);
 
-        // Determine which module value to persist
-        $idModule = $emploi->id_module; // keep existing by default
+        $idModule = $emploi->id_module;
         if ($user->hasPermissionTo('emploi-view-all-groups') || $user->hasPermissionTo('emploi-change-module')) {
             $idModule = $data['id_module'] ?? $emploi->id_module;
         }
 
+        $clearRemplacant = (int) $data['id_user'] !== (int) $emploi->id_user;
+
         $emploi->update([
-            'id_groupe'     => $data['id_groupe'],
-            'id_salle'      => $data['mode'] === 'distance' ? null : ($data['id_salle'] ?? null),
-            'id_user'       => $data['id_user'],
-            'id_module'     => $idModule,
-            'date_debut'    => $debut,
-            'date_fin'      => $fin,
-            'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
-            'mode'          => $data['mode'],
-            'lien_distance' => $data['mode'] === 'distance' ? ($data['lien_distance'] ?? null) : null,
+            'id_groupe'          => $data['id_groupe'],
+            'id_salle'           => $data['mode'] === 'distance' ? null : ($data['id_salle'] ?? null),
+            'id_user'            => $data['id_user'],
+            'id_user_remplacant' => $clearRemplacant ? null : $emploi->id_user_remplacant,
+            'id_module'          => $idModule,
+            'date_debut'         => $debut,
+            'date_fin'           => $fin,
+            'jour'               => self::DAYS[$debut->dayOfWeekIso] ?? null,
+            'mode'               => $data['mode'],
+            'lien_distance'      => $data['mode'] === 'distance' ? ($data['lien_distance'] ?? null) : null,
         ]);
 
         $this->tryMergeAdjacent($emploi->fresh());
@@ -341,6 +380,7 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
         $duration    = $request->integer('duration', 1);
         $excludeId   = $request->integer('exclude_id', 0);
         $mode        = $request->string('mode', 'presentiel');
+        $moduleId    = $request->integer('module_id', 0) ?: null;
 
         $startTime = self::SEANCES[$seanceStart]['start'] ?? '08:30';
         $endSeance = min($seanceStart + $duration - 1, 4);
@@ -357,10 +397,37 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
             $base = (clone $base)->where('id', '!=', $excludeId);
         }
 
-        $busyUserIds  = (clone $base)->pluck('id_user')->unique();
+        $busyQuery    = clone $base;
+        $busyUserIds  = $busyQuery->get(['id_user', 'id_user_remplacant'])
+            ->flatMap(fn($e) => array_filter([$e->id_user, $e->id_user_remplacant]))
+            ->unique();
         $busySalleIds = (clone $base)->pluck('id_salle')->unique();
 
+        $groupe = Groupe::find($groupeId);
+
+        // ── Formateur filtering ────────────────────────────────
+        if ($moduleId) {
+            $module       = Module::find($moduleId);
+            $formateurIds = $module && $module->id_user
+                ? collect([$module->id_user])
+                : collect();
+        } else {
+            $formateurIds = $groupe
+                ? Module::where('id_filiere', $groupe->id_filiere)
+                    ->where(function ($q) use ($groupe) {
+                        $q->where('annee', $groupe->annee);
+                        if ((int) $groupe->annee === 3) {
+                            $q->orWhereNull('annee');
+                        }
+                    })
+                    ->whereNotNull('id_user')
+                    ->pluck('id_user')
+                    ->unique()
+                : collect();
+        }
+
         $formateurs = User::where('role', 'formateur')
+            ->whereIn('id', $formateurIds)
             ->orderBy('name')
             ->get()
             ->map(fn($f) => [
@@ -378,19 +445,23 @@ $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
                 'available' => ! $busySalleIds->contains($s->id),
             ]);
 
-        // ── Modules filtered by the groupe's filiere ─────────
-        $groupe  = Groupe::find($groupeId);
-$modules = $groupe
-    ? Module::where('id_filiere', $groupe->id_filiere)
-        ->where('annee', $groupe->annee)          // ← add this line
-        ->orderBy('name')
-        ->get()
-        ->map(fn($m) => [
-            'id'        => $m->id,
-            'name'      => $m->name,
-            'nbr_heure' => $m->nbr_heure,
-        ])
-    : collect();
+        // ── Modules filtered by groupe filière + année ─────────
+        $modules = $groupe
+            ? Module::where('id_filiere', $groupe->id_filiere)
+                ->where(function ($q) use ($groupe) {
+                    $q->where('annee', $groupe->annee);
+                    if ((int) $groupe->annee === 3) {
+                        $q->orWhereNull('annee');
+                    }
+                })
+                ->orderBy('name')
+                ->get()
+                ->map(fn($m) => [
+                    'id'        => $m->id,
+                    'name'      => $m->name,
+                    'nbr_heure' => $m->nbr_heure,
+                ])
+            : collect();
 
         return response()->json([
             'formateurs' => $formateurs,
@@ -401,7 +472,7 @@ $modules = $groupe
         ]);
     }
 
-    // ── UPDATE LIEN ONLY (formateur) ─────────────────────────
+    // ── UPDATE LIEN ONLY ─────────────────────────────────────
     public function updateLien(Request $request, EmploiDuTemps $emploi): RedirectResponse
     {
         $user = auth()->user();
@@ -454,14 +525,14 @@ $modules = $groupe
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
 
-            $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->whereIn('id_groupe', $groupes->pluck('id'))
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->where('id_groupe', $user->id_groupe)
@@ -473,7 +544,7 @@ $modules = $groupe
                 ->get();
 
         } else {
-            $emplois = EmploiDuTemps::with(['module', 'groupe.filiere', 'salle', 'gestionnaire'])
+            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->where('id_user', $user->id)
@@ -491,12 +562,12 @@ $modules = $groupe
         $grid             = $this->buildGrid($groupes, $emplois);
 
         $yearLabel = match($year) {
-    1 => '1ère Année',
-    2 => '2ème Année',
-    3 => '3ème Année',
-    default => 'Année ' . $year,
-};
-        $filename  = 'emploi_semaine_' . $weekStart->format('Y-m-d') . '_annee' . $year . '.pdf';
+            1 => '1ère Année',
+            2 => '2ème Année',
+            3 => '3ème Année',
+            default => 'Année ' . $year,
+        };
+        $filename = 'emploi_semaine_' . $weekStart->format('Y-m-d') . '_annee' . $year . '.pdf';
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('emplois.pdf', compact(
             'grid', 'year', 'yearLabel', 'weekStart', 'weekEnd',

@@ -66,11 +66,19 @@
 .annee-tab { padding:7px 14px; border-radius:99px; font-size:12px; font-weight:600; text-decoration:none; border:1.5px solid #e2e8f0; background:white; color:#64748b; transition:all .15s; display:inline-flex; align-items:center; gap:5px; }
 .annee-tab:hover { border-color:{{ $accent }}; color:{{ $text }}; background:{{ $light }}; }
 .annee-tab.active { background:{{ $accent }}; border-color:{{ $accent }}; color:white; }
+
+/* Remplacant badge */
+.remplacant-pill {
+    display:inline-flex; align-items:center; gap:3px;
+    font-size:8px; font-weight:800; padding:1px 6px; border-radius:99px;
+    background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe;
+    text-transform:uppercase; letter-spacing:.3px;
+}
 </style>
 
 <div class="mod-wrap">
 
-{{-- FLASH --}}
+{{-- ── FLASH ── --}}
 @if(session('success'))
     <div style="margin-bottom:16px;padding:12px 16px;border-radius:12px;font-size:13px;display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
         ✓ {{ session('success') }}
@@ -87,7 +95,7 @@
     </div>
 @endif
 
-{{-- HEADER --}}
+{{-- ── HEADER ── --}}
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
     <div>
         <h1 style="font-size:20px;font-weight:800;color:#0f172a;margin:0;">Modules de formation</h1>
@@ -105,7 +113,7 @@
     @endif
 </div>
 
-{{-- STATS --}}
+{{-- ── STATS ── --}}
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
     <div class="mod-stat">
         <div class="mod-stat-icon" style="background:{{ $light }};"><svg width="20" height="20" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div>
@@ -125,7 +133,7 @@
     </div>
 </div>
 
-{{-- ANNÉE TABS --}}
+{{-- ── ANNÉE TABS ── --}}
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
     <span style="font-size:9px;font-weight:800;color:{{ $text }};text-transform:uppercase;letter-spacing:1.5px;">Année :</span>
     <a href="{{ route('modules.index', array_merge(request()->except('annee','page'), [])) }}"
@@ -138,7 +146,7 @@
        class="annee-tab {{ $anneeFilter == 3 ? 'active' : '' }}">3ème année</a>
 </div>
 
-{{-- FILTER BAR --}}
+{{-- ── FILTER BAR ── --}}
 <form method="GET" action="{{ route('modules.index') }}" class="mod-filter-bar">
     @if($anneeFilter)
         <input type="hidden" name="annee" value="{{ $anneeFilter }}">
@@ -165,7 +173,7 @@
     @endif
 </form>
 
-{{-- MODULES BY FILIÈRE --}}
+{{-- ── MODULES BY FILIÈRE ── --}}
 @forelse($modules as $filiereId => $filiereModules)
     @php $filiere = $filiereModules->first()->filiere; @endphp
 
@@ -185,9 +193,8 @@
         @endif
     </div>
 
-    {{-- Group by annee within filière --}}
     @php
-        $byAnnee    = $filiereModules->groupBy(fn($m) => $m->annee ?? 3); // legacy null → 3
+        $byAnnee    = $filiereModules->groupBy(fn($m) => $m->annee ?? 3);
         $anneeOrder = [1, 2, 3];
     @endphp
 
@@ -208,14 +215,15 @@
         @foreach($anneeModules as $module)
 
             @php
-                $anneeMap    = $moduleProgressMap[$module->id] ?? collect();
+                $groupRows   = $moduleProgressMap[$module->id] ?? collect();
+                $moduleAnnee = $module->annee ?? 3;
+                $anneeRows   = $groupRows->filter(fn($r) => (int)$r->groupe_annee === (int)$moduleAnnee)->values();
                 $totalH      = $module->nbr_heure;
-                $moduleAnnee = $module->annee ?? 3; // legacy null → treat as 3
-
-                $doneMins  = $anneeMap[$moduleAnnee] ?? 0;
-                $doneHours = round($doneMins / 60, 1);
-                $pct       = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
-                $pctColor  = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
+                $doneHours   = $anneeRows->isNotEmpty()
+                    ? round($anneeRows->avg(fn($r) => $r->total_minutes / 60), 1)
+                    : 0;
+                $pct      = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
+                $pctColor = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
             @endphp
 
             <div class="mod-card">
@@ -258,28 +266,62 @@
                     </div>
                 </div>
 
-                {{-- Progress bar --}}
-                <div style="margin-bottom:6px;">
+                {{-- Progress bars — one per group --}}
+                <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
-                        <span>Progression réelle</span>
-                        <span style="font-weight:800;color:{{ $pctColor }};">{{ $pct }}% @if($pct >= 100) ✓ @endif</span>
+                        <span>Progression par groupe</span>
+                        @if($anneeRows->count() > 1)
+                            <span style="color:#94a3b8;">moy. {{ $pct }}%</span>
+                        @endif
                     </div>
-                    <div class="mod-progress-track">
-                        <div class="mod-progress-fill" style="width:{{ $pct }}%; background:{{ $pctColor }};"></div>
-                    </div>
-                    <div style="font-size:8px;color:#94a3b8;margin-top:3px;">
-                        {{ $doneHours }}h / {{ $totalH }}h effectuées
-                        @if($totalH - $doneHours > 0) · {{ round($totalH - $doneHours, 1) }}h restantes @endif
-                    </div>
+                    @if($anneeRows->isEmpty())
+                        <div class="mod-progress-track">
+                            <div class="mod-progress-fill" style="width:0%; background:#e2e8f0;"></div>
+                        </div>
+                        <div style="font-size:8px;color:#94a3b8;margin-top:3px;">Aucune séance effectuée</div>
+                    @else
+                        @foreach($anneeRows as $row)
+                            @php
+                                $gDoneH = round($row->total_minutes / 60, 1);
+                                $gPct   = $totalH > 0 ? min(100, round(($gDoneH / $totalH) * 100)) : 0;
+                                $gColor = $gPct >= 100 ? '#22c55e' : ($gPct >= 75 ? '#f59e0b' : $accent);
+                            @endphp
+                            <div style="margin-bottom:5px;">
+                                <div style="display:flex;justify-content:space-between;font-size:8px;color:#475569;margin-bottom:2px;">
+                                    <span style="font-weight:600;">{{ $row->groupe_name }}</span>
+                                    <span style="font-weight:800;color:{{ $gColor }};">
+                                        {{ $gDoneH }}h / {{ $totalH }}h &nbsp;·&nbsp; {{ $gPct }}%
+                                        @if($gPct >= 100) ✓ @endif
+                                    </span>
+                                </div>
+                                <div class="mod-progress-track">
+                                    <div class="mod-progress-fill" style="width:{{ $gPct }}%; background:{{ $gColor }};"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
                 </div>
 
-                {{-- Formateur --}}
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                {{-- Formateur principal --}}
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                     <div style="width:20px;height:20px;border-radius:50%;background:{{ $light }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="11" height="11" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     </div>
                     <span style="font-size:10px;color:#64748b;font-weight:500;">{{ $module->formateur->name ?? '—' }}</span>
                 </div>
+
+                {{-- Formateur remplaçant (si défini) --}}
+                @if($module->remplacant)
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <div style="width:20px;height:20px;border-radius:50%;background:#f5f3ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="11" height="11" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <span style="font-size:10px;color:#7c3aed;font-weight:600;">{{ $module->remplacant->name }}</span>
+                    <span class="remplacant-pill">Remplaçant</span>
+                </div>
+                @else
+                <div style="margin-bottom:8px;"></div>
+                @endif
 
                 {{-- Actions --}}
                 @if($canEdit || $canDelete)
@@ -292,7 +334,8 @@
                                 '{{ addslashes($module->name) }}',
                                 {{ $module->nbr_heure }},
                                 {{ $module->coefficience }},
-                                '{{ $module->id_user }}',
+                                '{{ $module->id_user ?? '' }}',
+                                '{{ $module->id_user_remplacant ?? '' }}',
                                 '{{ $module->type }}',
                                 '{{ $module->annee ?? 3 }}'
                             )">✎ Modifier</button>
@@ -313,7 +356,7 @@
         @endforeach
         </div>
 
-    @endforeach {{-- fin $anneeOrder --}}
+    @endforeach
 
 @empty
     <div style="padding:64px 32px;text-align:center;background:white;border-radius:16px;border:1px solid #e2e8f0;">
@@ -329,9 +372,11 @@
     </div>
 @endforelse
 
-</div>
+</div>{{-- .mod-wrap --}}
 
-{{-- MODAL CRÉER --}}
+{{-- ════════════════════════════════════════════════════════════
+     MODAL CRÉER
+     ════════════════════════════════════════════════════════════ --}}
 @if($canCreate)
 <div id="modal-create" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="mod-modal">
@@ -345,6 +390,8 @@
         </div>
         <form method="POST" action="{{ route('modules.store') }}" style="display:flex;flex-direction:column;gap:14px;">
             @csrf
+
+            {{-- Filière --}}
             <div>
                 <label class="mod-label">Filière <span style="color:#ef4444;">*</span></label>
                 <select name="id_filiere" id="create-id-filiere" class="mod-input" required>
@@ -352,10 +399,14 @@
                     @foreach($filieres as $f)<option value="{{ $f->id }}">{{ $f->name }}</option>@endforeach
                 </select>
             </div>
+
+            {{-- Nom --}}
             <div>
                 <label class="mod-label">Nom du module <span style="color:#ef4444;">*</span></label>
                 <input type="text" name="name" class="mod-input" required placeholder="Ex : PHP & Laravel…" value="{{ old('name') }}">
             </div>
+
+            {{-- Heures + Coeff --}}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures totales <span style="color:#ef4444;">*</span></label>
@@ -366,12 +417,36 @@
                     <input type="number" name="coefficience" class="mod-input" required min="0.5" max="10" step="0.5" placeholder="3" value="{{ old('coefficience') }}">
                 </div>
             </div>
+
+            {{-- Formateur principal --}}
             <div>
                 <label class="mod-label">Formateur responsable <span style="color:#ef4444;">*</span></label>
-                <select name="id_user" class="mod-input" required>
+                <select name="id_user" id="create-id-user" class="mod-input" required
+                        onchange="filterRemplacantCreate(this.value)">
                     <option value="">— Sélectionner —</option>
-                    @foreach($formateurs as $f)<option value="{{ $f->id }}">{{ $f->name }}</option>@endforeach
+                    @foreach($formateurs as $f)
+                        <option value="{{ $f->id }}">{{ $f->name }}</option>
+                    @endforeach
                 </select>
+            </div>
+
+            {{-- Formateur remplaçant (optionnel) --}}
+            <div>
+                <label class="mod-label">
+                    Formateur remplaçant
+                    <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;">(optionnel)</span>
+                </label>
+                <select name="id_user_remplacant" id="create-remplacant" class="mod-input"
+                        style="border-color:#ddd6fe;">
+                    <option value="">— Aucun —</option>
+                    @foreach($formateurs as $f)
+                        <option value="{{ $f->id }}">{{ $f->name }}</option>
+                    @endforeach
+                </select>
+                <p style="font-size:9px;color:#94a3b8;margin-top:4px;display:flex;align-items:center;gap:4px;">
+                    <svg width="10" height="10" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    En cas d'absence du formateur principal (maladie, empêchement…)
+                </p>
             </div>
 
             {{-- Année --}}
@@ -403,7 +478,8 @@
             </div>
 
             <div style="display:flex;gap:10px;margin-top:4px;">
-                <button type="button" onclick="document.getElementById('modal-create').classList.remove('open')" class="mod-btn mod-btn-ghost" style="flex:1;height:44px;justify-content:center;">Annuler</button>
+                <button type="button" onclick="document.getElementById('modal-create').classList.remove('open')"
+                        class="mod-btn mod-btn-ghost" style="flex:1;height:44px;justify-content:center;">Annuler</button>
                 <button type="submit" class="mod-btn mod-btn-primary" style="flex:1;height:44px;justify-content:center;">
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     Créer
@@ -414,7 +490,9 @@
 </div>
 @endif
 
-{{-- MODAL ÉDITER --}}
+{{-- ════════════════════════════════════════════════════════════
+     MODAL ÉDITER
+     ════════════════════════════════════════════════════════════ --}}
 @if($canEdit)
 <div id="modal-edit" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="mod-modal">
@@ -428,10 +506,14 @@
         </div>
         <form id="edit-form" method="POST" style="display:flex;flex-direction:column;gap:14px;">
             @csrf @method('PATCH')
+
+            {{-- Nom --}}
             <div>
                 <label class="mod-label">Nom <span style="color:#ef4444;">*</span></label>
                 <input type="text" name="name" id="edit-name" class="mod-input" required>
             </div>
+
+            {{-- Heures + Coeff --}}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures totales</label>
@@ -442,12 +524,38 @@
                     <input type="number" name="coefficience" id="edit-coeff" class="mod-input" required min="0.5" max="10" step="0.5">
                 </div>
             </div>
+
+            {{-- Formateur principal --}}
             <div>
-                <label class="mod-label">Formateur</label>
-                <select name="id_user" id="edit-user" class="mod-input" required>
+                <label class="mod-label">Formateur <span style="color:#ef4444;">*</span></label>
+                <select name="id_user" id="edit-user" class="mod-input" required
+                        onchange="filterRemplacantEdit(this.value)">
                     <option value="">— Sélectionner —</option>
-                    @foreach($formateurs as $f)<option value="{{ $f->id }}">{{ $f->name }}</option>@endforeach
+                    @foreach($formateurs as $f)
+                        <option value="{{ $f->id }}">{{ $f->name }}</option>
+                    @endforeach
                 </select>
+            </div>
+
+            {{-- Formateur remplaçant (optionnel) --}}
+            <div>
+                <label class="mod-label">
+                    Formateur remplaçant
+                    <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;">(optionnel)</span>
+                </label>
+                <select name="id_user_remplacant" id="edit-remplacant" class="mod-input"
+                        style="border-color:#ddd6fe;"
+                        onfocus="this.style.borderColor='#7c3aed'"
+                        onblur="this.style.borderColor='#ddd6fe'">
+                    <option value="">— Aucun —</option>
+                    @foreach($formateurs as $f)
+                        <option value="{{ $f->id }}">{{ $f->name }}</option>
+                    @endforeach
+                </select>
+                <p style="font-size:9px;color:#94a3b8;margin-top:4px;display:flex;align-items:center;gap:4px;">
+                    <svg width="10" height="10" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    En cas d'absence du formateur principal
+                </p>
             </div>
 
             {{-- Année --}}
@@ -463,6 +571,7 @@
                 </div>
             </div>
 
+            {{-- Type --}}
             <div>
                 <label class="mod-label">Type</label>
                 <div class="type-toggle">
@@ -473,7 +582,8 @@
             </div>
 
             <div style="display:flex;gap:10px;margin-top:4px;">
-                <button type="button" onclick="document.getElementById('modal-edit').classList.remove('open')" class="mod-btn mod-btn-ghost" style="flex:1;height:44px;justify-content:center;">Annuler</button>
+                <button type="button" onclick="document.getElementById('modal-edit').classList.remove('open')"
+                        class="mod-btn mod-btn-ghost" style="flex:1;height:44px;justify-content:center;">Annuler</button>
                 <button type="submit" class="mod-btn" style="flex:1;height:44px;justify-content:center;background:#f59e0b;color:white;box-shadow:0 4px 12px rgba(245,158,11,0.3);">
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     Enregistrer
@@ -484,7 +594,9 @@
 </div>
 @endif
 
-{{-- MODAL SUPPRIMER --}}
+{{-- ════════════════════════════════════════════════════════════
+     MODAL SUPPRIMER
+     ════════════════════════════════════════════════════════════ --}}
 @if($canDelete)
 <div id="modal-delete" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="mod-modal" style="max-width:400px;">
@@ -498,14 +610,19 @@
                     <div id="delete-name" style="font-size:10px;color:#64748b;margin-top:1px;"></div>
                 </div>
             </div>
-            <button onclick="document.getElementById('modal-delete').classList.remove('open')" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+            <button onclick="document.getElementById('modal-delete').classList.remove('open')"
+                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
         <div id="delete-warning" style="font-size:12px;line-height:1.6;margin-bottom:16px;padding:12px 14px;border-radius:12px;background:#fff1f2;border:1px solid #fecdd3;color:#9f1239;"></div>
         <div style="display:flex;gap:10px;">
-            <button onclick="document.getElementById('modal-delete').classList.remove('open')" class="mod-btn mod-btn-ghost" style="flex:1;height:44px;justify-content:center;">Annuler</button>
+            <button onclick="document.getElementById('modal-delete').classList.remove('open')"
+                    class="mod-btn mod-btn-ghost" style="flex:1;height:44px;justify-content:center;">Annuler</button>
             <form id="delete-form" method="POST" style="flex:1;">
                 @csrf @method('DELETE')
-                <button type="submit" id="delete-btn" class="mod-btn" style="width:100%;height:44px;justify-content:center;background:#dc2626;color:white;box-shadow:0 4px 12px rgba(220,38,38,0.3);">Supprimer</button>
+                <button type="submit" id="delete-btn" class="mod-btn"
+                        style="width:100%;height:44px;justify-content:center;background:#dc2626;color:white;box-shadow:0 4px 12px rgba(220,38,38,0.3);">
+                    Supprimer
+                </button>
             </form>
         </div>
     </div>
@@ -513,6 +630,7 @@
 @endif
 
 <script>
+// ── Créer modal ───────────────────────────────────────────────
 function openCreateModal(filiereId) {
     if (filiereId) document.getElementById('create-id-filiere').value = filiereId;
     document.getElementById('modal-create').classList.add('open');
@@ -523,15 +641,30 @@ function setCreateType(type) {
     document.getElementById('create-btn-local').className    = 'type-btn' + (type === 'local'    ? ' active-local'    : '');
 }
 
-function openEditModal(id, name, heure, coeff, userId, type, annee) {
+// Empêcher de choisir le même formateur comme remplaçant (créer)
+function filterRemplacantCreate(userId) {
+    const sel = document.getElementById('create-remplacant');
+    for (const opt of sel.options) {
+        opt.disabled = (opt.value !== '' && opt.value === userId);
+        if (opt.disabled && sel.value === opt.value) sel.value = '';
+    }
+}
+
+// ── Éditer modal ──────────────────────────────────────────────
+function openEditModal(id, name, heure, coeff, userId, remplacantId, type, annee) {
     document.getElementById('edit-form').action          = '/modules/' + id;
     document.getElementById('edit-name').value           = name;
     document.getElementById('edit-heure').value          = heure;
     document.getElementById('edit-coeff').value          = coeff;
     document.getElementById('edit-user').value           = userId;
+    document.getElementById('edit-remplacant').value     = remplacantId || '';
     document.getElementById('edit-subtitle').textContent = 'Modification : ' + name;
     setEditType(type);
-    // Set annee radio (annee is 1, 2 or 3)
+    // Désactiver le formateur principal dans le select remplaçant
+    filterRemplacantEdit(userId);
+    // Remettre la valeur après le filtre
+    document.getElementById('edit-remplacant').value = remplacantId || '';
+    // Set annee radio
     ['1','2','3'].forEach(v => {
         const r = document.getElementById('edit-annee-' + v);
         if (r) r.checked = (String(annee) === v);
@@ -544,17 +677,31 @@ function setEditType(type) {
     document.getElementById('edit-btn-local').className    = 'type-btn' + (type === 'local'    ? ' active-local'    : '');
 }
 
+// Empêcher de choisir le même formateur comme remplaçant (éditer)
+function filterRemplacantEdit(userId) {
+    const sel = document.getElementById('edit-remplacant');
+    for (const opt of sel.options) {
+        opt.disabled = (opt.value !== '' && opt.value === userId);
+        if (opt.disabled && sel.value === opt.value) sel.value = '';
+    }
+}
+
+// ── Supprimer modal ───────────────────────────────────────────
 function openDeleteModal(action, name, emploisCount) {
-    document.getElementById('delete-form').action     = action;
+    document.getElementById('delete-form').action      = action;
     document.getElementById('delete-name').textContent = name;
     const btn  = document.getElementById('delete-btn');
     const warn = document.getElementById('delete-warning');
     if (emploisCount > 0) {
-        warn.innerHTML = '⚠️ Impossible : ce module est utilisé dans <strong>' + emploisCount + '</strong> séance(s).';
-        btn.disabled = true; btn.style.opacity = '.4'; btn.style.cursor = 'not-allowed';
+        warn.innerHTML  = '⚠️ Impossible : ce module est utilisé dans <strong>' + emploisCount + '</strong> séance(s).';
+        btn.disabled    = true;
+        btn.style.opacity = '.4';
+        btn.style.cursor  = 'not-allowed';
     } else {
-        warn.textContent = 'Cette action est irréversible.';
-        btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+        warn.textContent  = 'Cette action est irréversible.';
+        btn.disabled      = false;
+        btn.style.opacity = '1';
+        btn.style.cursor  = 'pointer';
     }
     document.getElementById('modal-delete').classList.add('open');
 }

@@ -114,6 +114,75 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
+    // EDIT
+    // ─────────────────────────────────────────────────────────
+    public function edit(Edu $edu): View
+    {
+        abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
+        
+        $filieres = Filiere::orderBy('name')->get();
+        $groupes = Groupe::with('filiere')->orderBy('id_filiere')->orderBy('name')->get();
+        
+        return view('gestionnaire.edu-edit', compact('edu', 'filieres', 'groupes'));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // UPDATE
+    // ─────────────────────────────────────────────────────────
+    public function update(Request $request, Edu $edu): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
+
+        $data = $request->validate([
+            'nom'          => 'required|string|max:100',
+            'prenom'       => 'required|string|max:100',
+            'edu_email'    => 'required|email|unique:edu,edu_email,' . $edu->id,
+            'filiere_code' => 'required|exists:filieres,code',
+            'groupe_code'  => 'required|exists:groupes,code',
+            'password'     => 'nullable|string|min:6',
+        ]);
+
+        // Vérifier que le groupe appartient à la filière
+        $groupeAppartient = Groupe::join('filieres', 'groupes.id_filiere', '=', 'filieres.id')
+            ->where('groupes.code', $data['groupe_code'])
+            ->where('filieres.code', $data['filiere_code'])
+            ->exists();
+
+        if (!$groupeAppartient) {
+            return back()
+                ->withErrors(['groupe_code' => "Le groupe «{$data['groupe_code']}» n'appartient pas à la filière «{$data['filiere_code']}»."])
+                ->withInput();
+        }
+
+        $edu->nom          = $data['nom'];
+        $edu->prenom       = $data['prenom'];
+        $edu->edu_email    = $data['edu_email'];
+        $edu->filiere_code = $data['filiere_code'];
+        $edu->groupe_code  = $data['groupe_code'];
+        if (!empty($data['password'])) {
+            $edu->password = Hash::make($data['password']);
+        }
+        $edu->save();
+
+        return redirect()->route('edu-import.index', ['tab' => 'accounts'])
+            ->with('success', "Compte de {$edu->prenom} {$edu->nom} mis à jour.");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // DELETE
+    // ─────────────────────────────────────────────────────────
+    public function destroy(Edu $edu): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
+
+        $name = "{$edu->prenom} {$edu->nom}";
+        $edu->delete();
+
+        return redirect()->route('edu-import.index', ['tab' => 'accounts'])
+            ->with('success', "Compte de {$name} supprimé.");
+    }
+
+    // ─────────────────────────────────────────────────────────
     // PREVIEW / VALIDATE
     // ─────────────────────────────────────────────────────────
     public function preview(Request $request)
@@ -169,6 +238,7 @@ class EduImportController extends Controller
     public function manualStore(Request $request): RedirectResponse
     {
         abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
+
         $data = $request->validate([
             'nom'          => 'required|string|max:100',
             'prenom'       => 'required|string|max:100',
@@ -177,6 +247,19 @@ class EduImportController extends Controller
             'filiere_code' => 'required|exists:filieres,code',
             'groupe_code'  => 'required|exists:groupes,code',
         ]);
+
+        // Vérifier que le groupe appartient à la filière
+        $groupeAppartient = Groupe::join('filieres','groupes.id_filiere','=','filieres.id')
+            ->where('groupes.code', $data['groupe_code'])
+            ->where('filieres.code', $data['filiere_code'])
+            ->exists();
+
+        if (!$groupeAppartient) {
+            return back()
+                ->withErrors(['groupe_code' => "Le groupe «{$data['groupe_code']}» n'appartient pas à la filière «{$data['filiere_code']}»."])
+                ->withInput();
+        }
+        
         Edu::create([
             'nom'          => $data['nom'],
             'prenom'       => $data['prenom'],
@@ -186,11 +269,13 @@ class EduImportController extends Controller
             'groupe_code'  => $data['groupe_code'],
             'used'         => false,
         ]);
+        
         EduImportLog::create([
             'id_user'  => auth()->id(),
             'filename' => 'Ajout manuel',
             'imported' => 1, 'skipped' => 0, 'errors' => 0,
         ]);
+        
         return redirect()->route('edu-import.index', ['tab' => 'accounts'])
             ->with('success', "Stagiaire {$data['prenom']} {$data['nom']} ajouté avec succès.");
     }
@@ -258,18 +343,52 @@ class EduImportController extends Controller
         $validRows=[]; $warnings=[]; $errors=[]; $skippedLines=[];
         $filiereCodes = Filiere::pluck('id','code')->toArray();
         $groupeCodes  = Groupe::pluck('id','code')->toArray();
+
+        $groupeFiliereMap = Groupe::join('filieres','groupes.id_filiere','=','filieres.id')
+            ->select('groupes.code as groupe_code', 'filieres.code as filiere_code')
+            ->get()
+            ->pluck('filiere_code', 'groupe_code')
+            ->toArray();
+
+        $seenEmails = [];
+
         foreach ($rows as $lineNum => $row) {
             $line=$lineNum+2; $email=$row['edu_email']??''; $pass=$row['password']??'';
             $nom=$row['nom']??''; $prenom=$row['prenom']??'';
             $fc=strtoupper(trim($row['filiere_code']??'')); $gc=trim($row['groupe_code']??'');
-            if (empty($email)||!filter_var($email,FILTER_VALIDATE_EMAIL)) { $errors[]="Ligne {$line} — Email invalide : «{$email}»"; continue; }
-            if (!isset($filiereCodes[$fc])) { $errors[]="Ligne {$line} — Code filière «{$fc}» introuvable"; continue; }
-            if (!isset($groupeCodes[$gc]))  { $errors[]="Ligne {$line} — Code groupe «{$gc}» introuvable"; continue; }
-            if (Edu::where('edu_email',$email)->exists()) { $warnings[]="Ligne {$line} — «{$email}» déjà présent"; $skippedLines[]=$line; continue; }
+
+            if (empty($email)||!filter_var($email,FILTER_VALIDATE_EMAIL)) {
+                $errors[]="Ligne {$line} — Email invalide : «{$email}»"; continue;
+            }
+            if (!isset($filiereCodes[$fc])) {
+                $errors[]="Ligne {$line} — Code filière «{$fc}» introuvable"; continue;
+            }
+            if (!isset($groupeCodes[$gc])) {
+                $errors[]="Ligne {$line} — Code groupe «{$gc}» introuvable"; continue;
+            }
+            if (!isset($groupeFiliereMap[$gc]) || $groupeFiliereMap[$gc] !== $fc) {
+                $errors[]="Ligne {$line} — Le groupe «{$gc}» n'appartient pas à la filière «{$fc}»"; continue;
+            }
+
+            if (isset($seenEmails[$email])) {
+                $errors[]="Ligne {$line} — «{$email}» est en doublon dans le fichier (déjà à la ligne {$seenEmails[$email]})";
+                $skippedLines[]=$line; continue;
+            }
+            $seenEmails[$email] = $line;
+
+            if (Edu::where('edu_email',$email)->exists()) {
+                $errors[]="Ligne {$line} — «{$email}» est déjà présent dans la base";
+                $skippedLines[]=$line; continue;
+            }
+
+            if (empty($nom) || empty($prenom)) {
+                $errors[]="Ligne {$line} — Nom/prénom manquant pour «{$email}»"; continue;
+            }
             if (strlen($pass)<6) $warnings[]="Ligne {$line} — Mot de passe court pour «{$email}»";
-            if (empty($nom)||empty($prenom)) $warnings[]="Ligne {$line} — Nom/prénom manquant pour «{$email}»";
+
             $validRows[]=['edu_email'=>$email,'password'=>$pass?:'ofppt2025','nom'=>$nom,'prenom'=>$prenom,'filiere_code'=>$fc,'groupe_code'=>$gc];
         }
+
         return ['total'=>count($rows),'valid'=>count($validRows),'warn_count'=>count($warnings),'error_count'=>count($errors),'valid_rows'=>$validRows,'warnings'=>$warnings,'errors'=>$errors,'skipped'=>$skippedLines];
     }
 }

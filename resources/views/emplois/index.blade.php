@@ -15,8 +15,8 @@
     $canChangeModule = Auth::user()->hasPermissionTo('emploi-change-module');
     $canSelectModule = Auth::user()->hasPermissionTo('emploi-view-all-groups') || $canChangeModule;
     $isGestionnaire  = Auth::user()->hasPermissionTo('emploi-view-all-groups');
-    $canReport = Auth::user()->hasPermissionTo('reportation-create');
-    // Pass existing pending requests so we can grey out already-reported sessions
+    $canReport       = Auth::user()->hasPermissionTo('reportation-create');
+
     $pendingReportIds = $canReport
         ? \App\Models\Reportation::where('id_user', Auth::id())
             ->where('status', 'en_attente')
@@ -47,7 +47,6 @@
         ? ['light' => '#eff6ff', 'medium' => '#2563eb', 'text' => '#1e40af']
         : $p;
 
-    // Flat progress map for JS: "groupeId_moduleId" => hours
     $progressFlat = [];
     foreach ($moduleProgress as $gId => $modules) {
         foreach ($modules as $mId => $hours) {
@@ -135,11 +134,25 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-card-time   { position: absolute; top: 7px; right: 7px; font-size: 8px; font-weight: 700; background: rgba(0,0,0,0.06); color: #334155; padding: 2px 6px; border-radius: 99px; white-space: nowrap; }
 .card-distance .tt-card-module { padding-top: 20px; padding-right: 52px; }
 
-/* ── Progress bar on card ── */
+/* ── Progress bar ── */
 .card-progress { margin-top: 5px; }
 .card-progress-track { height: 3px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
 .card-progress-fill  { height: 100%; border-radius: 99px; transition: width 0.3s; }
 .card-progress-meta  { display: flex; justify-content: space-between; font-size: 7px; color: #94a3b8; margin-top: 2px; }
+
+/* ── Replacement badge ── */
+.remplacant-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 7px; font-weight: 800; padding: 1px 5px; border-radius: 99px;
+    background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe;
+    text-transform: uppercase; letter-spacing: .3px;
+}
+.remplacant-badge-module {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 7px; font-weight: 800; padding: 1px 5px; border-radius: 99px;
+    background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+    text-transform: uppercase; letter-spacing: .3px;
+}
 
 .tt-actions { position: absolute; bottom: 7px; right: 7px; display: none; gap: 3px; }
 .tt-card:hover .tt-actions { display: flex; }
@@ -176,7 +189,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-modal-input { width: 100%; height: 42px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 13px; color: #1e293b; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
 .tt-modal-input:focus { border-color: {{ $accentColor }}; background: white; }
 
-
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.6; }
@@ -202,7 +214,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 @endif
 
-{{-- ════ STAGIAIRE : avertissement semaine non visible ════ --}}
+{{-- ════ STAGIAIRE : avertissement ════ --}}
 @if($isStagiaire)
 @php
     $joursAvance = 2;
@@ -268,7 +280,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()]) }}"
            class="tt-tab {{ $year === 2 ? 'active' : 'inactive' }}"
            style="{{ $year === 2 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
-            Année 2 
+            Année 2
             <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
                          {{ $year === 2 ? 'background:rgba(255,255,255,0.2); color:white;'
                                        : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">2ème</span>
@@ -313,13 +325,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </a>
         @else
-            <span class="tt-nav-btn" style="opacity:0.35; cursor:not-allowed;" title="Non disponible encore">
+            <span class="tt-nav-btn" style="opacity:0.35; cursor:not-allowed;">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </span>
         @endif
 
         <a href="{{ route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
-           class="tt-nav-btn" title="Télécharger l'emploi du temps en PDF"
+           class="tt-nav-btn" title="Télécharger PDF"
            style="color:#dc2626; border-color:#fecdd3; background:#fff1f2;">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
@@ -338,8 +350,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     {{ $draftCount === 0 ? 'disabled' : '' }}
                     style="{{ $draftCount > 0
                         ? 'background:#16a34a; border-color:#16a34a; color:white; box-shadow:0 4px 12px rgba(22,163,74,0.3);'
-                        : 'opacity:.45; cursor:not-allowed;' }}"
-                    title="{{ $draftCount > 0 ? 'Publier '.$draftCount.' séance(s) en brouillon' : 'Aucun brouillon cette semaine' }}">
+                        : 'opacity:.45; cursor:not-allowed;' }}">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                 </svg>
@@ -423,9 +434,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             @foreach($dayDates as $dayNum => $date)
                 @foreach(EmploiDuTempsController::SEANCES as $sNum => $seance)
                     @php
-                        $cell       = $grid[$groupe->id][$dayNum][$sNum] ?? ['type' => 'empty'];
-                        $isLastS    = $sNum === 4;
-                        $isLastDay  = $dayNum === 6;
+                        $cell      = $grid[$groupe->id][$dayNum][$sNum] ?? ['type' => 'empty'];
+                        $isLastS   = $sNum === 4;
+                        $isLastDay = $dayNum === 6;
                         $cellBorder = $isLastS ? ($isLastDay ? '' : 'border-right:3px solid #cbd5e1;') : 'border-right:1px solid #e2e8f0;';
                     @endphp
 
@@ -439,6 +450,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                             $totalH   = EmploiDuTempsController::totalHours($sNum, $colspan);
                             $isRemote = ($emploi->mode ?? 'presentiel') === 'distance';
                             $isDraft  = $emploi->statut === 'brouillon';
+
+                            // ── Remplaçant : séance EN PREMIER, module en fallback ──
+                            $sessionRemplacant = $emploi->id_user_remplacant ? $emploi->remplacant : null;
+                            $isFuture          = $emploi->date_debut->isFuture();
+                            $moduleRemplacant  = (!$sessionRemplacant && $isFuture && $emploi->module?->id_user_remplacant)
+                                                ? $emploi->module->remplacant
+                                                : null;
+
+                            $hasRemplacant    = $sessionRemplacant || $moduleRemplacant;
+                            $activeRemplacant = $sessionRemplacant ?? $moduleRemplacant;
 
                             if ($isDraft) {
                                 $cardClass = 'card-brouillon';
@@ -459,7 +480,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                             $isLastSOfSpan = ($lastOfSpan % 4 === 0);
                             $spanBorder    = $isLastSOfSpan ? ($isLastDay ? '' : 'border-right:3px solid #94a3b8;') : 'border-right:1px solid #e2e8f0;';
 
-                            // Progress calculation for this module + groupe
                             $progDone  = 0;
                             $progTotal = 0;
                             $progPct   = 0;
@@ -474,12 +494,39 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                 @if($isDraft)
                                     <div class="draft-badge">Brouillon</div>
                                 @endif
+
                                 <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
                                 <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
-                                <div class="tt-card-row">
-                                    <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
-                                    {{ $emploi->gestionnaire->name ?? '—' }}
-                                </div>
+
+                                {{-- ── Formateur row ── --}}
+                                @if($hasRemplacant)
+                                    <div class="tt-card-row" style="flex-direction:column; align-items:flex-start; gap:2px; margin-top:4px;">
+                                        {{-- Original — barré --}}
+                                        <div style="display:flex; align-items:center; gap:4px;">
+                                            <div class="tt-card-dot" style="background:#94a3b8;"></div>
+                                            <span style="font-size:8px; color:#94a3b8; text-decoration:line-through;">
+                                                {{ $emploi->gestionnaire->name ?? '—' }}
+                                            </span>
+                                        </div>
+                                        {{-- Remplaçant — mis en avant --}}
+                                        <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                                            <div class="tt-card-dot" style="background:#7c3aed;"></div>
+                                            <span style="font-size:9px; color:#5b21b6; font-weight:700;">
+                                                {{ $activeRemplacant->name }}
+                                            </span>
+                                            @if($moduleRemplacant && !$sessionRemplacant)
+                                                <span class="remplacant-badge-module">Module</span>
+                                            @else
+                                                <span class="remplacant-badge">Remplaçant</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="tt-card-row">
+                                        <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
+                                        {{ $emploi->gestionnaire->name ?? '—' }}
+                                    </div>
+                                @endif
 
                                 @if($isRemote && $emploi->lien_distance)
                                     <div class="tt-card-row" style="margin-top:4px;">
@@ -500,92 +547,101 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                     {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
                                 </div>
 
-                                {{-- ── Progress bar (shown when module has nbr_heure) ── --}}
-{{-- ── Progress bar: only on past or ongoing sessions ── --}}
-@if($progTotal > 0 && $emploi->date_debut->isPast())
-    @php
-        $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture();
-    @endphp
-    <div class="card-progress">
-        <div class="card-progress-track">
-            <div class="card-progress-fill"
-                 style="width:{{ $progPct }}%;
-                        background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};
-                        {{ $isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : '' }}">
-            </div>
-        </div>
-        <div class="card-progress-meta">
-            <span style="{{ $isOngoing ? 'color:#f59e0b; font-weight:700;' : '' }}">
-                {{ $isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h' }}
-            </span>
-            <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">
-                {{ $progPct }}%
-            </span>
-        </div>
-    </div>
-@endif
+                                {{-- ── Progress bar ── --}}
+                                @if($progTotal > 0 && $emploi->date_debut->isPast())
+                                    @php $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture(); @endphp
+                                    <div class="card-progress">
+                                        <div class="card-progress-track">
+                                            <div class="card-progress-fill"
+                                                 style="width:{{ $progPct }}%;
+                                                        background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};
+                                                        {{ $isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : '' }}">
+                                            </div>
+                                        </div>
+                                        <div class="card-progress-meta">
+                                            <span style="{{ $isOngoing ? 'color:#f59e0b; font-weight:700;' : '' }}">
+                                                {{ $isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h' }}
+                                            </span>
+                                            <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">
+                                                {{ $progPct }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
 
-                                @if($canEdit || $canDelete || $canLien || $canChangeModule)
+                                {{-- ── Actions ── --}}
+                                @if($canEdit || $canDelete || $canLien || $canChangeModule || $isGestionnaire || $canReport)
                                 <div class="tt-actions">
+
                                     @if($canEdit)
                                         <button class="tt-btn-edit"
                                                 style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
                                                 onclick="openEditModal({{ $emploi->id }})">✎</button>
                                     @endif
 
+                                    {{-- Assign replacement (gestionnaire only, published) --}}
+                                    @if($isGestionnaire && !$isDraft)
+                                        <button class="tt-btn-edit"
+                                                style="background:#f5f3ff; color:#6d28d9;"
+                                                onclick="openRemplacantModal(
+                                                    {{ $emploi->id }},
+                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
+                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                                                    {{ $emploi->id_user_remplacant ?? 'null' }}
+                                                )"
+                                                title="{{ $hasRemplacant ? 'Modifier le remplaçant' : 'Assigner un remplaçant' }}">
+                                            {{ $hasRemplacant ? '🔄' : '👤' }}
+                                        </button>
+                                    @endif
 
+                                    {{-- Report --}}
+                                    @if($canReport && $emploi->id_user === Auth::user()->id)
+                                        @php $alreadyPending = in_array($emploi->id, $pendingReportIds); @endphp
+                                        @if($alreadyPending)
+                                            <span class="tt-btn-edit"
+                                                  style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;"
+                                                  title="Demande déjà en attente">⏳</span>
+                                        @else
+                                            <button class="tt-btn-edit"
+                                                    style="background:#f5f3ff; color:#6d28d9;"
+                                                    onclick="openReportModal(
+                                                        {{ $emploi->id }},
+                                                        '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
+                                                        '{{ $emploi->date_debut->translatedFormat('l d M Y') }}',
+                                                        '{{ $emploi->date_debut->format('Y-m-d') }}',
+                                                        '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                                                        '{{ $emploi->date_debut->format('H:i') }}',
+                                                        '{{ $emploi->date_fin->format('H:i') }}'
+                                                    )"
+                                                    title="Demander un report">📋</button>
+                                        @endif
+                                    @endif
 
-@if($canReport && $emploi->id_user === Auth::user()->id)
-    @php $alreadyPending = in_array($emploi->id, $pendingReportIds); @endphp
-    @if($alreadyPending)
-        <span class="tt-btn-edit"
-              style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;"
-              title="Demande déjà en attente">
-            ⏳
-        </span>
-    @else
-        <button class="tt-btn-edit"
-                style="background:#f5f3ff; color:#6d28d9;"
-                onclick="openReportModal(
-                    {{ $emploi->id }},
-                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
-                    '{{ $emploi->date_debut->translatedFormat('l d M Y') }}',
-                    '{{ $emploi->date_debut->format('Y-m-d') }}',
-                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                    '{{ $emploi->date_debut->format('H:i') }}',
-                    '{{ $emploi->date_fin->format('H:i') }}'
-                )"
-                title="Demander un report">
-            📋 Reporter
-        </button>
-    @endif
-@endif
+                                    {{-- Delete --}}
+                                    @if($canDelete)
+                                        <button type="button" class="tt-btn-del"
+                                                onclick="openDeleteModal(
+                                                    '{{ route('emplois.destroy', $emploi) }}',
+                                                    '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
+                                                    '{{ addslashes($emploi->module->name ?? 'Module') }}',
+                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }}',
+                                                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                                                    '{{ $emploi->date_debut->format('H:i') }}',
+                                                    '{{ $emploi->date_fin->format('H:i') }}',
+                                                    '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
+                                                )">✕</button>
+                                    @endif
 
-
-
-@if($canDelete)
-    <button type="button" class="tt-btn-del"
-            onclick="openDeleteModal(
-                '{{ route('emplois.destroy', $emploi) }}',
-                '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
-                '{{ addslashes($emploi->module->name ?? 'Module') }}',
-                '{{ $emploi->date_debut->translatedFormat('l d M') }}',
-                '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                '{{ $emploi->date_debut->format('H:i') }}',
-                '{{ $emploi->date_fin->format('H:i') }}',
-                '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
-            )">✕</button>
-@endif
-
+                                    {{-- Lien distance --}}
                                     @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
                                         <button class="tt-btn-edit"
                                                 style="background:#fef3c7; color:#92400e;"
                                                 onclick="openLienModal(
                                                     {{ $emploi->id }},
                                                     '{{ addslashes($emploi->lien_distance ?? '') }}',
-                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe') . ' — ' . ($emploi->module->name ?? 'Module')) }}',
+                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
                                                     '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
-                                                )">🔗 Lien</button>
+                                                )">🔗</button>
                                     @endif
 
                                     @if($canChangeModule && !$canEdit && $emploi->id_user === Auth::user()->id)
@@ -648,10 +704,24 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             <span style="width:10px; height:10px; border-radius:2px; background:#fef3c7; border:1.5px solid #f59e0b; display:inline-block;"></span>
             À distance
         </span>
+        <span style="display:flex; align-items:center; gap:4px; color:#5b21b6;">
+            <span style="width:10px; height:10px; border-radius:2px; background:#f5f3ff; border:1.5px solid #7c3aed; display:inline-block;"></span>
+            Remplaçant séance
+        </span>
+        <span style="display:flex; align-items:center; gap:4px; color:#c2410c;">
+            <span style="width:10px; height:10px; border-radius:2px; background:#fff7ed; border:1.5px solid #fb923c; display:inline-block;"></span>
+            Remplaçant module
+        </span>
     </span>
 </div>
 
-{{-- ════ MODAL SUPPRESSION ════ --}}
+</div>{{-- .tt-wrap --}}
+
+{{-- ════════════════════════════════════════════════════════════
+     MODALS
+     ════════════════════════════════════════════════════════════ --}}
+
+{{-- ── DELETE ──────────────────────────────────────────────── --}}
 <div id="delete-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
@@ -680,14 +750,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </div>
         </div>
         <div style="font-size:12px; color:#9f1239; line-height:1.6; margin-bottom:18px; padding:12px 14px; border-radius:12px; background:#fff1f2; border:1px solid #fecdd3;">
-            La suppression de cette séance retirera définitivement le créneau de l'emploi du temps. Les stagiaires n'auront plus accès à cette session.
+            La suppression retirera définitivement ce créneau de l'emploi du temps.
         </div>
         <div style="display:flex; gap:10px;">
-            <button onclick="closeDeleteModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Annuler</button>
+            <button onclick="closeDeleteModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">Annuler</button>
             <form id="delete-form" method="POST" style="flex:1;">
                 @csrf @method('DELETE')
-                <button type="submit" style="width:100%; height:44px; border-radius:12px; border:none; background:#dc2626; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3); display:flex; align-items:center; justify-content:center; gap:6px;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6"/></svg>
+                <button type="submit" style="width:100%; height:44px; border-radius:12px; border:none; background:#dc2626; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3);">
                     Supprimer
                 </button>
             </form>
@@ -695,7 +764,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 </div>
 
-{{-- ════ MODAL LIEN DISTANCE ════ --}}
+{{-- ── LIEN DISTANCE ───────────────────────────────────────── --}}
 <div id="lien-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
@@ -715,16 +784,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </div>
         <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:14px;">
             <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
-            <div style="flex:1; min-width:0;">
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span id="lien-session-label" style="font-size:11px; font-weight:700; color:#1e293b;"></span>
-                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:8px; font-weight:700; background:#fef3c7; color:#92400e; padding:2px 7px; border-radius:99px; border:1px solid #fde68a;">À distance</span>
-                </div>
+            <div>
+                <span id="lien-session-label" style="font-size:11px; font-weight:700; color:#1e293b;"></span>
                 <div id="lien-session-meta" style="font-size:9px; color:#64748b; margin-top:1px;"></div>
             </div>
         </div>
         <div style="margin-bottom:18px;">
-            <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">Lien de réunion (Teams / Zoom…)</label>
+            <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">Lien Teams / Zoom…</label>
             <input type="text" id="lien-input" placeholder="https://teams.microsoft.com/..."
                    style="width:100%; height:42px; padding:0 12px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; color:#1e293b; outline:none; box-sizing:border-box;"
                    onfocus="this.style.borderColor='#f59e0b'; this.style.background='white';"
@@ -734,9 +800,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             @csrf @method('PATCH')
             <input type="hidden" name="lien_distance" id="lien-hidden">
             <div style="display:flex; gap:10px;">
-                <button type="button" onclick="closeLienModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Annuler</button>
-                <button type="button" onclick="submitLien()" style="flex:1; height:44px; border-radius:12px; border:none; background:#f59e0b; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(245,158,11,0.35); display:flex; align-items:center; justify-content:center; gap:6px;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <button type="button" onclick="closeLienModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">Annuler</button>
+                <button type="button" onclick="submitLien()" style="flex:1; height:44px; border-radius:12px; border:none; background:#f59e0b; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(245,158,11,0.35);">
                     Enregistrer
                 </button>
             </div>
@@ -744,7 +809,90 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 </div>
 
- 
+{{-- ── REMPLACEMENT ─────────────────────────────────────────── --}}
+@if($isGestionnaire)
+<div id="remplacant-modal" style="display:none; position:fixed; inset:0; z-index:60;
+     background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
+     align-items:center; justify-content:center;"
+     onclick="if(event.target===this)closeRemplacantModal()">
+    <div style="background:white; border-radius:20px; width:100%; max-width:430px;
+                margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
+        <div style="display:flex; align-items:center; justify-content:space-between;
+                    margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #7c3aed;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:40px; height:40px; border-radius:12px; background:#f5f3ff;
+                            display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="18" height="18" fill="none" stroke="#7c3aed" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-size:14px; font-weight:800; color:#1e293b;">Assigner un remplaçant</div>
+                    <div id="remplacant-session-meta" style="font-size:10px; color:#64748b; margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeRemplacantModal()"
+                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+
+        <div style="padding:10px 12px; border-radius:10px; background:#f8fafc;
+                    border:1px solid #e2e8f0; margin-bottom:14px; font-size:11px; color:#1e293b; font-weight:600;">
+            📅 <span id="remplacant-session-label"></span>
+        </div>
+
+        <form id="remplacant-form" method="POST" style="display:flex; flex-direction:column; gap:14px;">
+            @csrf
+            <div>
+                <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
+                              letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">
+                    Formateur remplaçant pour cette séance
+                </label>
+                <select name="id_user_remplacant" id="remplacant-select"
+                        style="width:100%; height:42px; padding:0 12px; border-radius:10px;
+                               border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px;
+                               color:#1e293b; outline:none; box-sizing:border-box; transition:border-color .15s;"
+                        onfocus="this.style.borderColor='#7c3aed';this.style.background='white';"
+                        onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc';">
+                    <option value="">— Aucun (annuler le remplacement) —</option>
+                    @foreach($formateurs as $f)
+                        <option value="{{ $f->id }}">{{ $f->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div style="padding:10px 14px; border-radius:10px; background:#f5f3ff; border:1px solid #ddd6fe;
+                        font-size:11px; color:#5b21b6; display:flex; align-items:flex-start; gap:8px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0116 0z"/>
+                </svg>
+                Le remplacement de séance est prioritaire sur le remplaçant du module.
+                Choisir « Aucun » pour revenir au remplaçant du module si défini.
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button type="button" onclick="closeRemplacantModal()"
+                        style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
+                               background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">
+                    Annuler
+                </button>
+                <button type="submit"
+                        style="flex:2; height:44px; border-radius:12px; border:none;
+                               background:#7c3aed; font-size:13px; font-weight:700; color:white; cursor:pointer;
+                               box-shadow:0 4px 12px rgba(124,58,237,0.35);
+                               display:flex; align-items:center; justify-content:center; gap:6px;">
+                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
+{{-- ── REPORT ───────────────────────────────────────────────── --}}
 @if($canReport)
 <div id="report-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
@@ -752,7 +900,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
      onclick="if(event.target===this)closeReportModal()">
     <div style="background:white; border-radius:20px; width:100%; max-width:440px;
                 margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
- 
         <div style="display:flex; align-items:center; justify-content:space-between;
                     margin-bottom:16px; padding-bottom:14px; border-bottom:2px solid #7c3aed;">
             <div style="display:flex; align-items:center; gap:10px;">
@@ -772,19 +919,15 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;
                            color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
- 
-        {{-- Current session banner --}}
         <div style="padding:10px 14px; border-radius:10px; background:#fef3c7;
                     border:1px solid #fde68a; margin-bottom:16px;
                     display:flex; align-items:center; gap:8px; font-size:11px; color:#92400e;">
             📅 <span>Séance actuelle : <strong id="report-current-date"></strong> · <span id="report-current-time"></span></span>
         </div>
- 
         <form id="report-form" method="POST" action="{{ route('reportations.store') }}"
               style="display:flex; flex-direction:column; gap:14px;">
             @csrf
             <input type="hidden" name="id_emplois_du_temps" id="report-emploi-id">
- 
             <div>
                 <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
                               letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">
@@ -802,7 +945,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     <span id="report-raison-count" style="font-size:9px; color:#94a3b8;">0 / 1000</span>
                 </div>
             </div>
- 
             <div style="padding:10px 14px; border-radius:10px; background:#f5f3ff; border:1px solid #ddd6fe;
                         font-size:11px; color:#5b21b6; display:flex; align-items:flex-start; gap:8px;">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;">
@@ -810,7 +952,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </svg>
                 L'administration choisira la nouvelle date après validation de votre demande.
             </div>
- 
             <div style="display:flex; gap:10px; margin-top:4px;">
                 <button type="button" onclick="closeReportModal()"
                         style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
@@ -821,8 +962,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                         style="flex:2; height:44px; border-radius:12px; border:none;
                                background:#7c3aed; font-size:13px; font-weight:700; color:white; cursor:pointer;
                                box-shadow:0 4px 12px rgba(124,58,237,0.35);
-                               display:flex; align-items:center; justify-content:center; gap:6px;"
-                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                               display:flex; align-items:center; justify-content:center; gap:6px;">
                     <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                     </svg>
@@ -833,15 +973,11 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 </div>
 @endif
- 
 
-</div>{{-- .tt-wrap --}}
-
-{{-- ════ MODAL CREATE / EDIT ════ --}}
+{{-- ── CREATE / EDIT ────────────────────────────────────────── --}}
 @if($canCreate || $canEdit || $canChangeModule)
 <div id="emploi-modal" class="tt-modal-overlay" onclick="if(event.target===this)closeModal()">
     <div class="tt-modal-box">
-
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid {{ $accentColor }};">
             <div>
                 <h3 id="modal-title" style="font-size:14px; font-weight:800; color:#1e293b; margin:0;">Nouvelle séance</h3>
@@ -869,8 +1005,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
-            {{-- Mode toggle --}}
             @if($canCreate || $canEdit)
+            {{-- Mode --}}
             <div>
                 <label class="tt-modal-label">Mode de séance</label>
                 <div class="mode-toggle">
@@ -916,44 +1052,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </div>
             </div>
 
-            {{-- Formateur --}}
-            <div>
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <label class="tt-modal-label" style="margin:0;">Formateur</label>
-                    <span id="avail-loading-user"  style="font-size:9px; color:#64748b; display:none;">chargement…</span>
-                    <span id="avail-count-user"    style="font-size:9px; color:{{ $accentColor }}; font-weight:700; display:none;"></span>
-                </div>
-                <select name="id_user" id="m-user" required class="tt-modal-input">
-                    <option value="">— Sélectionner —</option>
-                    @foreach($formateurs as $f)
-                        <option value="{{ $f->id }}">{{ $f->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Salle (présentiel only) --}}
-            <div id="salle-row">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <label class="tt-modal-label" style="margin:0;">Salle</label>
-                    <span id="avail-loading-salle" style="font-size:9px; color:#64748b; display:none;">chargement…</span>
-                    <span id="avail-count-salle"   style="font-size:9px; color:{{ $accentColor }}; font-weight:700; display:none;"></span>
-                </div>
-                <select name="id_salle" id="m-salle" class="tt-modal-input">
-                    <option value="">— Sélectionner —</option>
-                    @foreach($salles as $s)
-                        <option value="{{ $s->id }}">{{ $s->name }} (cap. {{ $s->capacity }})</option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Teams link (distance only) --}}
-            <div id="lien-row" style="display:none;">
-                <label class="tt-modal-label">Lien de réunion (Teams / Zoom…)</label>
-                <input type="text" name="lien_distance" id="m-lien" placeholder="https://teams.microsoft.com/..." class="tt-modal-input" style="height:42px;">
-            </div>
-            @endif {{-- end canCreate || canEdit --}}
-
-            {{-- ════ MODULE SELECT (gestionnaire: required | formateur+permission: optional) ════ --}}
+            {{-- Module --}}
             @if($canSelectModule)
             <div id="module-row">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
@@ -969,12 +1068,11 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </div>
                 <select name="id_module" id="m-module"
                         {{ $isGestionnaire ? 'required' : '' }}
-                        onchange="updateModuleProgress()"
+                        onchange="onModuleChange()"
                         class="tt-modal-input">
                     <option value="">— Sélectionner un module —</option>
                 </select>
 
-                {{-- Mini progress bar inside modal --}}
                 <div id="module-progress-wrap" style="display:none; margin-top:8px; padding:8px 10px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
                     <div style="display:flex; justify-content:space-between; font-size:9px; color:#475569; margin-bottom:5px;">
                         <span style="font-weight:700;">Progression du module</span>
@@ -991,15 +1089,50 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </div>
             @endif
 
-            @if($canCreate || $canEdit)
-            <div style="font-size:9px; color:#64748b; background:#f8fafc; border-radius:8px; padding:8px 12px; line-height:1.8;">
-                S1 08:30→11:00 &nbsp;·&nbsp; S2 11:00→13:30 &nbsp;·&nbsp; S3 13:30→16:00 &nbsp;·&nbsp; S4 16:00→18:30
+            {{-- Formateur --}}
+            <div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <label class="tt-modal-label" style="margin:0;">Formateur</label>
+                    <span id="avail-loading-user"  style="font-size:9px; color:#64748b; display:none;">chargement…</span>
+                    <span id="avail-count-user"    style="font-size:9px; color:{{ $accentColor }}; font-weight:700; display:none;"></span>
+                </div>
+                <select name="id_user" id="m-user" required class="tt-modal-input">
+                    <option value="">— Sélectionner —</option>
+                    @foreach($formateurs as $f)
+                        <option value="{{ $f->id }}">{{ $f->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Salle --}}
+            <div id="salle-row">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <label class="tt-modal-label" style="margin:0;">Salle</label>
+                    <span id="avail-loading-salle" style="font-size:9px; color:#64748b; display:none;">chargement…</span>
+                    <span id="avail-count-salle"   style="font-size:9px; color:{{ $accentColor }}; font-weight:700; display:none;"></span>
+                </div>
+                <select name="id_salle" id="m-salle" class="tt-modal-input">
+                    <option value="">— Sélectionner —</option>
+                    @foreach($salles as $s)
+                        <option value="{{ $s->id }}">{{ $s->name }} (cap. {{ $s->capacity }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Lien distance --}}
+            <div id="lien-row" style="display:none;">
+                <label class="tt-modal-label">Lien de réunion (Teams / Zoom…)</label>
+                <input type="text" name="lien_distance" id="m-lien" placeholder="https://teams.microsoft.com/..." class="tt-modal-input" style="height:42px;">
             </div>
             @endif
 
+            <div style="font-size:9px; color:#64748b; background:#f8fafc; border-radius:8px; padding:8px 12px; line-height:1.8;">
+                S1 08:30→11:00 &nbsp;·&nbsp; S2 11:00→13:30 &nbsp;·&nbsp; S3 13:30→16:00 &nbsp;·&nbsp; S4 16:00→18:30
+            </div>
+
             <div style="display:flex; gap:10px; margin-top:4px;">
-                <button type="button" onclick="closeModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">Annuler</button>
-                <button type="submit" id="btn-submit" style="flex:1; height:44px; border-radius:12px; border:none; background:{{ $accentColor }}; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px {{ $accentColor }}40; transition:background 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <button type="button" onclick="closeModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">Annuler</button>
+                <button type="submit" id="btn-submit" style="flex:1; height:44px; border-radius:12px; border:none; background:{{ $accentColor }}; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px {{ $accentColor }}40; transition:background 0.2s;">
                     Enregistrer
                 </button>
             </div>
@@ -1008,19 +1141,28 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 </div>
 @endif
 
+{{-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ════════════════════════════════════════════════════════════ --}}
 <script>
-const SEANCE_STARTS  = ['08:30','11:00','13:30','16:00'];
-const SEANCE_ENDS    = ['11:00','13:30','16:00','18:30'];
-const SEANCE_HOURS   = [2.5, 2.5, 2.5, 2.5];
-const SEANCE_LABELS  = ['S1','S2','S3','S4'];
-const ACCENT         = '{{ $accentColor }}';
-const AVAILABLE_URL  = '{{ route('emplois.available') }}';
-const emploisData    = @json($emploisJson);
+const SEANCE_STARTS = ['08:30','11:00','13:30','16:00'];
+const SEANCE_ENDS   = ['11:00','13:30','16:00','18:30'];
+const SEANCE_HOURS  = [2.5, 2.5, 2.5, 2.5];
+const SEANCE_LABELS = ['S1','S2','S3','S4'];
+const ACCENT        = '{{ $accentColor }}';
+const AVAILABLE_URL = '{{ route('emplois.available') }}';
+const emploisData   = @json($emploisJson);
 const CAN_SELECT_MODULE = {{ $canSelectModule ? 'true' : 'false' }};
 const IS_GESTIONNAIRE   = {{ $isGestionnaire ? 'true' : 'false' }};
 
-// Module progress: "groupeId_moduleId" => hours done
-@php $progressFlat2 = []; foreach ($moduleProgress as $gId => $mods) { foreach ($mods as $mId => $h) { $progressFlat2[$gId.'_'.$mId] = round($h, 2); } } @endphp
+@php
+    $progressFlat2 = [];
+    foreach ($moduleProgress as $gId => $mods) {
+        foreach ($mods as $mId => $h) {
+            $progressFlat2[$gId.'_'.$mId] = round($h, 2);
+        }
+    }
+@endphp
 const moduleProgressData = @json($progressFlat2);
 
 let _slotGroupeId  = null;
@@ -1033,7 +1175,7 @@ let _currentMode   = 'presentiel';
 let _allFormateurs = @json($formateurs->map(fn($f) => ['id'=>$f->id,'name'=>$f->name]));
 let _allSalles     = @json($salles->map(fn($s) => ['id'=>$s->id,'name'=>$s->name,'capacity'=>$s->capacity]));
 
-// ── Mode toggle ──────────────────────────────────────────────
+// ── Mode toggle ───────────────────────────────────────────────
 function setMode(mode) {
     _currentMode = mode;
     document.getElementById('m-mode').value = mode;
@@ -1062,7 +1204,7 @@ function setMode(mode) {
     loadAvailable();
 }
 
-// ── Preview bar ──────────────────────────────────────────────
+// ── Preview bar ───────────────────────────────────────────────
 function updatePreview(seanceIdx, duration) {
     let totalH = 0;
     for (let i = 1; i <= 4; i++) {
@@ -1078,11 +1220,11 @@ function updatePreview(seanceIdx, duration) {
     document.getElementById('prev-label').textContent = totalH + 'h · ' + duration + ' séance' + (duration > 1 ? 's' : '');
 }
 
-// ── Populate select ──────────────────────────────────────────
+// ── Populate select ───────────────────────────────────────────
 function populateSelect(selectId, items, labelFn, countSpanId, loadingSpanId) {
-    const sel    = document.getElementById(selectId);
+    const sel = document.getElementById(selectId);
     if (!sel) return;
-    const curVal = sel.value;
+    const curVal    = sel.value;
     document.getElementById(loadingSpanId).style.display = 'none';
     const available = items.filter(i => i.available);
     const busy      = items.filter(i => !i.available);
@@ -1104,11 +1246,11 @@ function populateSelect(selectId, items, labelFn, countSpanId, loadingSpanId) {
     if (countEl) { countEl.textContent = available.length + ' dispo.'; countEl.style.display = available.length < items.length ? 'inline' : 'none'; }
 }
 
-// ── Populate module select ───────────────────────────────────
+// ── Populate module select ────────────────────────────────────
 function populateModuleSelect(modules) {
     const sel = document.getElementById('m-module');
     if (!sel) return;
-    const curVal = sel.value;
+    const curVal  = sel.value;
     const loading = document.getElementById('avail-loading-module');
     if (loading) loading.style.display = 'none';
     sel.innerHTML = '<option value="">— Sélectionner un module —</option>';
@@ -1123,21 +1265,18 @@ function populateModuleSelect(modules) {
     updateModuleProgress();
 }
 
-// ── Module progress inside modal ─────────────────────────────
+// ── Module progress inside modal ──────────────────────────────
 function updateModuleProgress() {
     const sel  = document.getElementById('m-module');
     const wrap = document.getElementById('module-progress-wrap');
     if (!sel || !wrap) return;
-
     const moduleId = parseInt(sel.value);
     if (!moduleId || !_slotGroupeId) { wrap.style.display = 'none'; return; }
-
     const opt    = sel.options[sel.selectedIndex];
     const totalH = parseFloat(opt.dataset.nbrHeure || 0);
     const key    = _slotGroupeId + '_' + moduleId;
     const doneH  = moduleProgressData[key] || 0;
     const pct    = totalH > 0 ? Math.min(100, Math.round((doneH / totalH) * 100)) : 0;
-
     wrap.style.display = 'block';
     const bar = document.getElementById('module-progress-bar');
     bar.style.width      = pct + '%';
@@ -1148,7 +1287,12 @@ function updateModuleProgress() {
     document.getElementById('module-progress-total').textContent = totalH + 'h total';
 }
 
-// ── Load available resources (formateurs + salles + modules) ──
+function onModuleChange() {
+    updateModuleProgress();
+    loadAvailable();
+}
+
+// ── Load available resources ──────────────────────────────────
 function loadAvailable() {
     if (!_slotGroupeId || !_slotDate || !_slotSeance) return;
     const duration   = parseInt(document.getElementById('m-dur') ? document.getElementById('m-dur').value : 1);
@@ -1171,12 +1315,14 @@ function loadAvailable() {
 
     clearTimeout(_fetchTimer);
     _fetchTimer = setTimeout(async () => {
+        const moduleId = document.getElementById('m-module')?.value || '';
         const params = new URLSearchParams({
             groupe_id:    _slotGroupeId,
             date:         _slotDate,
             seance_start: _slotSeance,
             duration:     duration,
             mode:         _currentMode,
+            module_id:    moduleId,
         });
         if (_editExcludeId) params.set('exclude_id', _editExcludeId);
 
@@ -1190,8 +1336,10 @@ function loadAvailable() {
             if (_currentMode === 'presentiel' && document.getElementById('m-salle')) {
                 populateSelect('m-salle', data.salles, s => s.name + ' (cap. ' + s.capacity + ')', 'avail-count-salle', 'avail-loading-salle');
             }
-            if (CAN_SELECT_MODULE && data.modules) {
+            if (CAN_SELECT_MODULE && data.modules && moduleId === '') {
                 populateModuleSelect(data.modules);
+            } else {
+                if (loadingMod) loadingMod.style.display = 'none';
             }
         } catch {
             if (loadingUser)  loadingUser.style.display  = 'none';
@@ -1203,7 +1351,7 @@ function loadAvailable() {
 
 function onDurationChange() { loadAvailable(); }
 
-// ── Open from cell click ─────────────────────────────────────
+// ── Open from cell click ──────────────────────────────────────
 function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     _slotGroupeId  = groupeId;
     _slotDate      = dateStr;
@@ -1229,7 +1377,7 @@ function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     showModal();
 }
 
-// ── Edit existing ────────────────────────────────────────────
+// ── Edit existing ─────────────────────────────────────────────
 function openEditModal(id) {
     const e = emploisData.find(x => x.id === id);
     if (!e) return;
@@ -1268,13 +1416,12 @@ function openEditModal(id) {
     loadAvailable();
     showModal();
 
-    // Restore previous values after AJAX populates selects
     const prevUser   = e.id_user;
     const prevSalle  = e.id_salle;
     const prevModule = e.id_module;
     setTimeout(() => {
-        if (prevUser  && document.getElementById('m-user'))   document.getElementById('m-user').value   = prevUser;
-        if (prevSalle && document.getElementById('m-salle'))  document.getElementById('m-salle').value  = prevSalle;
+        if (prevUser   && document.getElementById('m-user'))   document.getElementById('m-user').value   = prevUser;
+        if (prevSalle  && document.getElementById('m-salle'))  document.getElementById('m-salle').value  = prevSalle;
         if (prevModule && document.getElementById('m-module')) {
             document.getElementById('m-module').value = prevModule;
             updateModuleProgress();
@@ -1285,14 +1432,12 @@ function openEditModal(id) {
 function showModal()  { document.getElementById('emploi-modal').classList.add('open');    }
 function closeModal() { document.getElementById('emploi-modal').classList.remove('open'); }
 
-// ── Delete modal ─────────────────────────────────────────────
+// ── Delete modal ──────────────────────────────────────────────
 function openDeleteModal(action, groupe, module, date, span, heureDebut, heureFin, salle) {
     document.getElementById('delete-form').action = action;
     document.getElementById('delete-session-label').textContent = groupe + ' — ' + module;
     document.getElementById('delete-session-meta').textContent  = date + ' · ' + span + ' · ' + heureDebut + ' → ' + heureFin + ' · ' + salle;
-    const modal = document.getElementById('delete-modal');
-    modal.style.display = 'flex';
-    requestAnimationFrame(() => modal.style.opacity = '1');
+    document.getElementById('delete-modal').style.display = 'flex';
 }
 function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; }
 
@@ -1310,47 +1455,33 @@ function submitLien() {
     document.getElementById('lien-form').submit();
 }
 
+// ── Replacement modal ─────────────────────────────────────────
+function openRemplacantModal(emploiId, sessionLabel, sessionMeta, currentRemplacantId) {
+    document.getElementById('remplacant-form').action = '/emplois/' + emploiId + '/remplacant';
+    document.getElementById('remplacant-session-label').textContent = sessionLabel;
+    document.getElementById('remplacant-session-meta').textContent  = sessionMeta;
+    const sel = document.getElementById('remplacant-select');
+    sel.value = currentRemplacantId ? String(currentRemplacantId) : '';
+    document.getElementById('remplacant-modal').style.display = 'flex';
+}
+function closeRemplacantModal() {
+    document.getElementById('remplacant-modal').style.display = 'none';
+}
 
-
-
-// ── Report modal ──────────────────────────────────────────
+// ── Report modal ──────────────────────────────────────────────
 function openReportModal(emploiId, sessionLabel, dateLabel, dateStr, spanLabel, heureDebut, heureFin) {
-    document.getElementById('report-emploi-id').value   = emploiId;
+    document.getElementById('report-emploi-id').value           = emploiId;
     document.getElementById('report-session-label').textContent = sessionLabel;
     document.getElementById('report-current-date').textContent  = dateLabel;
     document.getElementById('report-current-time').textContent  = spanLabel + ' · ' + heureDebut + ' → ' + heureFin;
- 
-    // Pre-fill proposed date with current session date as starting point
-    const debutEl = document.getElementById('report-debut');
-    const finEl   = document.getElementById('report-fin');
-    if (dateStr) {
-        // Default to same time next week
-        const d = new Date(dateStr + 'T' + heureDebut);
-        d.setDate(d.getDate() + 7);
-        const pad  = n => String(n).padStart(2, '0');
-        const fmt  = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        if (debutEl) debutEl.value = fmt(d);
-        // fin = debut + same duration as original
-        const [dh, dm] = heureDebut.split(':').map(Number);
-        const [fh, fm] = heureFin.split(':').map(Number);
-        const durMin = (fh * 60 + fm) - (dh * 60 + dm);
-        const df = new Date(d.getTime() + durMin * 60000);
-        if (finEl) finEl.value = fmt(df);
-    }
- 
-    // Reset textarea
     const ta = document.getElementById('report-raison');
     if (ta) { ta.value = ''; document.getElementById('report-raison-count').textContent = '0 / 1000'; }
- 
-    const modal = document.getElementById('report-modal');
-    modal.style.display = 'flex';
+    document.getElementById('report-modal').style.display = 'flex';
 }
- 
 function closeReportModal() {
     document.getElementById('report-modal').style.display = 'none';
 }
- 
-// Character counter for textarea
+
 const reportRaison = document.getElementById('report-raison');
 if (reportRaison) {
     reportRaison.addEventListener('input', function() {

@@ -6,10 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Module extends Model
 {
-    protected $fillable = [
-        'id_filiere', 'id_option', 'name',
-        'coefficience', 'nbr_heure', 'id_user', 'type','annee',
-    ];
+protected $fillable = [
+    'id_filiere', 'id_option', 'name',
+    'coefficience', 'nbr_heure', 'id_user',
+    'id_user_remplacant',   // ← ajouter
+    'type', 'annee',
+];
+
+public function remplacant()
+{
+    return $this->belongsTo(User::class, 'id_user_remplacant');
+}
 
     public function filiere()
     {

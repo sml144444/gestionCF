@@ -50,16 +50,25 @@ class ModuleController extends Controller
         $selectedFiliere = $filiereId ? Filiere::find($filiereId) : null;
 
         // ── Real progress: hours already done (past sessions) per module ──
-        $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
-            ->whereIn('statut', ['actif', 'brouillon'])
-            ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
-            ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
-            ->selectRaw('emplois_du_temps.id_module, groupes.annee as groupe_annee,
-                         SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) as total_minutes')
-            ->groupBy('emplois_du_temps.id_module', 'groupes.annee')
-            ->get()
-            ->groupBy('id_module')
-            ->map(fn($rows) => $rows->pluck('total_minutes', 'groupe_annee'));
+ $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
+    ->whereIn('statut', ['actif', 'brouillon'])
+    ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
+    ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
+    ->selectRaw('
+        emplois_du_temps.id_module,
+        emplois_du_temps.id_groupe,
+        groupes.annee   AS groupe_annee,
+        groupes.name    AS groupe_name,
+        SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) AS total_minutes
+    ')
+    ->groupBy(
+        'emplois_du_temps.id_module',
+        'emplois_du_temps.id_groupe',
+        'groupes.annee',
+        'groupes.name'
+    )
+    ->get()
+    ->groupBy('id_module');
         // Result: [module_id => [1 => minutes_A1, 2 => minutes_A2, 3 => minutes_A3]]
 
         // Stats
@@ -89,6 +98,7 @@ class ModuleController extends Controller
             'id_user'      => 'required|exists:users,id',
             'type'         => 'required|in:regional,local',
             'annee'        => 'required|integer|in:1,2,3',
+            'id_user_remplacant' => 'nullable|exists:users,id|different:id_user',
         ]);
 
         $exists = Module::where('id_filiere', $data['id_filiere'])
@@ -118,6 +128,7 @@ class ModuleController extends Controller
             'id_user'      => 'required|exists:users,id',
             'type'         => 'required|in:regional,local',
             'annee'        => 'required|integer|in:1,2,3',
+            'id_user_remplacant' => 'nullable|exists:users,id|different:id_user',
         ]);
 
         $exists = Module::where('id_filiere', $module->id_filiere)

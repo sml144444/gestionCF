@@ -19,6 +19,7 @@ class EmploiDuTemps extends Model
         'statut',
         'mode',           // 'presentiel' | 'distance'
         'lien_distance',  // Teams/Zoom link for distance sessions
+        'id_user_remplacant',   // ← ajouter cette ligne
     ];
 
     protected $casts = [
@@ -61,4 +62,23 @@ class EmploiDuTemps extends Model
     {
         return $this->mode === 'distance';
     }
+
+ 
+    /**
+     * The replacement formateur (null = no replacement, original teaches).
+     */
+    public function remplacant()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'id_user_remplacant');
+    }
+ 
+    /**
+     * The formateur who will actually teach this session
+     * (replacement if assigned, original otherwise).
+     */
+    public function formateurActif(): ?\App\Models\User
+    {
+        return $this->remplacant ?? $this->gestionnaire;
+    }
+ 
 }

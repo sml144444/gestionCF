@@ -96,16 +96,26 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <form method="GET" action="{{ route('groupes.index') }}" style="display:flex;align-items:center;gap:6px;">
+            {{-- Filière filter --}}
             <select name="filiere" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;" onchange="this.form.submit()">
                 <option value="">Toutes les filières</option>
                 @foreach($filieres as $f)
                     <option value="{{ $f->id }}" {{ request('filiere')==$f->id?'selected':'' }}>{{ $f->name }}</option>
                 @endforeach
             </select>
+
+<select name="promo" onchange="this.form.submit()" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;">
+    <option value="">— Toutes les promos —</option>
+    @foreach ($promos as $p)
+        <option value="{{ $p }}" {{ request('promo') == $p ? 'selected' : '' }}>
+            Promo {{ $p }}
+        </option>
+    @endforeach
+</select>
         </form>
         @if($canCreate)
-        <button onclick="openGrpModal('create')" class="btn-g"
-                style="background:var(--accent);color:white;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 40%,transparent);">
+        <button onclick="@if($selectedFiliere) openCreateForFiliere({{ $selectedFiliere->id }}, '{{ addslashes($selectedFiliere->name) }}', '{{ addslashes($selectedFiliere->code ?? '') }}') @else openGrpModal('create') @endif"
+        class="btn-g" style="background:var(--accent);color:white;...">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Nouveau groupe
         </button>
@@ -121,6 +131,8 @@
     <a href="{{ route('groupes.index') }}" style="margin-left:auto;font-size:10px;color:var(--atext);font-weight:700;">Voir tout ×</a>
 </div>
 @endif
+
+
 
 {{-- GROUPES PAR FILIÈRE --}}
 @forelse($groupes as $filiereId => $grpList)
@@ -143,7 +155,7 @@
             @endif
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
             @foreach($grpList->sortBy('annee')->sortBy('name') as $groupe)
                 @php
                     $occ      = $groupe->nbr_limit > 0 ? min(100,round(($groupe->stagiaires_count/$groupe->nbr_limit)*100)) : 0;
@@ -155,7 +167,7 @@
                 <div class="grp-card">
                     <div style="padding:14px 16px;">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
-                            <div>
+                            <div style="flex:1;">
                                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                                     <span style="font-size:16px;font-weight:800;color:var(--gray-900);">{{ $groupe->name ?? 'G'.$groupe->id }}</span>
                                     @if($groupe->code)
@@ -164,17 +176,26 @@
                                         <span style="font-size:9px;color:var(--gray-400);font-style:italic;">sans code</span>
                                     @endif
                                 </div>
-                                <div style="font-size:9px;font-weight:700;margin-top:4px;
-                                            background:{{ $anneeBg }};
-                                            color:{{ $anneeColor }};
-                                            padding:2px 8px;border-radius:99px;display:inline-block;">
-                                    {{ $anneeLabel }}
+                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                                    <div style="font-size:9px;font-weight:700;
+                                                background:{{ $anneeBg }};
+                                                color:{{ $anneeColor }};
+                                                padding:2px 8px;border-radius:99px;display:inline-block;">
+                                        {{ $anneeLabel }}
+                                    </div>
+                                    {{-- Promo label using accessor --}}
+                                    <div style="font-size:9px;font-weight:700;
+                                                background:var(--light);
+                                                color:var(--atext);
+                                                padding:2px 8px;border-radius:99px;display:inline-block;">
+                                        {{ $groupe->promo_label }}
+                                    </div>
                                 </div>
                             </div>
                             <div style="display:flex;gap:5px;">
                                 @if($canEdit)
                                 <button class="btn-g" style="padding:5px 8px;background:#fef3c7;color:#92400e;font-size:11px;"
-                                        onclick="openEditGroupe({{ $groupe->id }},'{{ addslashes($groupe->name??'') }}','{{ addslashes($groupe->code??'') }}',{{ $groupe->annee }},{{ $groupe->nbr_limit }},{{ $groupe->id_filiere }},'{{ addslashes($filiere->name??'') }}')">✎</button>
+                                        onclick="openEditGroupe({{ $groupe->id }},'{{ addslashes($groupe->name??'') }}','{{ addslashes($groupe->code??'') }}',{{ $groupe->annee }},{{ $groupe->nbr_limit }},{{ $groupe->id_filiere }},'{{ addslashes($filiere->name??'') }}',{{ $groupe->promo ?? date('Y') }})">✎</button>
                                 @endif
                                 @if($canDelete)
                                 <button class="btn-g" style="padding:5px 8px;background:#fee2e2;color:#dc2626;font-size:11px;"
@@ -277,7 +298,7 @@
                 </div>
 
                 {{-- Année --}}
-                <div class="f-row" style="margin-bottom:0;">
+                <div class="f-row">
                     <label class="f-label">Année de formation <span style="color:#ef4444;">*</span></label>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <label class="radio-card" id="lbl-create-a1" onclick="styleRadio('create',1)">
@@ -305,6 +326,18 @@
                             </div>
                         </label>
                     </div>
+                </div>
+
+                {{-- Promo (année de début) --}}
+                <div class="f-row">
+                    <label class="f-label">Année de promotion (début)</label>
+                    <input type="number"
+                           name="promo"
+                           value="{{ old('promo', date('Y')) }}"
+                           min="2000" max="2099"
+                           placeholder="ex: 2024"
+                           class="f-input" />
+                    <small class="f-hint">Année de début de la promotion (ex: 2024 → 2024–2026)</small>
                 </div>
             </div>
             <div class="m-ft">
@@ -355,7 +388,7 @@
                     <input type="number" name="nbr_limit" id="edit-grp-limit" class="f-input warn" required min="1" max="100">
                 </div>
 
-                <div class="f-row" style="margin-bottom:0;">
+                <div class="f-row">
                     <label class="f-label">Année de formation <span style="color:#ef4444;">*</span></label>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <label class="radio-card" id="lbl-edit-a1" onclick="styleRadio('edit',1)">
@@ -380,6 +413,18 @@
                             </div>
                         </label>
                     </div>
+                </div>
+
+                {{-- Promo (année de début) --}}
+                <div class="f-row">
+                    <label class="f-label">Année de promotion (début)</label>
+                    <input type="number"
+                           name="promo"
+                           id="edit-grp-promo"
+                           min="2000" max="2099"
+                           placeholder="ex: 2024"
+                           class="f-input warn" />
+                    <small class="f-hint">Année de début de la promotion (ex: 2024 → 2024–2026)</small>
                 </div>
             </div>
             <div class="m-ft">
@@ -460,11 +505,12 @@ function autoGroupeCode(nameInput) {
     codeInput.value = (fCode ? fCode + '-' : '') + gCode;
 }
 
-function openEditGroupe(id, name, code, annee, limit, filiereId, filiereName) {
+function openEditGroupe(id, name, code, annee, limit, filiereId, filiereName, promo) {
     document.getElementById('edit-grp-form').action         = '/groupes/' + id;
     document.getElementById('edit-grp-name').value          = name;
     document.getElementById('edit-grp-code').value          = code;
     document.getElementById('edit-grp-limit').value         = limit;
+    document.getElementById('edit-grp-promo').value         = promo || new Date().getFullYear();
     document.getElementById('edit-grp-sub').textContent     = name + ' — ' + filiereName;
     document.getElementById('edit-grp-filiere-info').textContent = 'Filière : ' + filiereName + ' (non modifiable)';
     document.getElementById('edit-r1').checked = annee == 1;
@@ -507,6 +553,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.addEventListener('input', () => { el.dataset.touched = '1'; });
     });
     styleRadio('create', {{ old('annee', 1) }});
+
+    @if($selectedFiliere)
+    const sel = document.getElementById('create-grp-filiere');
+    if (sel) {
+        sel.value = {{ $selectedFiliere->id }};
+        const codeInput = document.getElementById('create-grp-code');
+        if (codeInput && !codeInput.dataset.touched) {
+            codeInput.value = '{{ addslashes($selectedFiliere->code ?? '') }}-';
+        }
+    }
+    @endif
 });
 
 document.addEventListener('keydown', e => {
