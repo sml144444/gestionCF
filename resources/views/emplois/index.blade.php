@@ -110,37 +110,107 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-group-sub  { font-size: 9px; color: #64748b; margin-top: 2px; }
 
 .tt-session-td { padding: 5px; }
+
+/* ════ NEW CARD STYLES (modernized) ════ */
 .tt-card {
-    border-radius: 10px; padding: 8px 9px; min-height: 72px;
-    position: relative; transition: transform 0.15s, box-shadow 0.15s;
-    cursor: default; border: 1px solid transparent;
+    border-radius: 14px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid {{ $accentColor }};
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+    min-height: 0;
 }
-.tt-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+.tt-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+}
 
-.card-role-1 { background: {{ $cardPalette['light'] }}; border-color: {{ $cardPalette['medium'] }}30; border-left: 3px solid {{ $cardPalette['medium'] }}; }
-.card-role-2 { background: {{ $cardPalette['light'] }}; border-color: {{ $cardPalette['medium'] }}30; border-left: 3px solid {{ $cardPalette['text'] }}; }
-.card-role-3 { background: #f8fafc; border-color: {{ $cardPalette['medium'] }}20; border-left: 3px solid {{ $cardPalette['text'] }}80; }
-.card-role-4 { background: {{ $cardPalette['light'] }}; border-color: {{ $cardPalette['medium'] }}20; border-left: 3px solid {{ $cardPalette['medium'] }}b0; }
-.card-distance { background: #fefce8; border-color: #fde68a; border-left: 3px solid #f59e0b; }
-.card-brouillon { opacity: 0.72; border-style: dashed !important; border-color: #94a3b8 !important; background: #f8fafc !important; border-left: 3px dashed #94a3b8 !important; }
-.card-brouillon .tt-card-module { color: #475569; }
-.draft-badge { position: absolute; top: 7px; left: 9px; font-size: 7px; font-weight: 800; letter-spacing: .5px; background: #f1f5f9; color: #64748b; padding: 2px 6px; border-radius: 99px; border: 1px solid #cbd5e1; text-transform: uppercase; }
-.card-brouillon .tt-card-module { padding-top: 18px; }
+/* ── Body section ── */
+.tt-card-body { padding: 11px 12px 9px; }
 
-.tt-card-module { font-size: 11px; font-weight: 700; color: {{ $cardPalette['text'] }}; line-height: 1.3; margin-bottom: 5px; padding-right: 52px; }
+/* ── Header row: module name + time pill ── */
+.tt-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.tt-card-module {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.tt-card-time {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: {{ $p['light'] }};
+    color: {{ $p['text'] }};
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Meta rows ── */
+.tt-card-meta { display: flex; flex-direction: column; gap: 4px; }
+.tt-card-row  { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #475569; }
+.tt-card-icon {
+    width: 15px; height: 15px; border-radius: 4px;
+    background: {{ $p['light'] }};
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.tt-card-icon svg { width: 9px; height: 9px; }
+.tt-card-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Variant: distance ── */
+.card-distance { border-top-color: #f59e0b; background: #fffbeb; }
 .card-distance .tt-card-module { color: #92400e; }
-.tt-card-row    { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #334155; margin-top: 3px; }
-.tt-card-dot    { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.tt-card-time   { position: absolute; top: 7px; right: 7px; font-size: 8px; font-weight: 700; background: rgba(0,0,0,0.06); color: #334155; padding: 2px 6px; border-radius: 99px; white-space: nowrap; }
-.card-distance .tt-card-module { padding-top: 20px; padding-right: 52px; }
+.card-distance .tt-card-time   { background: #fef3c7; color: #b45309; }
+
+/* ── Variant: brouillon ── */
+.card-brouillon {
+    opacity: 0.7;
+    border-style: dashed;
+    border-top-style: dashed;
+    border-top-color: #94a3b8;
+    background: #f8fafc;
+}
+.card-brouillon .tt-card-module { color: #475569; }
+.card-brouillon .tt-card-time   { background: #f1f5f9; color: #64748b; }
+.draft-badge {
+    display: inline-block;
+    font-size: 8px; font-weight: 800; letter-spacing: .5px;
+    background: #f1f5f9; color: #64748b;
+    padding: 2px 7px; border-radius: 6px; border: 1px solid #cbd5e1;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+/* ── Variant colours (role-1…4) — border-top only ── */
+.card-role-1 { border-top-color: {{ $cardPalette['medium'] }}; }
+.card-role-2 { border-top-color: {{ $cardPalette['text'] }}; }
+.card-role-3 { border-top-color: {{ $cardPalette['text'] }}80; }
+.card-role-4 { border-top-color: {{ $cardPalette['medium'] }}b0; }
 
 /* ── Progress bar ── */
-.card-progress { margin-top: 5px; }
+.card-progress { margin-top: 6px; }
 .card-progress-track { height: 3px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
 .card-progress-fill  { height: 100%; border-radius: 99px; transition: width 0.3s; }
-.card-progress-meta  { display: flex; justify-content: space-between; font-size: 7px; color: #94a3b8; margin-top: 2px; }
+.card-progress-meta  { display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: 2px; }
 
-/* ── Replacement badge ── */
+/* ── Replacement badges ── */
 .remplacant-badge {
     display: inline-flex; align-items: center; gap: 3px;
     font-size: 7px; font-weight: 800; padding: 1px 5px; border-radius: 99px;
@@ -154,28 +224,55 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     text-transform: uppercase; letter-spacing: .3px;
 }
 
-.tt-actions { position: absolute; bottom: 7px; right: 7px; display: none; gap: 3px; }
+/* ── Footer: 3-button strip (always visible) ── */
+.tt-card-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid #f1f5f9;
+}
+.tt-foot-btn {
+    padding: 7px 4px;
+    font-size: 10px; font-weight: 700;
+    border: none; cursor: pointer; background: transparent;
+    color: #94a3b8;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    transition: background 0.12s, color 0.12s;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.tt-foot-btn:not(:last-child) { border-right: 1px solid #f1f5f9; }
+.tt-foot-btn:hover             { background: #f8fafc; color: #1e293b; }
+.tt-foot-btn-pres:hover        { background: #f0fdf4; color: #16a34a; }
+.tt-foot-btn-cls:hover         { background: {{ $p['light'] }}; color: {{ $p['text'] }}; }
+.card-distance .tt-card-footer { background: #fef9ee; }
+
+/* ── Hover action buttons (edit/del, appear on hover, kept for compat) ── */
+.tt-actions { position: absolute; top: 7px; right: 7px; display: none; gap: 3px; }
 .tt-card:hover .tt-actions { display: flex; }
 .tt-btn-edit { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
 .tt-btn-del  { font-size: 9px; font-weight: 700; background: #fee2e2; color: #dc2626; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
 .tt-btn-edit:hover, .tt-btn-del:hover { opacity: 0.8; }
 
+/* ── Empty cell / add button ── */
 .tt-empty-td { padding: 5px; }
 .tt-add-btn { width: 100%; min-height: 72px; border: 1.5px dashed #e2e8f0; border-radius: 10px; background: transparent; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #e2e8f0; cursor: pointer; transition: all 0.15s; }
 .tt-add-btn:hover { border-color: {{ $accentColor }}; color: {{ $accentColor }}; background: {{ $p['light'] }}; }
 
+/* ── Navigation ── */
 .tt-nav-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; color: #475569; text-decoration: none; transition: all 0.15s; cursor: pointer; }
 .tt-nav-btn:hover { border-color: #cbd5e1; background: #f8fafc; color: #1e293b; }
 .tt-nav-btn.primary { background: {{ $accentColor }}; border-color: {{ $accentColor }}; color: white; }
 .tt-nav-btn.primary:hover { opacity: 0.9; }
 .tt-nav-btn.today-btn { color: {{ $accentColor }}; border-color: {{ $accentColor }}30; background: {{ $p['light'] }}; }
 
+/* ── Tabs ── */
 .tt-tab { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; transition: all 0.15s; text-decoration: none; }
 .tt-tab.active { color: white; }
 .tt-tab.inactive { color: #64748b; }
 .tt-tab.inactive:hover { background: #f8fafc; color: #1e293b; }
 .tt-tab.disabled { color: #cbd5e1; cursor: not-allowed; opacity: 0.55; background: #f8fafc; pointer-events: none; }
 
+/* ── Modal / Form ── */
 .mode-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; }
 .mode-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; border: none; background: white; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .mode-btn.active-pres { background: {{ $accentColor }}; color: white; }
@@ -451,7 +548,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                             $isRemote = ($emploi->mode ?? 'presentiel') === 'distance';
                             $isDraft  = $emploi->statut === 'brouillon';
 
-                            // ── Remplaçant : séance EN PREMIER, module en fallback ──
                             $sessionRemplacant = $emploi->id_user_remplacant ? $emploi->remplacant : null;
                             $isFuture          = $emploi->date_debut->isFuture();
                             $moduleRemplacant  = (!$sessionRemplacant && $isFuture && $emploi->module?->id_user_remplacant)
@@ -490,96 +586,19 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                             }
                         @endphp
                         <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
+
+                            {{-- ═══ NEW CARD STRUCTURE ═══ --}}
                             <div class="tt-card {{ $cardClass }}">
-                                @if($isDraft)
-                                    <div class="draft-badge">Brouillon</div>
-                                @endif
 
-                                <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
-                                <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
-
-                                {{-- ── Formateur row ── --}}
-                                @if($hasRemplacant)
-                                    <div class="tt-card-row" style="flex-direction:column; align-items:flex-start; gap:2px; margin-top:4px;">
-                                        {{-- Original — barré --}}
-                                        <div style="display:flex; align-items:center; gap:4px;">
-                                            <div class="tt-card-dot" style="background:#94a3b8;"></div>
-                                            <span style="font-size:8px; color:#94a3b8; text-decoration:line-through;">
-                                                {{ $emploi->gestionnaire->name ?? '—' }}
-                                            </span>
-                                        </div>
-                                        {{-- Remplaçant — mis en avant --}}
-                                        <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-                                            <div class="tt-card-dot" style="background:#7c3aed;"></div>
-                                            <span style="font-size:9px; color:#5b21b6; font-weight:700;">
-                                                {{ $activeRemplacant->name }}
-                                            </span>
-                                            @if($moduleRemplacant && !$sessionRemplacant)
-                                                <span class="remplacant-badge-module">Module</span>
-                                            @else
-                                                <span class="remplacant-badge">Remplaçant</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="tt-card-row">
-                                        <div class="tt-card-dot" style="background:{{ $isRemote ? '#f59e0b' : $accentColor }};"></div>
-                                        {{ $emploi->gestionnaire->name ?? '—' }}
-                                    </div>
-                                @endif
-
-                                @if($isRemote && $emploi->lien_distance)
-                                    <div class="tt-card-row" style="margin-top:4px;">
-                                        <div class="tt-card-dot" style="background:#f59e0b;"></div>
-                                        <a href="{{ $emploi->lien_distance }}" target="_blank"
-                                           style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
-                                            Rejoindre la réunion
-                                        </a>
-                                    </div>
-                                @elseif(!$isRemote)
-                                    <div class="tt-card-row">
-                                        <div class="tt-card-dot" style="background:#94a3b8;"></div>
-                                        {{ $emploi->salle->name ?? '—' }}
-                                    </div>
-                                @endif
-
-                                <div class="tt-card-row" style="color:#64748b; font-style:italic;">
-                                    {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
-                                </div>
-
-                                {{-- ── Progress bar ── --}}
-                                @if($progTotal > 0 && $emploi->date_debut->isPast())
-                                    @php $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture(); @endphp
-                                    <div class="card-progress">
-                                        <div class="card-progress-track">
-                                            <div class="card-progress-fill"
-                                                 style="width:{{ $progPct }}%;
-                                                        background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};
-                                                        {{ $isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : '' }}">
-                                            </div>
-                                        </div>
-                                        <div class="card-progress-meta">
-                                            <span style="{{ $isOngoing ? 'color:#f59e0b; font-weight:700;' : '' }}">
-                                                {{ $isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h' }}
-                                            </span>
-                                            <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">
-                                                {{ $progPct }}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                @endif
-
-                                {{-- ── Actions ── --}}
+                                {{-- Hover action buttons (edit/delete/lien/report/remplacant) --}}
                                 @if($canEdit || $canDelete || $canLien || $canChangeModule || $isGestionnaire || $canReport)
                                 <div class="tt-actions">
-
                                     @if($canEdit)
                                         <button class="tt-btn-edit"
                                                 style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
                                                 onclick="openEditModal({{ $emploi->id }})">✎</button>
                                     @endif
 
-                                    {{-- Assign replacement (gestionnaire only, published) --}}
                                     @if($isGestionnaire && !$isDraft)
                                         <button class="tt-btn-edit"
                                                 style="background:#f5f3ff; color:#6d28d9;"
@@ -594,13 +613,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                         </button>
                                     @endif
 
-                                    {{-- Report --}}
                                     @if($canReport && $emploi->id_user === Auth::user()->id)
                                         @php $alreadyPending = in_array($emploi->id, $pendingReportIds); @endphp
                                         @if($alreadyPending)
-                                            <span class="tt-btn-edit"
-                                                  style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;"
-                                                  title="Demande déjà en attente">⏳</span>
+                                            <span class="tt-btn-edit" style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;" title="Demande déjà en attente">⏳</span>
                                         @else
                                             <button class="tt-btn-edit"
                                                     style="background:#f5f3ff; color:#6d28d9;"
@@ -617,7 +633,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                         @endif
                                     @endif
 
-                                    {{-- Delete --}}
                                     @if($canDelete)
                                         <button type="button" class="tt-btn-del"
                                                 onclick="openDeleteModal(
@@ -632,7 +647,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                                 )">✕</button>
                                     @endif
 
-                                    {{-- Lien distance --}}
                                     @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
                                         <button class="tt-btn-edit"
                                                 style="background:#fef3c7; color:#92400e;"
@@ -651,7 +665,147 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                     @endif
                                 </div>
                                 @endif
-                            </div>
+
+                                {{-- ── Card body ── --}}
+                                <div class="tt-card-body">
+
+                                    @if($isDraft)<div class="draft-badge">Brouillon</div>@endif
+
+                                    <div class="tt-card-header">
+                                        <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
+                                        <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
+                                    </div>
+
+                                    <div class="tt-card-meta">
+                                        {{-- Formateur / remplaçant --}}
+                                        @if($hasRemplacant)
+                                            <div class="tt-card-row" style="flex-direction:column; align-items:flex-start; gap:2px;">
+                                                <div style="display:flex;align-items:center;gap:5px;">
+                                                    <div class="tt-card-dot" style="background:#94a3b8;"></div>
+                                                    <span style="font-size:9px; color:#94a3b8; text-decoration:line-through;">{{ $emploi->gestionnaire->name ?? '—' }}</span>
+                                                </div>
+                                                <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                                                    <div class="tt-card-dot" style="background:#7c3aed;"></div>
+                                                    <span style="font-size:10px; color:#5b21b6; font-weight:700;">{{ $activeRemplacant->name }}</span>
+                                                    @if($moduleRemplacant && !$sessionRemplacant)
+                                                        <span class="remplacant-badge-module">Module</span>
+                                                    @else
+                                                        <span class="remplacant-badge">Remplaçant</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="tt-card-row">
+                                                <div class="tt-card-icon" style="{{ $isRemote ? 'background:#fef3c7;' : '' }}">
+                                                    <svg fill="none" stroke="{{ $isRemote ? '#b45309' : $accentColor }}" viewBox="0 0 24 24">
+                                                        <circle cx="12" cy="7" r="4" stroke-width="2"/>
+                                                        <path stroke-width="2" d="M4 21v-1a8 8 0 0116 0v1"/>
+                                                    </svg>
+                                                </div>
+                                                <span style="color:{{ $isRemote ? '#92400e' : '' }}">{{ $emploi->gestionnaire->name ?? '—' }}</span>
+                                            </div>
+                                        @endif
+
+                                        {{-- Salle / lien distance --}}
+                                        @if($isRemote && $emploi->lien_distance)
+                                            <div class="tt-card-row">
+                                                <div class="tt-card-icon" style="background:#fef3c7;">
+                                                    <svg fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
+                                                        <path stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                                    </svg>
+                                                </div>
+                                                <a href="{{ $emploi->lien_distance }}" target="_blank"
+                                                   style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
+                                                    Rejoindre la réunion
+                                                </a>
+                                            </div>
+                                        @elseif(!$isRemote)
+                                            <div class="tt-card-row">
+                                                <div class="tt-card-icon">
+                                                    <svg fill="none" stroke="#64748b" viewBox="0 0 24 24">
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"/>
+                                                        <path d="M3 9h18M9 21V9" stroke-width="2"/>
+                                                    </svg>
+                                                </div>
+                                                {{ $emploi->salle->name ?? '—' }}
+                                            </div>
+                                        @endif
+
+                                        {{-- Time --}}
+                                        <div class="tt-card-row" style="color:#94a3b8; font-size:9px;">
+                                            {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
+                                        </div>
+
+                                        {{-- Progress bar --}}
+                                        @if($progTotal > 0 && $emploi->date_debut->isPast())
+                                            @php $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture(); @endphp
+                                            <div class="card-progress">
+                                                <div class="card-progress-track">
+                                                    <div class="card-progress-fill"
+                                                         style="width:{{ $progPct }}%;
+                                                                background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};
+                                                                {{ $isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : '' }}">
+                                                    </div>
+                                                </div>
+                                                <div class="card-progress-meta">
+                                                    <span style="{{ $isOngoing ? 'color:#f59e0b; font-weight:700;' : '' }}">
+                                                        {{ $isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h' }}
+                                                    </span>
+                                                    <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">{{ $progPct }}%</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>{{-- /.tt-card-body --}}
+
+                                {{-- ── Footer: 3 permanent buttons ── --}}
+                                <div class="tt-card-footer">
+                                    {{-- Voir --}}
+                                    <a href="{{ route('seances.show', $emploi) }}"
+                                       class="tt-foot-btn"
+                                       title="Voir le détail">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                                            <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+                                        </svg>
+                                        Voir
+                                    </a>
+
+                                    {{-- Présence (admin / gestionnaire / formateur) --}}
+                                    @if(in_array(Auth::user()->role, ['admin','gestionnaire','formateur']))
+                                        @if(!$isDraft)
+                                            <a href="{{ route('seances.show', $emploi) }}#presence"
+                                               class="tt-foot-btn tt-foot-btn-pres"
+                                               title="Saisir la présence">
+                                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                                </svg>
+                                                Présence
+                                            </a>
+                                        @else
+                                            <span class="tt-foot-btn" style="opacity:.35; cursor:not-allowed;" title="Disponible après publication">
+                                                Présence
+                                            </span>
+                                        @endif
+                                    @else
+                                        {{-- stagiaire: empty spacer keeps grid balanced --}}
+                                        <span></span>
+                                    @endif
+
+                                    {{-- Cours / Classroom --}}
+                                    <a href="{{ route('seances.show', $emploi) }}#classroom"
+                                       class="tt-foot-btn tt-foot-btn-cls"
+                                       title="Ressources du cours">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-width="2" stroke-linecap="round"
+                                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                        </svg>
+                                        Cours
+                                    </a>
+                                </div>{{-- /.tt-card-footer --}}
+
+                            </div>{{-- /.tt-card --}}
                         </td>
 
                     @else
@@ -718,7 +872,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 </div>{{-- .tt-wrap --}}
 
 {{-- ════════════════════════════════════════════════════════════
-     MODALS
+     MODALS (DELETE, LIEN, REMPLACEMENT, REPORT, CREATE/EDIT)
      ════════════════════════════════════════════════════════════ --}}
 
 {{-- ── DELETE ──────────────────────────────────────────────── --}}

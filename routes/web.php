@@ -9,6 +9,10 @@ use App\Http\Controllers\GroupeController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SalleController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\SeanceController;           // ← PATCH : CONTROLLER IMPORT
+use App\Http\Controllers\ReportationController;
+use App\Http\Controllers\StagiaireController;
+use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -67,7 +71,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', fn() => view('admin.dashboard'))
         ->name('admin.dashboard');
 
-    Route::resource('roles', \App\Http\Controllers\RoleController::class);
+    Route::resource('roles', RoleController::class);
 
     Route::prefix('users')->name('users.management.')->group(function () {
         Route::get('/',              [UserManagementController::class, 'index'])      ->name('index');
@@ -120,10 +124,20 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->grou
         ->name('emplois.remplacant');
 });
 
+// ════════════════════════════════════════════════════════════════
+// PATCH: SÉANCE ROUTES (à l'intérieur du middleware auth)
+// ════════════════════════════════════════════════════════════════
+Route::middleware(['auth'])->group(function () {
+    // Séance detail — presence & classroom
+    Route::get('/seances/{emploi}',                             [SeanceController::class, 'show'])->name('seances.show');
+    Route::post('/seances/{emploi}/presence',                   [SeanceController::class, 'savePresence'])->name('seances.presence');
+    Route::post('/seances/{emploi}/ressources',                 [SeanceController::class, 'addRessource'])->name('seances.ressource.store');
+    Route::delete('/seances/{emploi}/ressources/{cours}',       [SeanceController::class, 'deleteRessource'])->name('seances.ressource.destroy');
+});
+
 // ─────────────────────────────────────────────
 // EDU IMPORT
 // ─────────────────────────────────────────────
-// Dans le groupe edu-import, après les routes existantes
 Route::middleware(['auth'])->group(function () {
     Route::get('/edu-import', [EduImportController::class, 'index'])
         ->name('edu-import.index')
@@ -145,7 +159,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('edu-import.manual')
         ->middleware('can:edu-import');
 
-    // ⭐ NOUVELLES ROUTES À AJOUTER ⭐
     Route::get('/edu-import/{edu}/edit', [EduImportController::class, 'edit'])
         ->name('edu-import.edit')
         ->middleware('can:edu-import');
@@ -163,27 +176,27 @@ Route::middleware(['auth'])->group(function () {
 // REPORTATIONS
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
-    Route::post('/reportations', [\App\Http\Controllers\ReportationController::class, 'store'])
+    Route::post('/reportations', [ReportationController::class, 'store'])
         ->name('reportations.store')
         ->middleware('can:reportation-create');
 
-    Route::get('/reportations/mes', [\App\Http\Controllers\ReportationController::class, 'myIndex'])
+    Route::get('/reportations/mes', [ReportationController::class, 'myIndex'])
         ->name('reportations.my')
         ->middleware('can:reportation-create');
 
-    Route::get('/reportations', [\App\Http\Controllers\ReportationController::class, 'index'])
+    Route::get('/reportations', [ReportationController::class, 'index'])
         ->name('reportations.index')
         ->middleware('can:reportation-manage');
 
-    Route::post('/reportations/{reportation}/accept', [\App\Http\Controllers\ReportationController::class, 'accept'])
+    Route::post('/reportations/{reportation}/accept', [ReportationController::class, 'accept'])
         ->name('reportations.accept')
         ->middleware('can:reportation-manage');
 
-    Route::post('/reportations/{reportation}/refuse', [\App\Http\Controllers\ReportationController::class, 'refuse'])
+    Route::post('/reportations/{reportation}/refuse', [ReportationController::class, 'refuse'])
         ->name('reportations.refuse')
         ->middleware('can:reportation-manage');
 
-    Route::post('/reportations/{reportation}/delete-session', [\App\Http\Controllers\ReportationController::class, 'deleteSession'])
+    Route::post('/reportations/{reportation}/delete-session', [ReportationController::class, 'deleteSession'])
         ->name('reportations.delete-session')
         ->middleware('can:reportation-manage');
 });
@@ -243,12 +256,12 @@ Route::middleware(['auth'])->group(function () {
 // STAGIAIRES
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
-    Route::get('/stagiaire', [\App\Http\Controllers\StagiaireController::class, 'index'])
+    Route::get('/stagiaire', [StagiaireController::class, 'index'])
         ->name('stagiaire.index')->middleware('can:stagiaire-list');
-    Route::post('/stagiaire', [\App\Http\Controllers\StagiaireController::class, 'store'])
+    Route::post('/stagiaire', [StagiaireController::class, 'store'])
         ->name('stagiaire.store')->middleware('can:stagiaire-create');
-    Route::put('/stagiaire/{stagiaire}', [\App\Http\Controllers\StagiaireController::class, 'update'])
+    Route::put('/stagiaire/{stagiaire}', [StagiaireController::class, 'update'])
         ->name('stagiaire.update')->middleware('can:stagiaire-edit');
-    Route::delete('/stagiaire/{stagiaire}', [\App\Http\Controllers\StagiaireController::class, 'destroy'])
+    Route::delete('/stagiaire/{stagiaire}', [StagiaireController::class, 'destroy'])
         ->name('stagiaire.destroy')->middleware('can:stagiaire-delete');
 });

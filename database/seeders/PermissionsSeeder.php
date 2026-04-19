@@ -29,6 +29,9 @@ class PermissionsSeeder extends Seeder
             'user-edit',
             'user-delete',
             'stagiaire-list',         // 👥 Voir la liste des stagiaires par filière/groupe
+            'stagiaire-create',   // ← ADD
+            'stagiaire-edit',     // ← ADD
+            'stagiaire-delete',   // ← ADD
 
             // Groupes & Filières
             'groupe-list',
@@ -77,6 +80,9 @@ class PermissionsSeeder extends Seeder
             'groupe-create',
             'groupe-edit',
             'stagiaire-list',
+            'stagiaire-create',  
+            'stagiaire-edit',     
+            'stagiaire-delete',   
             'edu-view',
             'edu-import',
             'reportation-manage',     // ← gérer les demandes de report

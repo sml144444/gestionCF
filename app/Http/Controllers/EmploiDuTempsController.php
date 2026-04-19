@@ -50,18 +50,26 @@ class EmploiDuTempsController extends Controller
         $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
 
         if ($canSeeDraft) {
+            // ── Admin / Gestionnaire : see all groups ──
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
 
-            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
+            $emplois = EmploiDuTemps::with([
+                    'module.remplacant',
+                    'groupe.filiere',
+                    'salle',
+                    'gestionnaire',
+                    'remplacant',
+                ])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->whereIn('statut', ['actif', 'brouillon'])
                 ->whereIn('id_groupe', $groupes->pluck('id'))
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
+            // ── Stagiaire : own group only, with visibility window ──
             $joursAvance   = 2;
             $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
             $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
@@ -78,7 +86,13 @@ class EmploiDuTempsController extends Controller
                     ->where('id', $user->id_groupe)
                     ->get();
             } else {
-                $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
+                $emplois = EmploiDuTemps::with([
+                        'module.remplacant',
+                        'groupe.filiere',
+                        'salle',
+                        'gestionnaire',
+                        'remplacant',
+                    ])
                     ->whereBetween('date_debut', [$weekStart, $weekEnd])
                     ->where('statut', 'actif')
                     ->where('id_groupe', $user->id_groupe)
@@ -91,10 +105,30 @@ class EmploiDuTempsController extends Controller
             }
 
         } else {
-            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
+            // ── Formateur : sessions where they are original, session replacement, or module replacement ──
+            $emplois = EmploiDuTemps::with([
+                    'module.remplacant',
+                    'groupe.filiere',
+                    'salle',
+                    'gestionnaire',
+                    'remplacant',
+                ])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
-                ->where('id_user', $user->id)
+                ->where(function ($q) use ($user) {
+                    // 1. Original assigned formateur
+                    $q->where('id_user', $user->id)
+                    // 2. Session-level replacement
+                      ->orWhere('id_user_remplacant', $user->id)
+                    // 3. Module-level replacement (future sessions, no session replacement set)
+                      ->orWhere(function ($q2) use ($user) {
+                          $q2->whereNull('id_user_remplacant')
+                             ->where('date_debut', '>', now())
+                             ->whereHas('module', function ($mq) use ($user) {
+                                 $mq->where('id_user_remplacant', $user->id);
+                             });
+                      });
+                })
                 ->get();
 
             $groupeIds = $emplois->pluck('id_groupe')->unique();
@@ -405,7 +439,6 @@ class EmploiDuTempsController extends Controller
 
         $groupe = Groupe::find($groupeId);
 
-        // ── Formateur filtering ────────────────────────────────
         if ($moduleId) {
             $module       = Module::find($moduleId);
             $formateurIds = $module && $module->id_user
@@ -445,7 +478,6 @@ class EmploiDuTempsController extends Controller
                 'available' => ! $busySalleIds->contains($s->id),
             ]);
 
-        // ── Modules filtered by groupe filière + année ─────────
         $modules = $groupe
             ? Module::where('id_filiere', $groupe->id_filiere)
                 ->where(function ($q) use ($groupe) {
@@ -519,20 +551,30 @@ class EmploiDuTempsController extends Controller
             $dayDates[$i + 1] = $weekStart->copy()->addDays($i);
         }
 
+        $withRelations = [
+            'module.remplacant',
+            'groupe.filiere',
+            'salle',
+            'gestionnaire',
+            'remplacant',
+        ];
+
         if ($user->hasPermissionTo('emploi-view-all-groups')) {
+            // ── Admin / Gestionnaire ──
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
 
-            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
+            $emplois = EmploiDuTemps::with($withRelations)
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->whereIn('id_groupe', $groupes->pluck('id'))
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
+            // ── Stagiaire ──
+            $emplois = EmploiDuTemps::with($withRelations)
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->where('id_groupe', $user->id_groupe)
@@ -544,10 +586,24 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } else {
-            $emplois = EmploiDuTemps::with(['module.remplacant', 'groupe.filiere', 'salle', 'gestionnaire', 'remplacant'])
+            // ── Formateur : original + session replacement + module replacement ──
+            $emplois = EmploiDuTemps::with($withRelations)
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
-                ->where('id_user', $user->id)
+                ->where(function ($q) use ($user) {
+                    // 1. Original assigned formateur
+                    $q->where('id_user', $user->id)
+                    // 2. Session-level replacement
+                      ->orWhere('id_user_remplacant', $user->id)
+                    // 3. Module-level replacement (future sessions, no session replacement set)
+                      ->orWhere(function ($q2) use ($user) {
+                          $q2->whereNull('id_user_remplacant')
+                             ->where('date_debut', '>', now())
+                             ->whereHas('module', function ($mq) use ($user) {
+                                 $mq->where('id_user_remplacant', $user->id);
+                             });
+                      });
+                })
                 ->get();
 
             $groupeIds = $emplois->pluck('id_groupe')->unique();
@@ -562,9 +618,9 @@ class EmploiDuTempsController extends Controller
         $grid             = $this->buildGrid($groupes, $emplois);
 
         $yearLabel = match($year) {
-            1 => '1ère Année',
-            2 => '2ème Année',
-            3 => '3ème Année',
+            1       => '1ère Année',
+            2       => '2ème Année',
+            3       => '3ème Année',
             default => 'Année ' . $year,
         };
         $filename = 'emploi_semaine_' . $weekStart->format('Y-m-d') . '_annee' . $year . '.pdf';

@@ -147,7 +147,6 @@ class StagiaireController extends Controller
             'date_naissance' => ['nullable', 'date'],
             'id_filiere'     => ['required', 'exists:filieres,id'],
             'id_groupe'      => ['nullable', 'exists:groupes,id'],
-            'id_option'      => ['nullable', 'exists:options,id'],
         ], [
             'name.required'       => 'Le nom est obligatoire.',
             'email.required'      => "L'email est obligatoire.",
@@ -187,7 +186,7 @@ class StagiaireController extends Controller
             'date_naissance' => ['nullable', 'date'],
             'id_filiere'     => ['required', 'exists:filieres,id'],
             'id_groupe'      => ['nullable', 'exists:groupes,id'],
-            'id_option'      => ['nullable', 'exists:options,id'],
+            // id_option intentionally removed
         ], [
             'name.required'       => 'Le nom est obligatoire.',
             'email.required'      => "L'email est obligatoire.",
@@ -201,6 +200,9 @@ class StagiaireController extends Controller
         } else {
             $validated['password'] = Hash::make($validated['password']);
         }
+
+        // Ensure empty string is stored as NULL
+        $validated['id_groupe'] = $validated['id_groupe'] ?: null;
 
         $stagiaire->update($validated);
 

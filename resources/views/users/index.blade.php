@@ -148,7 +148,7 @@
                 <div>
                     <div style="font-size:13px; font-weight:700; color:#0f172a;">{{ $user->name }}</div>
                     <div style="font-size:11px; color:#64748b; margin-top:1px;">{{ $user->email }}</div>
-                    @if($user->cin)
+                    @if($user->cin && $user->role !== 'stagiaire')
                     <div style="font-size:10px; color:#94a3b8;">{{ $user->cin }}</div>
                     @endif
                 </div>

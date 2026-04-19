@@ -103,10 +103,12 @@
                 @include('users._field',['label'=>'Adresse e-mail','name'=>'email','type'=>'email',
                     'value'=>old('email',$user->email),'required'=>true])
             </div>
+            @if($user->role !== 'stagiaire')
             <div>
                 @include('users._field',['label'=>'CIN','name'=>'cin','type'=>'text',
                     'value'=>old('cin',$user->cin)])
             </div>
+            @endif
             <div>
                 @include('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'text',
                     'value'=>old('phone',$user->phone)])

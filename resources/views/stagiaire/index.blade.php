@@ -21,21 +21,13 @@
 .fil-card {
     background:white; border-radius:16px; border:1px solid #e2e8f0;
     overflow:hidden; cursor:pointer; text-decoration:none;
-    transition:box-shadow .2s, transform .15s;
-    display:block;
+    transition:box-shadow .2s, transform .15s; display:block;
 }
-.fil-card:hover {
-    box-shadow:0 8px 28px {{ $shadow }};
-    transform:translateY(-2px);
-    border-color:{{ $accent }}40;
-}
-.fil-card.active {
-    border-color:{{ $accent }};
-    box-shadow:0 6px 24px {{ $shadow }};
-}
+.fil-card:hover { box-shadow:0 8px 28px {{ $shadow }}; transform:translateY(-2px); border-color:{{ $accent }}40; }
+.fil-card.active { border-color:{{ $accent }}; box-shadow:0 6px 24px {{ $shadow }}; }
 .fil-card-bar { height:5px; background:{{ $accent }}; }
 
-/* ── Filter bar ── */
+/* ── Inputs ── */
 .sg-input {
     height:40px; padding:0 12px; border-radius:10px;
     border:1.5px solid #e2e8f0; background:#f8fafc;
@@ -47,13 +39,18 @@
 /* ── Table ── */
 .sg-table { width:100%; border-collapse:collapse; }
 .sg-table thead tr { background:{{ $light }}; border-bottom:2px solid {{ $accent }}30; }
-.sg-table th { padding:10px 14px; font-size:9px; font-weight:800; color:{{ $text }}; text-transform:uppercase; letter-spacing:1.5px; text-align:left; white-space:nowrap; }
+.sg-table th { padding:11px 16px; font-size:9px; font-weight:800; color:{{ $text }}; text-transform:uppercase; letter-spacing:1.5px; text-align:left; white-space:nowrap; }
 .sg-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background .12s; }
 .sg-table tbody tr:hover { background:{{ $light }}40; }
-.sg-table td { padding:11px 14px; font-size:12px; color:#334155; }
+.sg-table td { padding:12px 16px; font-size:13px; color:#334155; vertical-align:middle; }
 
-.sg-badge { display:inline-block; font-size:10px; font-weight:700; padding:3px 9px; border-radius:8px; }
-.sg-avatar { width:34px; height:34px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; background:{{ $light }}; color:{{ $text }}; border:1px solid {{ $border }}; }
+.sg-badge { display:inline-block; font-size:10px; font-weight:700; padding:3px 10px; border-radius:8px; }
+.sg-avatar {
+    width:36px; height:36px; border-radius:10px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800;
+    background:{{ $light }}; color:{{ $text }}; border:1px solid {{ $border }};
+}
 
 /* ── Année pills ── */
 .annee-pill { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:99px; font-size:11px; font-weight:700; border:1.5px solid #e2e8f0; background:white; color:#64748b; cursor:pointer; text-decoration:none; transition:all .15s; white-space:nowrap; }
@@ -61,22 +58,30 @@
 .annee-pill.active { border-color:#8b5cf6; color:white; background:#7c3aed; }
 
 /* ── Occupancy bar ── */
-.occ-bar { height:4px; background:#e2e8f0; border-radius:99px; overflow:hidden; margin-top:6px; }
+.occ-bar  { height:4px; background:#e2e8f0; border-radius:99px; overflow:hidden; margin-top:6px; }
 .occ-fill { height:100%; border-radius:99px; }
 
 /* ── Group chips ── */
 .grp-chip { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:7px; background:{{ $light }}; color:{{ $text }}; border:1px solid {{ $accent }}20; margin:2px; }
 
-/* ── Action buttons ── */
-.sg-btn-icon {
-    width:30px; height:30px; border-radius:8px; border:none; cursor:pointer;
-    display:inline-flex; align-items:center; justify-content:center;
-    font-size:13px; transition:all .15s;
+/* ── CRUD Action buttons ── */
+.sg-btn-edit {
+    display:inline-flex; align-items:center; gap:6px;
+    height:34px; padding:0 14px; border-radius:9px; border:none;
+    background:#eff6ff; color:#2563eb;
+    font-size:12px; font-weight:700; cursor:pointer;
+    transition:all .15s; white-space:nowrap;
 }
-.sg-btn-edit   { background:#eff6ff; color:#2563eb; }
-.sg-btn-edit:hover   { background:#2563eb; color:white; }
-.sg-btn-delete { background:#fff1f2; color:#e11d48; }
-.sg-btn-delete:hover { background:#e11d48; color:white; }
+.sg-btn-edit:hover { background:#2563eb; color:white; box-shadow:0 4px 12px rgba(37,99,235,.3); }
+
+.sg-btn-delete {
+    display:inline-flex; align-items:center; gap:6px;
+    height:34px; padding:0 14px; border-radius:9px; border:none;
+    background:#fff1f2; color:#e11d48;
+    font-size:12px; font-weight:700; cursor:pointer;
+    transition:all .15s; white-space:nowrap;
+}
+.sg-btn-delete:hover { background:#e11d48; color:white; box-shadow:0 4px 12px rgba(225,29,72,.3); }
 
 /* ── Modals ── */
 .sg-overlay {
@@ -89,16 +94,10 @@
     width:100%; max-width:540px; max-height:90vh; overflow-y:auto;
     box-shadow:0 24px 72px rgba(0,0,0,.22); position:relative;
 }
-.sg-modal-title {
-    font-size:16px; font-weight:800; color:#0f172a;
-    margin:0 0 22px; padding-right:24px;
-}
-.sg-modal label {
-    display:block; font-size:9px; font-weight:800; color:#94a3b8;
-    text-transform:uppercase; letter-spacing:1.5px; margin-bottom:5px;
-}
-.sg-modal .sg-input  { width:100%; }
-.sg-modal .field     { margin-bottom:14px; }
+.sg-modal-title { font-size:16px; font-weight:800; color:#0f172a; margin:0 0 22px; padding-right:24px; }
+.sg-modal label { display:block; font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:5px; }
+.sg-modal .sg-input { width:100%; }
+.sg-modal .field { margin-bottom:14px; }
 .sg-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .sg-modal .err { color:#e11d48; font-size:10px; margin-top:4px; display:block; }
 .sg-modal-close {
@@ -108,18 +107,19 @@
 }
 .sg-modal-close:hover { background:#e2e8f0; color:#0f172a; }
 .sg-modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:22px; padding-top:16px; border-top:1px solid #f1f5f9; }
+
 .sg-btn-primary {
     height:40px; padding:0 20px; border-radius:10px; border:none;
     background:{{ $accent }}; color:white; font-size:13px; font-weight:700;
     cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:opacity .15s;
 }
 .sg-btn-primary:hover { opacity:.88; }
-.sg-btn-danger {
+.sg-btn-danger-modal {
     height:40px; padding:0 20px; border-radius:10px; border:none;
     background:#e11d48; color:white; font-size:13px; font-weight:700;
     cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:opacity .15s;
 }
-.sg-btn-danger:hover { opacity:.88; }
+.sg-btn-danger-modal:hover { opacity:.88; }
 .sg-btn-ghost {
     height:40px; padding:0 14px; border-radius:10px;
     border:1.5px solid #e2e8f0; background:white; color:#64748b;
@@ -154,7 +154,7 @@
 
 
 {{-- ══════════════════════════════════════════════
-     MODE A — NO FILIÈRE SELECTED: Filière cards
+     MODE A — NO FILIÈRE SELECTED
 ══════════════════════════════════════════════ --}}
 @if(!$filiereId)
 
@@ -276,7 +276,6 @@
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        {{-- Stats --}}
         <div style="padding:8px 14px;border-radius:12px;background:{{ $light }};border:1px solid {{ $border }};text-align:center;">
             <div style="font-size:20px;font-weight:800;color:{{ $accent }};">{{ $stagiaires->total() }}</div>
             <div style="font-size:9px;font-weight:700;color:{{ $text }};text-transform:uppercase;letter-spacing:.5px;">Résultats</div>
@@ -289,7 +288,6 @@
         </div>
         @endforeach
 
-        {{-- Create button --}}
         @can('stagiaire-create')
         <button onclick="openCreateModal()" class="sg-btn-primary" style="height:42px;">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -375,18 +373,6 @@
     </div>
     @endif
 
-    @if($options->count())
-    <div style="flex:1;min-width:130px;">
-        <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Option</label>
-        <select name="option_id" class="sg-input" style="width:100%;appearance:none;cursor:pointer;">
-            <option value="">Toutes</option>
-            @foreach($options as $opt)
-            <option value="{{ $opt->id }}" {{ $optionId == $opt->id ? 'selected' : '' }}>{{ $opt->titre }}</option>
-            @endforeach
-        </select>
-    </div>
-    @endif
-
     <div style="display:flex;gap:8px;align-items:flex-end;">
         <button type="submit" style="height:40px;padding:0 16px;border-radius:10px;border:none;background:{{ $accent }};color:white;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -414,17 +400,18 @@
         <table class="sg-table">
             <thead>
                 <tr>
-                    <th style="padding-left:18px;">Stagiaire</th>
+                    <th style="padding-left:20px;width:48px;">#</th>
+                    <th>Stagiaire</th>
                     <th>Groupe</th>
                     <th>Année</th>
                     @if($hasAnneeScolaireColumn) <th>Saison</th> @endif
-                    <th>Option</th>
-                    <th>Contact</th>
-                    @canany(['stagiaire-edit','stagiaire-delete']) <th style="text-align:right;padding-right:18px;">Actions</th> @endcanany
+                    @canany(['stagiaire-edit','stagiaire-delete'])
+                    <th style="text-align:center;">Actions</th>
+                    @endcanany
                 </tr>
             </thead>
             <tbody>
-                @foreach($stagiaires as $stagiaire)
+                @foreach($stagiaires as $i => $stagiaire)
                 @php
                     $initials   = strtoupper(substr($stagiaire->name,0,1))
                                 . strtoupper(substr(explode(' ',$stagiaire->name.' ')[1]??'',0,1));
@@ -432,15 +419,25 @@
                     $groupeAS   = $hasAnneeScolaireColumn ? ($stagiaire->groupe?->annee_scolaire ?? null) : null;
                 @endphp
                 <tr>
+
+                    {{-- N° --}}
+                    <td style="padding-left:20px;color:#94a3b8;font-size:11px;font-weight:700;">
+                        {{ $stagiaires->firstItem() + $i }}
+                    </td>
+
                     {{-- Identity --}}
-                    <td style="padding-left:18px;">
+                    <td>
                         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
                             <div class="sg-avatar">{{ $initials }}</div>
                             <div style="min-width:0;">
-                                <div style="font-size:13px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $stagiaire->name }}</div>
-                                <div style="font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $stagiaire->email }}</div>
+                                <div style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    {{ $stagiaire->name }}
+                                </div>
+                                <div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                    {{ $stagiaire->email }}
+                                </div>
                                 @if($stagiaire->cin)
-                                <div style="font-size:10px;color:#94a3b8;">{{ $stagiaire->cin }}</div>
+                                <div style="font-size:10px;color:#94a3b8;">CIN : {{ $stagiaire->cin }}</div>
                                 @endif
                             </div>
                         </div>
@@ -449,7 +446,9 @@
                     {{-- Groupe --}}
                     <td>
                         @if($stagiaire->groupe)
-                        <span class="sg-badge" style="background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;">{{ $stagiaire->groupe->name ?? 'G'.$stagiaire->groupe->id }}</span>
+                        <span class="sg-badge" style="background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;">
+                            {{ $stagiaire->groupe->name ?? 'G'.$stagiaire->groupe->id }}
+                        </span>
                         @else
                         <span style="font-size:11px;color:#94a3b8;font-style:italic;">Non assigné</span>
                         @endif
@@ -457,7 +456,11 @@
 
                     {{-- Année --}}
                     <td>
-                        <span class="sg-badge" style="{{ $stagiaire->groupe?->annee == 2 ? 'background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;' : 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;' }}">{{ $anneeLabel }}</span>
+                        <span class="sg-badge" style="{{ $stagiaire->groupe?->annee == 2
+                            ? 'background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;'
+                            : 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;' }}">
+                            {{ $anneeLabel }}
+                        </span>
                     </td>
 
                     {{-- Année scolaire --}}
@@ -471,37 +474,14 @@
                     </td>
                     @endif
 
-                    {{-- Option --}}
-                    <td>
-                        @if($stagiaire->option)
-                        <span class="sg-badge" style="background:#fdf4ff;color:#6b21a8;border:1px solid #e9d5ff;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;">{{ $stagiaire->option->titre }}</span>
-                        @else
-                        <span style="font-size:11px;color:#94a3b8;">—</span>
-                        @endif
-                    </td>
-
-                    {{-- Contact --}}
-                    <td>
-                        <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                            @if($stagiaire->phone)
-                            <span style="font-size:10px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:3px 7px;border-radius:6px;">📞 {{ $stagiaire->phone }}</span>
-                            @endif
-                            @if($stagiaire->date_naissance)
-                            <span style="font-size:10px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;padding:3px 7px;border-radius:6px;">🎂 {{ $stagiaire->date_naissance->format('d/m/Y') }}</span>
-                            @endif
-                            @if(!$stagiaire->phone && !$stagiaire->date_naissance)
-                            <span style="font-size:11px;color:#94a3b8;">—</span>
-                            @endif
-                        </div>
-                    </td>
-
-                    {{-- Actions --}}
+                    {{-- ── ACTIONS ── --}}
                     @canany(['stagiaire-edit','stagiaire-delete'])
-                    <td style="text-align:right;padding-right:18px;">
-                        <div style="display:flex;gap:5px;justify-content:flex-end;">
+                    <td>
+                        <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+
                             @can('stagiaire-edit')
-                            <button type="button" class="sg-btn-icon sg-btn-edit"
-                                    title="Modifier"
+                            <button type="button"
+                                    class="sg-btn-edit"
                                     onclick="openEditModal(this)"
                                     data-id="{{ $stagiaire->id }}"
                                     data-name="{{ e($stagiaire->name) }}"
@@ -509,21 +489,31 @@
                                     data-cin="{{ $stagiaire->cin ?? '' }}"
                                     data-phone="{{ $stagiaire->phone ?? '' }}"
                                     data-dob="{{ $stagiaire->date_naissance?->format('Y-m-d') ?? '' }}"
-                                    data-groupe="{{ $stagiaire->id_groupe ?? '' }}"
-                                    data-option="{{ $stagiaire->id_option ?? '' }}">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    data-groupe="{{ $stagiaire->id_groupe ?? '' }}">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Modifier
                             </button>
                             @endcan
+
                             @can('stagiaire-delete')
-                            <button type="button" class="sg-btn-icon sg-btn-delete"
-                                    title="Supprimer"
+                            <button type="button"
+                                    class="sg-btn-delete"
                                     onclick="openDeleteModal({{ $stagiaire->id }}, '{{ addslashes($stagiaire->name) }}')">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Supprimer
                             </button>
                             @endcan
+
                         </div>
                     </td>
                     @endcanany
+
                 </tr>
                 @endforeach
             </tbody>
@@ -555,13 +545,11 @@
                 Nouveau stagiaire
             </span>
         </h2>
-
         <form method="POST" action="{{ route('stagiaire.store') }}">
             @csrf
             <input type="hidden" name="_modal" value="create">
             <input type="hidden" name="id_filiere" value="{{ $filiereId }}">
 
-            {{-- Row 1: Nom + Email --}}
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Nom complet <span style="color:#e11d48;">*</span></label>
@@ -575,7 +563,6 @@
                 </div>
             </div>
 
-            {{-- Row 2: Password + CIN --}}
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Mot de passe <span style="color:#e11d48;">*</span></label>
@@ -589,7 +576,6 @@
                 </div>
             </div>
 
-            {{-- Row 3: Téléphone + Date naissance --}}
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Téléphone</label>
@@ -603,30 +589,17 @@
                 </div>
             </div>
 
-            {{-- Row 4: Groupe + Option --}}
-            <div class="sg-grid-2">
-                <div class="field">
-                    <label>Groupe</label>
-                    <select name="id_groupe" class="sg-input" style="appearance:none;cursor:pointer;">
-                        <option value="">— Aucun —</option>
-                        @foreach($allGroupes as $g)
-                        <option value="{{ $g->id }}" {{ old('id_groupe') == $g->id ? 'selected' : '' }}>
-                            {{ $g->name }} (An.{{ $g->annee }})
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
-                </div>
-                <div class="field">
-                    <label>Option</label>
-                    <select name="id_option" class="sg-input" style="appearance:none;cursor:pointer;">
-                        <option value="">— Aucune —</option>
-                        @foreach($options as $opt)
-                        <option value="{{ $opt->id }}" {{ old('id_option') == $opt->id ? 'selected' : '' }}>{{ $opt->titre }}</option>
-                        @endforeach
-                    </select>
-                    @error('id_option') <span class="err">{{ $message }}</span> @enderror
-                </div>
+            <div class="field">
+                <label>Groupe</label>
+                <select name="id_groupe" class="sg-input" style="appearance:none;cursor:pointer;">
+                    <option value="">— Aucun —</option>
+                    @foreach($allGroupes as $g)
+                    <option value="{{ $g->id }}" {{ old('id_groupe') == $g->id ? 'selected' : '' }}>
+                        {{ $g->name }} (An.{{ $g->annee }})
+                    </option>
+                    @endforeach
+                </select>
+                @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
             </div>
 
             <div class="sg-modal-footer">
@@ -652,7 +625,6 @@
                 Modifier le stagiaire
             </span>
         </h2>
-
         <form id="form-edit" method="POST" action="#">
             @csrf
             @method('PUT')
@@ -663,28 +635,25 @@
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Nom complet <span style="color:#e11d48;">*</span></label>
-                    <input type="text" name="name" id="edit-name" class="sg-input"
-                           value="{{ old('name', '') }}" placeholder="Nom complet" required>
+                    <input type="text" name="name" id="edit-name" class="sg-input" value="{{ old('name','') }}" placeholder="Nom complet" required>
                     @error('name') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
                     <label>Email <span style="color:#e11d48;">*</span></label>
-                    <input type="email" name="email" id="edit-email" class="sg-input"
-                           value="{{ old('email', '') }}" placeholder="email@exemple.com" required>
+                    <input type="email" name="email" id="edit-email" class="sg-input" value="{{ old('email','') }}" placeholder="email@exemple.com" required>
                     @error('email') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
 
             <div class="sg-grid-2">
                 <div class="field">
-                    <label>Nouveau mot de passe <span style="color:#94a3b8;font-weight:500;text-transform:none;letter-spacing:0;">(laisser vide = inchangé)</span></label>
+                    <label>Nouveau mot de passe <span style="color:#94a3b8;font-weight:500;text-transform:none;letter-spacing:0;">(vide = inchangé)</span></label>
                     <input type="password" name="password" class="sg-input" placeholder="Nouveau mot de passe…">
                     @error('password') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
                     <label>CIN</label>
-                    <input type="text" name="cin" id="edit-cin" class="sg-input"
-                           value="{{ old('cin', '') }}" placeholder="BE123456">
+                    <input type="text" name="cin" id="edit-cin" class="sg-input" value="{{ old('cin','') }}" placeholder="BE123456">
                     @error('cin') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -692,46 +661,33 @@
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Téléphone</label>
-                    <input type="text" name="phone" id="edit-phone" class="sg-input"
-                           value="{{ old('phone', '') }}" placeholder="06 00 00 00 00">
+                    <input type="text" name="phone" id="edit-phone" class="sg-input" value="{{ old('phone','') }}" placeholder="06 00 00 00 00">
                     @error('phone') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
                     <label>Date de naissance</label>
-                    <input type="date" name="date_naissance" id="edit-dob" class="sg-input"
-                           value="{{ old('date_naissance', '') }}">
+                    <input type="date" name="date_naissance" id="edit-dob" class="sg-input" value="{{ old('date_naissance','') }}">
                     @error('date_naissance') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
 
-            <div class="sg-grid-2">
-                <div class="field">
-                    <label>Groupe</label>
-                    <select name="id_groupe" id="edit-groupe" class="sg-input" style="appearance:none;cursor:pointer;">
-                        <option value="">— Aucun —</option>
-                        @foreach($allGroupes as $g)
-                        <option value="{{ $g->id }}">{{ $g->name }} (An.{{ $g->annee }})</option>
-                        @endforeach
-                    </select>
-                    @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
-                </div>
-                <div class="field">
-                    <label>Option</label>
-                    <select name="id_option" id="edit-option" class="sg-input" style="appearance:none;cursor:pointer;">
-                        <option value="">— Aucune —</option>
-                        @foreach($options as $opt)
-                        <option value="{{ $opt->id }}">{{ $opt->titre }}</option>
-                        @endforeach
-                    </select>
-                    @error('id_option') <span class="err">{{ $message }}</span> @enderror
-                </div>
+            {{-- Groupe only — Option removed --}}
+            <div class="field">
+                <label>Groupe</label>
+                <select name="id_groupe" id="edit-groupe" class="sg-input" style="appearance:none;cursor:pointer;">
+                    <option value="">— Aucun —</option>
+                    @foreach($allGroupes as $g)
+                    <option value="{{ $g->id }}">{{ $g->name }} (An.{{ $g->annee }})</option>
+                    @endforeach
+                </select>
+                @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
             </div>
 
             <div class="sg-modal-footer">
                 <button type="button" class="sg-btn-ghost" onclick="closeModal('modal-edit')">Annuler</button>
                 <button type="submit" class="sg-btn-primary">
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                    Enregistrer les modifications
+                    Enregistrer
                 </button>
             </div>
         </form>
@@ -744,24 +700,25 @@
 <div id="modal-delete" class="sg-overlay" style="display:none;" onclick="if(event.target===this)closeModal('modal-delete')">
     <div class="sg-modal" style="max-width:420px;">
         <button type="button" class="sg-modal-close" onclick="closeModal('modal-delete')">✕</button>
-
         <div style="text-align:center;padding:12px 0 20px;">
             <div style="width:56px;height:56px;border-radius:16px;background:#fff1f2;border:1px solid #fecdd3;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px;">🗑️</div>
             <h2 style="font-size:16px;font-weight:800;color:#0f172a;margin:0 0 8px;">Supprimer le stagiaire ?</h2>
             <p style="font-size:13px;color:#64748b;margin:0;">
                 Vous allez supprimer définitivement
                 <strong id="delete-name" style="color:#0f172a;"></strong>.
-                Cette action est irréversible.
+                <br>Cette action est <strong style="color:#e11d48;">irréversible</strong>.
             </p>
         </div>
-
         <form id="form-delete" method="POST" action="#">
             @csrf
             @method('DELETE')
             <div class="sg-modal-footer" style="justify-content:center;">
                 <button type="button" class="sg-btn-ghost" onclick="closeModal('modal-delete')">Annuler</button>
-                <button type="submit" class="sg-btn-danger">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <button type="submit" class="sg-btn-danger-modal">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
                     Oui, supprimer
                 </button>
             </div>
@@ -783,26 +740,18 @@ function openCreateModal() {
 }
 
 function openEditModal(btn) {
-    var id      = btn.dataset.id;
-    var form    = document.getElementById('form-edit');
+    var id   = btn.dataset.id;
+    var form = document.getElementById('form-edit');
     if (!form) return;
 
-    // Set form action
     form.action = '/stagiaire/' + id;
-
-    // Populate fields
-    document.getElementById('edit-sid').value    = id;
-    document.getElementById('edit-name').value   = btn.dataset.name;
-    document.getElementById('edit-email').value  = btn.dataset.email;
-    document.getElementById('edit-cin').value    = btn.dataset.cin;
-    document.getElementById('edit-phone').value  = btn.dataset.phone;
-    document.getElementById('edit-dob').value    = btn.dataset.dob;
-
-    // Set selects
+    document.getElementById('edit-sid').value   = id;
+    document.getElementById('edit-name').value  = btn.dataset.name;
+    document.getElementById('edit-email').value = btn.dataset.email;
+    document.getElementById('edit-cin').value   = btn.dataset.cin;
+    document.getElementById('edit-phone').value = btn.dataset.phone;
+    document.getElementById('edit-dob').value   = btn.dataset.dob;
     setSelect('edit-groupe', btn.dataset.groupe);
-    setSelect('edit-option', btn.dataset.option);
-
-    // Clear password field
     form.querySelector('[name="password"]').value = '';
 
     document.getElementById('modal-edit').style.display = 'flex';
@@ -825,22 +774,15 @@ function setSelect(selectId, value) {
     var sel = document.getElementById(selectId);
     if (!sel) return;
     for (var i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value == value) {
-            sel.selectedIndex = i;
-            return;
-        }
+        if (sel.options[i].value == value) { sel.selectedIndex = i; return; }
     }
-    sel.selectedIndex = 0; // fallback to "— Aucun —"
+    sel.selectedIndex = 0;
 }
 
-// Close modals on Escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        ['modal-create','modal-edit','modal-delete'].forEach(closeModal);
-    }
+    if (e.key === 'Escape') ['modal-create','modal-edit','modal-delete'].forEach(closeModal);
 });
 
-// Auto re-open modal after a validation error
 @if(old('_modal') === 'create')
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modal-create')?.style.setProperty('display','flex');
