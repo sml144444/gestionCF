@@ -30,7 +30,13 @@ class EmploiDuTempsController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $year = (int) $request->get('year', 1);
+
+        // ✅ Default year to the stagiaire's own year, not always 1
+        $defaultYear = 1;
+        if ($user->role === 'stagiaire' && $user->id_groupe) {
+            $defaultYear = $user->groupe?->annee ?? 1;
+        }
+        $year = (int) $request->get('year', $defaultYear);
 
         if (! $user->hasPermissionTo('emploi-view')) {
             abort(403, 'Accès refusé à l\'emploi du temps.');

@@ -179,6 +179,7 @@
         $occClr = $occ >= 90 ? '#dc2626' : ($occ >= 70 ? '#f59e0b' : '#16a34a');
         $grps1  = $grps->where('annee', 1);
         $grps2  = $grps->where('annee', 2);
+        $grps3  = $grps->where('annee', 3);
     @endphp
     <a href="{{ route('stagiaire.index', ['filiere_id' => $filiere->id]) }}" class="fil-card">
         <div class="fil-card-bar"></div>
@@ -210,8 +211,16 @@
                 @endif
                 @if($grps2->isNotEmpty())
                 <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">2ème année</div>
-                <div style="display:flex;flex-wrap:wrap;">
+                <div style="display:flex;flex-wrap:wrap;margin-bottom:8px;">
                     @foreach($grps2 as $g)
+                    <span class="grp-chip">{{ $g->name }}<span style="font-size:8px;opacity:.7;">{{ $g->stagiaires_count }}</span></span>
+                    @endforeach
+                </div>
+                @endif
+                @if($grps3->isNotEmpty())
+                <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">3ème année</div>
+                <div style="display:flex;flex-wrap:wrap;">
+                    @foreach($grps3 as $g)
                     <span class="grp-chip">{{ $g->name }}<span style="font-size:8px;opacity:.7;">{{ $g->stagiaires_count }}</span></span>
                     @endforeach
                 </div>
@@ -345,7 +354,8 @@
         <select name="annee" class="sg-input" style="width:100%;appearance:none;cursor:pointer;">
             <option value="">Toutes</option>
             <option value="1" {{ $annee == 1 ? 'selected' : '' }}>1ère année</option>
-            <option value="2" {{ $annee == 2 ? 'selected' : '' }}>2ème / 2.5 ans</option>
+            <option value="2" {{ $annee == 2 ? 'selected' : '' }}>2ème année</option>
+            <option value="3" {{ $annee == 3 ? 'selected' : '' }}>3ème année</option>
         </select>
     </div>
 
@@ -415,11 +425,26 @@
                 @php
                     $initials   = strtoupper(substr($stagiaire->name,0,1))
                                 . strtoupper(substr(explode(' ',$stagiaire->name.' ')[1]??'',0,1));
-                    $anneeLabel = ($stagiaire->groupe?->annee == 2) ? '2ème' : '1ère';
+                    
+                    // Gestion des 3 années
+                    $anneeValue = $stagiaire->groupe?->annee;
+                    $anneeLabel = match($anneeValue) {
+                        1 => '1ère année',
+                        2 => '2ème année',
+                        3 => '3ème année',
+                        default => 'Non assigné'
+                    };
+                    
+                    $anneeStyle = match($anneeValue) {
+                        1 => 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;',
+                        2 => 'background:#fdf4ff;color:#6b21a8;border:1px solid #e9d5ff;',
+                        3 => 'background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;',
+                        default => 'background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;'
+                    };
+                    
                     $groupeAS   = $hasAnneeScolaireColumn ? ($stagiaire->groupe?->annee_scolaire ?? null) : null;
                 @endphp
                 <tr>
-
                     {{-- N° --}}
                     <td style="padding-left:20px;color:#94a3b8;font-size:11px;font-weight:700;">
                         {{ $stagiaires->firstItem() + $i }}
@@ -456,9 +481,7 @@
 
                     {{-- Année --}}
                     <td>
-                        <span class="sg-badge" style="{{ $stagiaire->groupe?->annee == 2
-                            ? 'background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;'
-                            : 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;' }}">
+                        <span class="sg-badge" style="{{ $anneeStyle }}">
                             {{ $anneeLabel }}
                         </span>
                     </td>
@@ -594,9 +617,13 @@
                 <select name="id_groupe" class="sg-input" style="appearance:none;cursor:pointer;">
                     <option value="">— Aucun —</option>
                     @foreach($allGroupes as $g)
-                    <option value="{{ $g->id }}" {{ old('id_groupe') == $g->id ? 'selected' : '' }}>
-                        {{ $g->name }} (An.{{ $g->annee }})
-                    </option>
+                        @php $full = $g->stagiaires_count >= $g->nbr_limit; @endphp
+                        <option value="{{ $g->id }}"
+                                {{ old('id_groupe') == $g->id ? 'selected' : '' }}
+                                {{ $full ? 'disabled' : '' }}>
+                            {{ $g->name }} (An.{{ $g->annee }}) — {{ $g->stagiaires_count }}/{{ $g->nbr_limit }}
+                            {{ $full ? '⛔ COMPLET' : ($g->nbr_limit - $g->stagiaires_count).' libre(s)' }}
+                        </option>
                     @endforeach
                 </select>
                 @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
@@ -671,13 +698,21 @@
                 </div>
             </div>
 
-            {{-- Groupe only — Option removed --}}
             <div class="field">
                 <label>Groupe</label>
                 <select name="id_groupe" id="edit-groupe" class="sg-input" style="appearance:none;cursor:pointer;">
                     <option value="">— Aucun —</option>
                     @foreach($allGroupes as $g)
-                    <option value="{{ $g->id }}">{{ $g->name }} (An.{{ $g->annee }})</option>
+                        @php
+                            $full           = $g->stagiaires_count >= $g->nbr_limit;
+                            $isCurrentGroup = old('id_groupe', '') == $g->id;
+                        @endphp
+                        <option value="{{ $g->id }}"
+                                {{ $isCurrentGroup ? 'selected' : '' }}
+                                {{ ($full && !$isCurrentGroup) ? 'disabled' : '' }}>
+                            {{ $g->name }} (An.{{ $g->annee }}) — {{ $g->stagiaires_count }}/{{ $g->nbr_limit }}
+                            {{ $full ? '⛔ COMPLET' : ($g->nbr_limit - $g->stagiaires_count).' libre(s)' }}
+                        </option>
                     @endforeach
                 </select>
                 @error('id_groupe') <span class="err">{{ $message }}</span> @enderror

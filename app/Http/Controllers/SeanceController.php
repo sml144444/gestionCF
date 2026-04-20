@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Mail\AbsenceMail;
+use App\Mail\NouveauDocumentMail;
+use Illuminate\Support\Facades\Mail;
 
 class SeanceController extends Controller
 {
@@ -122,8 +125,50 @@ class SeanceController extends Controller
             }
         }
 
+        // ── Envoyer les emails d'absence ───────────────────────────
+        $enregistreePar = Auth::user();
+        $sentCount = 0;
+        $failedEmails = [];
+
+        foreach ($request->input('presences', []) as $entry) {
+            if ($entry['status'] === 'absence') {
+                $stagiaire = User::find($entry['stagiaire_id']);
+                if ($stagiaire && $stagiaire->email) {
+                    // Vérifier si l'email est valide
+                    if (!filter_var($stagiaire->email, FILTER_VALIDATE_EMAIL)) {
+                        $failedEmails[] = $stagiaire->email;
+                        continue;
+                    }
+                    
+                    try {
+                        Mail::to($stagiaire->email)->queue(
+                            new AbsenceMail(
+                                stagiaire:    $stagiaire,
+                                emploi:       $emploi,
+                                enregistreePar: $enregistreePar,
+                                justified:    false,
+                                justification: null,
+                            )
+                        );
+                        $sentCount++;
+                    } catch (\Exception $e) {
+                        $failedEmails[] = $stagiaire->email;
+                        \Log::error("Erreur envoi email d'absence à {$stagiaire->email}: " . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        $successMessage = 'Liste de présence enregistrée.';
+        if ($sentCount > 0) {
+            $successMessage .= " Notification d'absence envoyée à {$sentCount} stagiaire(s).";
+        }
+        if (!empty($failedEmails)) {
+            $successMessage .= " (" . count($failedEmails) . " email(s) invalide(s) ignoré(s))";
+        }
+
         return redirect()->route('seances.show', $emploi)
-            ->with('success', 'Liste de présence enregistrée.');
+            ->with('success', $successMessage);
     }
 
     // ── ADD CLASSROOM RESOURCE ────────────────────────────────
@@ -147,7 +192,7 @@ class SeanceController extends Controller
             $fichierPath = $request->file('fichier')->store('classroom', 'public');
         }
 
-        Cours::create([
+        $cours = Cours::create([
             'id_emplois_du_temps' => $emploi->id,
             'titre'               => $request->titre,
             'description'         => $request->description,
@@ -157,8 +202,60 @@ class SeanceController extends Controller
             'created_by'          => Auth::id(),
         ]);
 
+        // ── Notifier les stagiaires du groupe ───────────────────────
+        $emploi->load(['module', 'groupe', 'gestionnaire']);
+
+        $otherDocs = Cours::where('id_emplois_du_temps', $emploi->id)
+            ->where('titre', '!=', '__presence__')
+            ->where('id', '!=', $cours->id)
+            ->latest()
+            ->take(3)
+            ->get();
+
+        $stagiaires = User::where('id_groupe', $emploi->id_groupe)
+            ->where('role', 'stagiaire')
+            ->whereNotNull('email')
+            ->get();
+
+        $sharedBy = Auth::user();
+
+        $sentCount = 0;
+        $failedEmails = [];
+
+        foreach ($stagiaires as $stagiaire) {
+            // Vérifier si l'email est valide
+            if (!filter_var($stagiaire->email, FILTER_VALIDATE_EMAIL)) {
+                $failedEmails[] = $stagiaire->email;
+                continue;
+            }
+            
+            try {
+                Mail::to($stagiaire->email)->queue(
+                    new NouveauDocumentMail(
+                        recipient: $stagiaire,
+                        document:  $cours,
+                        emploi:    $emploi,
+                        sharedBy:  $sharedBy,
+                        otherDocs: $otherDocs,
+                    )
+                );
+                $sentCount++;
+            } catch (\Exception $e) {
+                $failedEmails[] = $stagiaire->email;
+                \Log::error("Erreur envoi email à {$stagiaire->email}: " . $e->getMessage());
+            }
+        }
+
+        $message = "Ressource « {$request->titre} » ajoutée.";
+        if ($sentCount > 0) {
+            $message .= " Notification envoyée à {$sentCount} stagiaire(s).";
+        }
+        if (!empty($failedEmails)) {
+            $message .= " (" . count($failedEmails) . " email(s) invalide(s) ignoré(s))";
+        }
+
         return redirect()->route('seances.show', $emploi)
-            ->with('success', 'Ressource « ' . $request->titre . ' » ajoutée.');
+            ->with('success', $message);
     }
 
     // ── DELETE CLASSROOM RESOURCE ─────────────────────────────

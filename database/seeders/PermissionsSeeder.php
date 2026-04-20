@@ -15,23 +15,23 @@ class PermissionsSeeder extends Seeder
 
         $permissions = [
             // Emploi du temps
-            'emploi-view',            // 🔓 Accès de base (voir son propre emploi du temps)
-            'emploi-view-all-groups', // 👑 Voir tous les groupes (admin/gestionnaire)
-            'emploi-create',          // ➕ Ajouter une séance
-            'emploi-edit',            // ✎  Modifier une séance
-            'emploi-delete',          // ✕  Supprimer une séance
-            'emploi-lien',            // 🔗 Modifier le lien de réunion (distance)
-            'emploi-change-module',   // 📚 Modifier le module d'une séance (formateur optionnel)
+            'emploi-view',
+            'emploi-view-all-groups',
+            'emploi-create',
+            'emploi-edit',
+            'emploi-delete',
+            'emploi-lien',
+            'emploi-change-module',
 
             // Utilisateurs
             'user-list',
             'user-create',
             'user-edit',
             'user-delete',
-            'stagiaire-list',         // 👥 Voir la liste des stagiaires par filière/groupe
-            'stagiaire-create',   // ← ADD
-            'stagiaire-edit',     // ← ADD
-            'stagiaire-delete',   // ← ADD
+            'stagiaire-list',
+            'stagiaire-create',
+            'stagiaire-edit',
+            'stagiaire-delete',
 
             // Groupes & Filières
             'groupe-list',
@@ -40,8 +40,8 @@ class PermissionsSeeder extends Seeder
             'groupe-delete',
 
             // EDU Import
-            'edu-view',               // 📄 Voir la page import + télécharger le modèle
-            'edu-import',             // 📥 Uploader / prévisualiser / confirmer / ajout manuel
+            'edu-view',
+            'edu-import',
 
             // Rôles & Permissions
             'role-list',
@@ -50,8 +50,13 @@ class PermissionsSeeder extends Seeder
             'role-delete',
 
             // Reportations
-            'reportation-create',     // 📋 Formateur : soumettre une demande de report
-            'reportation-manage',     // ✅ Admin/Gestionnaire : accepter / refuser
+            'reportation-create',
+            'reportation-manage',
+
+            // ── Réclamations ──────────────────────────────────
+            'reclamation-create',   // Stagiaire : soumettre une réclamation
+            'reclamation-list',     // Stagiaire : voir ses propres réclamations
+            'reclamation-manage',   // Admin/Gestionnaire : voir toutes + changer statut
         ];
 
         foreach ($permissions as $perm) {
@@ -80,12 +85,13 @@ class PermissionsSeeder extends Seeder
             'groupe-create',
             'groupe-edit',
             'stagiaire-list',
-            'stagiaire-create',  
-            'stagiaire-edit',     
-            'stagiaire-delete',   
+            'stagiaire-create',
+            'stagiaire-edit',
+            'stagiaire-delete',
             'edu-view',
             'edu-import',
-            'reportation-manage',     // ← gérer les demandes de report
+            'reportation-manage',
+            'reclamation-manage',   // ← voir toutes les réclamations + changer statut
         ]);
 
         // ── Formateur — ses séances + lien + module + report ──
@@ -93,16 +99,18 @@ class PermissionsSeeder extends Seeder
         $formateurRole->syncPermissions([
             'emploi-view',
             'emploi-lien',
-            // 'emploi-change-module' ← NON par défaut
             'user-list',
             'groupe-list',
-            'reportation-create',     // ← soumettre une demande de report
+            'reportation-create',
+            // Pas de permission réclamation pour le formateur
         ]);
 
-        // ── Stagiaire — son groupe seulement ──────────────────
+        // ── Stagiaire — son emploi du temps + réclamations ────
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
         $stagiaireRole->syncPermissions([
             'emploi-view',
+            'reclamation-create',   // ← soumettre une réclamation
+            'reclamation-list',     // ← voir ses propres réclamations
         ]);
 
         // ── Assignation des rôles Spatie aux users existants ──

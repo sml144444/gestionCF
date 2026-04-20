@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeStagiaireMail;
 use App\Models\Edu;
 use App\Models\Filiere;
 use App\Models\Groupe;
@@ -12,26 +13,19 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class RegisteredStagiaireController extends Controller
 {
-    /**
-     * Show the minimal registration form.
-     * Only: edu_email | password | password_confirmation
-     */
     public function create(): View
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle registration.
-     * All user data (name, filiere, groupe) is pulled from the EDU table.
-     */
     public function store(Request $request): RedirectResponse
     {
-        // 1. Validate — only 3 fields needed
+        // 1. Validate
         $request->validate([
             'email'    => ['required', 'string', 'email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
@@ -40,63 +34,41 @@ class RegisteredStagiaireController extends Controller
         // 2. Find EDU entry
         $edu = Edu::where('edu_email', $request->email)->first();
 
-        // 3. If EDU not found
         if (! $edu) {
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'email' => 'Email EDU introuvable.',
-                ]);
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'Email EDU introuvable.']);
         }
 
-        // 4. If already used
         if ($edu->used) {
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'email' => 'Ce compte est déjà activé. Veuillez vous connecter.',
-                ]);
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'Ce compte est déjà activé. Veuillez vous connecter.']);
         }
 
-        // 5. Check password against EDU password
         if (! Hash::check($request->password, $edu->password)) {
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'password' => 'Mot de passe incorrect.',
-                ]);
+            return back()->withInput($request->only('email'))
+                ->withErrors(['password' => 'Mot de passe incorrect.']);
         }
 
-        // 6. Reject if a users account already exists with this email
         if (User::where('email', $request->email)->exists()) {
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'email' => 'Un compte existe déjà avec cet email.',
-                ]);
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'Un compte existe déjà avec cet email.']);
         }
 
-        // 7. Resolve filière from code
+        // 3. Resolve filière
         $filiere = Filiere::where('code', $edu->filiere_code)->first();
         if (! $filiere) {
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'email' => 'Filière introuvable (code : ' . $edu->filiere_code . '). Contactez l\'administration.',
-                ]);
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'Filière introuvable (code : ' . $edu->filiere_code . '). Contactez l\'administration.']);
         }
 
-        // 8. Resolve groupe from code
+        // 4. Resolve groupe
         $groupe = Groupe::where('code', $edu->groupe_code)->first();
         if (! $groupe) {
-            return back()
-                ->withInput($request->only('email'))
-                ->withErrors([
-                    'email' => 'Groupe introuvable (code : ' . $edu->groupe_code . '). Contactez l\'administration.',
-                ]);
+            return back()->withInput($request->only('email'))
+                ->withErrors(['email' => 'Groupe introuvable (code : ' . $edu->groupe_code . '). Contactez l\'administration.']);
         }
 
-        // 9. Create user — name auto-filled from EDU (nom + prenom)
+        // 5. Create user
         $user = User::create([
             'name'       => trim($edu->nom . ' ' . $edu->prenom),
             'email'      => $edu->edu_email,
@@ -106,22 +78,27 @@ class RegisteredStagiaireController extends Controller
             'id_groupe'  => $groupe->id,
         ]);
 
-        // 10. ── CRITICAL ──────────────────────────────────────────
-        //     Assign the Spatie 'stagiaire' role.
-        //     Without this, hasPermissionTo('emploi-view') returns false
-        //     and the timetable sidebar link and page are never shown.
+        // 6. Assign Spatie role
         $user->syncRoles(['stagiaire']);
 
-        // 11. Mark EDU row as used — prevents duplicate registration
+        // 7. Mark EDU as used
         $edu->update(['used' => true]);
 
-        // 12. Fire Registered event
+        // 8. Fire Registered event
         event(new Registered($user));
 
-        // 13. Auto login
+        // 9. ── Send welcome email ──────────────────────────────
+        //    Wrapped in try/catch so a mail failure never blocks login.
+        try {
+            Mail::to($user->email)->send(new WelcomeStagiaireMail($user));
+        } catch (\Throwable $e) {
+            // Log silently — do not interrupt registration
+            logger()->warning('Welcome email failed for ' . $user->email . ': ' . $e->getMessage());
+        }
+
+        // 10. Auto login
         Auth::login($user);
 
-        // 14. Redirect to stagiaire dashboard
         return redirect()->route('stagiaire.dashboard');
     }
 }

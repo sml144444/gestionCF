@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @mixin \Spatie\Permission\Traits\HasRoles
- * @mixin \Spatie\Permission\Traits\HasPermissions   ← add this line
+ * @mixin \Spatie\Permission\Traits\HasPermissions
  */
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
     use Notifiable;
     use HasRoles;
+    use CanResetPassword;
 
     protected $guard_name = 'web';
 
@@ -27,9 +30,9 @@ class User extends Authenticatable
     protected $hidden = ['password'];
 
     protected $casts = [
-        'document' => 'array',
+        'document'       => 'array',
         'date_naissance' => 'date',
-        'date_embauche' => 'date',
+        'date_embauche'  => 'date',
     ];
 
     // --- Relations communes ---

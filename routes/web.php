@@ -265,3 +265,57 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
     Route::delete('/stagiaire/{stagiaire}', [StagiaireController::class, 'destroy'])
         ->name('stagiaire.destroy')->middleware('can:stagiaire-delete');
 });
+
+// Importer en haut du fichier
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\ReclamationController;
+
+// Dans le bloc guest
+Route::middleware('guest')->group(function () {
+    Route::get('/', fn() => redirect()->route('login'));
+    Route::get('login',   [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('login',  [AuthenticatedSessionController::class, 'store'])->name('login.post');
+    Route::get('register',  [RegisteredStagiaireController::class, 'create'])->name('register');
+    Route::post('register', [RegisteredStagiaireController::class, 'store'])->name('register.post');
+
+    // ← Ajouter ces 4 routes
+    Route::get('forgot-password',        [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('forgot-password',       [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('reset-password',        [NewPasswordController::class, 'store'])->name('password.store');
+});
+
+
+
+Route::middleware(['auth'])->group(function () {
+ 
+    // Stagiaire : voir ses propres réclamations
+// ✅ CORRECT — pas de middleware can: sur l'index
+Route::get('/reclamations', [ReclamationController::class, 'index'])
+    ->name('reclamations.index'); // ← le controller fait abort(403) lui-même
+        // Note: Laravel @can pipe = OR → on utilise un middleware custom
+        // OU simplifier avec can:reclamation-list pour stagiaire
+        // et can:reclamation-manage pour admin/gestionnaire
+        // Le controller gère déjà la logique interne.
+ 
+    // Stagiaire : formulaire nouvelle réclamation
+    Route::get('/reclamations/create', [ReclamationController::class, 'create'])
+        ->name('reclamations.create')
+        ->middleware('can:reclamation-create');
+ 
+    // Stagiaire : soumettre la réclamation
+    Route::post('/reclamations', [ReclamationController::class, 'store'])
+        ->name('reclamations.store')
+        ->middleware('can:reclamation-create');
+ 
+    // Admin / Gestionnaire : changer le statut
+    Route::patch('/reclamations/{reclamation}/status', [ReclamationController::class, 'updateStatus'])
+        ->name('reclamations.status')
+        ->middleware('can:reclamation-manage');
+ 
+    // Admin : supprimer une réclamation
+    Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
+        ->name('reclamations.destroy')
+        ->middleware('can:reclamation-manage');
+});

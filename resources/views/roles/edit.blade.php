@@ -50,7 +50,6 @@
                 'stagiaire-create' => '➕ Créer un stagiaire',      
                 'stagiaire-edit'   => '✏️ Modifier un stagiaire', 
                 'stagiaire-delete' => '🗑️ Supprimer un stagiaire', 
-
             ]
         ],
         'groupe' => [
@@ -93,20 +92,29 @@
                 'reportation-manage' => '✅ Gérer les reportations (accepter/refuser)',
             ]
         ],
-   // 👇 AJOUTEZ CE BLOC ICI
-'salle' => [
-    'label' => 'Salles',
-    'icon'  => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-    'color' => '#0d9488', 'bg' => '#f0fdfa',
-    'perms' => [
-        'salle-list'   => '🏫 Voir la liste des salles',
-        'salle-create' => '➕ Ajouter une salle',
-        'salle-edit'   => '✏️ Modifier une salle',
-        'salle-delete' => '🗑️ Supprimer une salle',
-    ]
-],
-// Fin du tableau
-];
+        'salle' => [
+            'label' => 'Salles',
+            'icon'  => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+            'color' => '#0d9488', 'bg' => '#f0fdfa',
+            'perms' => [
+                'salle-list'   => '🏫 Voir la liste des salles',
+                'salle-create' => '➕ Ajouter une salle',
+                'salle-edit'   => '✏️ Modifier une salle',
+                'salle-delete' => '🗑️ Supprimer une salle',
+            ]
+        ],
+        // 👇 BLOC RÉCLAMATIONS AJOUTÉ ICI
+        'reclamation' => [
+            'label' => 'Réclamations',
+            'icon'  => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
+            'color' => '#db2777', 'bg' => '#fdf2f8',
+            'perms' => [
+                'reclamation-create' => '📝 Soumettre une réclamation',
+                'reclamation-list'   => '📋 Voir ses propres réclamations',
+                'reclamation-manage' => '✅ Gérer toutes les réclamations',
+            ]
+        ],
+    ];
     
     $rolePermissionsArray = $rolePermissions ?? [];
 @endphp

@@ -127,14 +127,19 @@
                     @enderror
                 </div>
 
-                {{-- Remember --}}
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer select-none">
-                        <input type="checkbox" name="remember"
-                               class="w-4 h-4 rounded border-slate-300 text-[#1a5fa8] focus:ring-[#1a5fa8]" />
-                        Se souvenir de moi
-                    </label>
-                </div>
+{{-- Remember --}}
+<div class="flex items-center justify-between">
+    <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer select-none">
+        <input type="checkbox" name="remember"
+               class="w-4 h-4 rounded border-slate-300 text-[#1a5fa8] focus:ring-[#1a5fa8]" />
+        Se souvenir de moi
+    </label>
+
+    <a href="{{ route('password.request') }}"
+       class="text-sm text-[#1a5fa8] font-semibold hover:underline">
+        Mot de passe oublié ?
+    </a>
+</div>
 
                 {{-- Submit --}}
                 <button type="submit"

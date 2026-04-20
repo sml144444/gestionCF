@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Filiere extends Model
 {
-    protected $fillable = ['name', 'duree' ,'code'];
+    protected $fillable = ['name', 'duree', 'code'];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RELATIONS
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function options()
     {
@@ -18,9 +22,16 @@ class Filiere extends Model
         return $this->hasMany(Groupe::class, 'id_filiere');
     }
 
-    public function stagiaires() {
-    return $this->hasMany(User::class, 'id_filiere');
-}
+    /**
+     * ✅ FIX — only count/return real stagiaires.
+     *    withCount('stagiaires') will now give the correct number.
+     */
+    public function stagiaires()
+    {
+        return $this->hasMany(User::class, 'id_filiere')
+                    ->where('role', 'stagiaire');
+    }
+
     public function modules()
     {
         return $this->hasMany(Module::class, 'id_filiere');

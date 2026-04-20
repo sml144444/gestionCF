@@ -27,7 +27,7 @@
     --gray-400:#94a3b8; --gray-500:#64748b; --gray-800:#1e293b; --gray-900:#0f172a;
 }
 .grp-wrap { font-family:'Segoe UI',system-ui,sans-serif; }
-.grp-card { background:white; border-radius:14px; border:1px solid var(--gray-200); overflow:hidden; transition:box-shadow .15s; }
+.grp-card { background:white; border-radius:14px; border:1px solid var(--gray-200); overflow:hidden; transition:box-shadow .15s; display:flex; flex-direction:column; }
 .grp-card:hover { box-shadow:0 4px 20px rgba(0,0,0,.07); }
 .code-mono { font-family:'Courier New',monospace; font-size:9px; font-weight:800; letter-spacing:.5px;
              background:var(--gray-100); color:var(--gray-800); padding:2px 6px; border-radius:5px;
@@ -65,6 +65,18 @@
 .flash-ok  { background:var(--success-light); border:1px solid #bbf7d0; color:var(--success); }
 .flash-err { background:var(--danger-light);  border:1px solid #fecdd3; color:#be123c; }
 .radio-card { display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 14px; border-radius:10px; border:1.5px solid var(--gray-200); background:white; transition:all .15s; }
+
+/* ── NEW: card footer link ── */
+.grp-card-footer {
+    padding:10px 16px;
+    border-top:1px solid var(--gray-100);
+    background:#fafbfc;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:auto;
+}
+.grp-card-body { padding:14px 16px; flex:1; }
 </style>
 
 <div class="grp-wrap">
@@ -96,26 +108,22 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <form method="GET" action="{{ route('groupes.index') }}" style="display:flex;align-items:center;gap:6px;">
-            {{-- Filière filter --}}
             <select name="filiere" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;" onchange="this.form.submit()">
                 <option value="">Toutes les filières</option>
                 @foreach($filieres as $f)
                     <option value="{{ $f->id }}" {{ request('filiere')==$f->id?'selected':'' }}>{{ $f->name }}</option>
                 @endforeach
             </select>
-
-<select name="promo" onchange="this.form.submit()" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;">
-    <option value="">— Toutes les promos —</option>
-    @foreach ($promos as $p)
-        <option value="{{ $p }}" {{ request('promo') == $p ? 'selected' : '' }}>
-            Promo {{ $p }}
-        </option>
-    @endforeach
-</select>
+            <select name="promo" onchange="this.form.submit()" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;">
+                <option value="">— Toutes les promos —</option>
+                @foreach ($promos as $p)
+                    <option value="{{ $p }}" {{ request('promo') == $p ? 'selected' : '' }}>Promo {{ $p }}</option>
+                @endforeach
+            </select>
         </form>
         @if($canCreate)
         <button onclick="@if($selectedFiliere) openCreateForFiliere({{ $selectedFiliere->id }}, '{{ addslashes($selectedFiliere->name) }}', '{{ addslashes($selectedFiliere->code ?? '') }}') @else openGrpModal('create') @endif"
-        class="btn-g" style="background:var(--accent);color:white;...">
+                class="btn-g" style="background:var(--accent);color:white;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 30%,transparent);">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Nouveau groupe
         </button>
@@ -132,8 +140,6 @@
 </div>
 @endif
 
-
-
 {{-- GROUPES PAR FILIÈRE --}}
 @forelse($groupes as $filiereId => $grpList)
     @php $filiere = $grpList->first()->filiere; @endphp
@@ -147,25 +153,34 @@
                 @endif
                 <span style="font-size:10px;color:var(--gray-500);margin-left:8px;">{{ $grpList->count() }} groupe(s) · {{ $grpList->sum('stagiaires_count') }} stagiaires</span>
             </div>
-            @if($canCreate)
-            <button onclick="openCreateForFiliere({{ $filiereId }}, '{{ addslashes($filiere->name ?? '') }}', '{{ addslashes($filiere->code ?? '') }}')"
-                    style="margin-left:auto;font-size:10px;font-weight:700;color:var(--accent);background:var(--light);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:4px 10px;border-radius:8px;cursor:pointer;">
-                + Ajouter groupe
-            </button>
-            @endif
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                {{-- ✅ NEW: link to all stagiaires of this filiere --}}
+                <a href="{{ route('stagiaire.index', ['filiere_id' => $filiereId]) }}"
+                   style="font-size:10px;font-weight:700;color:var(--accent);background:var(--light);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:4px 10px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+                    Tous les stagiaires
+                </a>
+                @if($canCreate)
+                <button onclick="openCreateForFiliere({{ $filiereId }}, '{{ addslashes($filiere->name ?? '') }}', '{{ addslashes($filiere->code ?? '') }}')"
+                        style="font-size:10px;font-weight:700;color:var(--accent);background:var(--light);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:4px 10px;border-radius:8px;cursor:pointer;">
+                    + Ajouter groupe
+                </button>
+                @endif
+            </div>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
             @foreach($grpList->sortBy('annee')->sortBy('name') as $groupe)
                 @php
-                    $occ      = $groupe->nbr_limit > 0 ? min(100,round(($groupe->stagiaires_count/$groupe->nbr_limit)*100)) : 0;
-                    $occColor = $occ>=90?'#dc2626':($occ>=70?'#f59e0b':'#16a34a');
+                    $occ        = $groupe->nbr_limit > 0 ? min(100, round(($groupe->stagiaires_count / $groupe->nbr_limit) * 100)) : 0;
+                    $isFull     = $groupe->stagiaires_count >= $groupe->nbr_limit;
+                    $occColor   = $isFull ? '#dc2626' : ($occ >= 70 ? '#f59e0b' : '#16a34a');
                     $anneeColor = $groupe->annee==1 ? '#1e40af' : ($groupe->annee==2 ? '#6b21a8' : '#c2410c');
                     $anneeBg    = $groupe->annee==1 ? '#eff6ff' : ($groupe->annee==2 ? '#fdf4ff' : '#fff7ed');
                     $anneeLabel = $groupe->annee==1 ? '1ère année' : ($groupe->annee==2 ? '2ème année' : '3ème année');
                 @endphp
-                <div class="grp-card">
-                    <div style="padding:14px 16px;">
+                <div class="grp-card" style="{{ $isFull ? 'border-color:#fca5a5;' : '' }}">
+                    <div class="grp-card-body">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;">
                             <div style="flex:1;">
                                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -177,19 +192,18 @@
                                     @endif
                                 </div>
                                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
-                                    <div style="font-size:9px;font-weight:700;
-                                                background:{{ $anneeBg }};
-                                                color:{{ $anneeColor }};
-                                                padding:2px 8px;border-radius:99px;display:inline-block;">
+                                    <div style="font-size:9px;font-weight:700;background:{{ $anneeBg }};color:{{ $anneeColor }};padding:2px 8px;border-radius:99px;display:inline-block;">
                                         {{ $anneeLabel }}
                                     </div>
-                                    {{-- Promo label using accessor --}}
-                                    <div style="font-size:9px;font-weight:700;
-                                                background:var(--light);
-                                                color:var(--atext);
-                                                padding:2px 8px;border-radius:99px;display:inline-block;">
+                                    <div style="font-size:9px;font-weight:700;background:var(--light);color:var(--atext);padding:2px 8px;border-radius:99px;display:inline-block;">
                                         {{ $groupe->promo_label }}
                                     </div>
+                                    {{-- ✅ COMPLET badge --}}
+                                    @if($isFull)
+                                    <div style="font-size:9px;font-weight:800;background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:99px;display:inline-block;border:1px solid #fca5a5;">
+                                        ⛔ COMPLET
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                             <div style="display:flex;gap:5px;">
@@ -216,12 +230,19 @@
                                 <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 {{ $groupe->emploisDuTemps()->count() }} séances
                             </span>
-                            @if($groupe->stagiaires_count===0)
-                                <span style="font-size:9px;background:var(--gray-50);color:var(--gray-400);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px;">Vide</span>
-                            @elseif($occ>=90)
-                                <span style="font-size:9px;background:#fff1f2;color:#dc2626;border:1px solid #fecaca;padding:3px 8px;border-radius:6px;font-weight:700;">Complet</span>
-                            @endif
                         </div>
+                    </div>
+
+                    {{-- ✅ NEW: card footer with link to group's stagiaires --}}
+                    <div class="grp-card-footer">
+                        <span style="font-size:10px;color:var(--gray-500);">
+                            {{ $groupe->nbr_limit - $groupe->stagiaires_count }} place(s) libre(s)
+                        </span>
+                        <a href="{{ route('stagiaire.index', ['filiere_id' => $groupe->id_filiere, 'groupe_id' => $groupe->id]) }}"
+                           style="font-size:11px;font-weight:700;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                            Voir les stagiaires
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                        </a>
                     </div>
                 </div>
             @endforeach
@@ -254,11 +275,9 @@
         <form method="POST" action="{{ route('groupes.store') }}">
             @csrf
             <div class="m-bd">
-                {{-- Filière --}}
                 <div class="f-row">
                     <label class="f-label">Filière <span style="color:#ef4444;">*</span></label>
-                    <select name="id_filiere" id="create-grp-filiere" class="f-input" required style="cursor:pointer;"
-                            onchange="onFiliereChange(this)">
+                    <select name="id_filiere" id="create-grp-filiere" class="f-input" required style="cursor:pointer;" onchange="onFiliereChange(this)">
                         <option value="">— Sélectionner —</option>
                         @foreach($filieres as $f)
                             <option value="{{ $f->id }}" data-code="{{ $f->code ?? '' }}">{{ $f->name }}</option>
@@ -266,78 +285,50 @@
                     </select>
                 </div>
 
-                {{-- Nom + Code --}}
                 <div class="f-grid f-row" style="grid-template-columns:1fr 1fr;">
                     <div>
                         <label class="f-label">Nom du groupe <span style="color:#ef4444;">*</span></label>
                         <input type="text" name="name" id="create-grp-name" class="f-input" required
-                               placeholder="G1A, G2B…" value="{{ old('name') }}"
-                               oninput="autoGroupeCode(this)">
+                               placeholder="G1A, G2B…" value="{{ old('name') }}" oninput="autoGroupeCode(this)">
                         <div class="f-hint">Court et unique dans la filière</div>
                     </div>
                     <div>
-                        <label class="f-label">
-                            Code groupe <span style="color:#ef4444;">*</span>
-                            <span style="font-size:8px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--gray-500);margin-left:2px;">(EDU import)</span>
-                        </label>
+                        <label class="f-label">Code groupe <span style="color:#ef4444;">*</span></label>
                         <input type="text" name="code" id="create-grp-code" class="f-input" required
                                placeholder="DD-G1A" maxlength="30" value="{{ old('code') }}"
                                style="font-family:monospace;font-weight:700;letter-spacing:.5px;text-transform:uppercase;"
                                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-_]/g,'')">
-                        <div class="f-code-hint">
-                            ⚠️ Unique, immuable après import.<br>
-                            Ex : <strong>DD-G1A</strong>, <strong>GI-G1C</strong>
-                        </div>
+                        <div class="f-code-hint">⚠️ Unique, immuable après import. Ex : <strong>DD-G1A</strong></div>
                     </div>
                 </div>
 
-                {{-- Capacité --}}
                 <div class="f-row">
                     <label class="f-label">Capacité maximale <span style="color:#ef4444;">*</span></label>
-                    <input type="number" name="nbr_limit" class="f-input" required min="1" max="100" placeholder="25" value="{{ old('nbr_limit',25) }}">
+                    <input type="number" name="nbr_limit" class="f-input" required min="1" max="500" placeholder="25" value="{{ old('nbr_limit',25) }}">
                 </div>
 
-                {{-- Année --}}
                 <div class="f-row">
                     <label class="f-label">Année de formation <span style="color:#ef4444;">*</span></label>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <label class="radio-card" id="lbl-create-a1" onclick="styleRadio('create',1)">
-                            <input type="radio" name="annee" value="1" {{ old('annee',1)==1?'checked':'' }}
-                                   style="accent-color:var(--accent);">
-                            <div>
-                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div>
-                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div>
-                            </div>
+                            <input type="radio" name="annee" value="1" {{ old('annee',1)==1?'checked':'' }} style="accent-color:var(--accent);">
+                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div></div>
                         </label>
                         <label class="radio-card" id="lbl-create-a2" onclick="styleRadio('create',2)">
-                            <input type="radio" name="annee" value="2" {{ old('annee')==2?'checked':'' }}
-                                   style="accent-color:var(--accent);">
-                            <div>
-                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div>
-                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 2</div>
-                            </div>
+                            <input type="radio" name="annee" value="2" {{ old('annee')==2?'checked':'' }} style="accent-color:var(--accent);">
+                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 2</div></div>
                         </label>
                         <label class="radio-card" id="lbl-create-a3" onclick="styleRadio('create',3)">
-                            <input type="radio" name="annee" value="3" {{ old('annee')==3?'checked':'' }}
-                                   style="accent-color:var(--accent);">
-                            <div>
-                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">3ème année</div>
-                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 3</div>
-                            </div>
+                            <input type="radio" name="annee" value="3" {{ old('annee')==3?'checked':'' }} style="accent-color:var(--accent);">
+                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">3ème année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 3</div></div>
                         </label>
                     </div>
                 </div>
 
-                {{-- Promo (année de début) --}}
                 <div class="f-row">
                     <label class="f-label">Année de promotion (début)</label>
-                    <input type="number"
-                           name="promo"
-                           value="{{ old('promo', date('Y')) }}"
-                           min="2000" max="2099"
-                           placeholder="ex: 2024"
-                           class="f-input" />
-                    <small class="f-hint">Année de début de la promotion (ex: 2024 → 2024–2026)</small>
+                    <input type="number" name="promo" value="{{ old('promo', date('Y')) }}" min="2000" max="2099" placeholder="ex: 2024" class="f-input" />
+                    <small class="f-hint">Année de début (ex: 2024 → 2024–2026)</small>
                 </div>
             </div>
             <div class="m-ft">
@@ -363,7 +354,6 @@
         <form id="edit-grp-form" method="POST">
             @csrf @method('PATCH')
             <div class="m-bd">
-                {{-- Info filière (non modifiable) --}}
                 <div style="padding:10px 14px;border-radius:10px;background:#fef3c7;border:1px solid #fde68a;font-size:11px;color:#92400e;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span id="edit-grp-filiere-info">Filière :</span>
@@ -385,7 +375,7 @@
 
                 <div class="f-row">
                     <label class="f-label">Capacité maximale <span style="color:#ef4444;">*</span></label>
-                    <input type="number" name="nbr_limit" id="edit-grp-limit" class="f-input warn" required min="1" max="100">
+                    <input type="number" name="nbr_limit" id="edit-grp-limit" class="f-input warn" required min="1" max="500">
                 </div>
 
                 <div class="f-row">
@@ -393,38 +383,23 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                         <label class="radio-card" id="lbl-edit-a1" onclick="styleRadio('edit',1)">
                             <input type="radio" name="annee" value="1" id="edit-r1" style="accent-color:#f59e0b;">
-                            <div>
-                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div>
-                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div>
-                            </div>
+                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">1ère année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 1</div></div>
                         </label>
                         <label class="radio-card" id="lbl-edit-a2" onclick="styleRadio('edit',2)">
                             <input type="radio" name="annee" value="2" id="edit-r2" style="accent-color:#f59e0b;">
-                            <div>
-                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div>
-                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 2</div>
-                            </div>
+                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">2ème année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 2</div></div>
                         </label>
                         <label class="radio-card" id="lbl-edit-a3" onclick="styleRadio('edit',3)">
                             <input type="radio" name="annee" value="3" id="edit-r3" style="accent-color:#f59e0b;">
-                            <div>
-                                <div style="font-size:12px;font-weight:700;color:var(--gray-900);">3ème année</div>
-                                <div style="font-size:9px;color:var(--gray-500);">Onglet An. 3</div>
-                            </div>
+                            <div><div style="font-size:12px;font-weight:700;color:var(--gray-900);">3ème année</div><div style="font-size:9px;color:var(--gray-500);">Onglet An. 3</div></div>
                         </label>
                     </div>
                 </div>
 
-                {{-- Promo (année de début) --}}
                 <div class="f-row">
                     <label class="f-label">Année de promotion (début)</label>
-                    <input type="number"
-                           name="promo"
-                           id="edit-grp-promo"
-                           min="2000" max="2099"
-                           placeholder="ex: 2024"
-                           class="f-input warn" />
-                    <small class="f-hint">Année de début de la promotion (ex: 2024 → 2024–2026)</small>
+                    <input type="number" name="promo" id="edit-grp-promo" min="2000" max="2099" placeholder="ex: 2024" class="f-input warn" />
+                    <small class="f-hint">Année de début (ex: 2024 → 2024–2026)</small>
                 </div>
             </div>
             <div class="m-ft">
@@ -521,8 +496,8 @@ function openEditGroupe(id, name, code, annee, limit, filiereId, filiereName, pr
 }
 
 function openDeleteGroupe(action, name, stagiaireCount) {
-    document.getElementById('delete-grp-form').action       = action;
-    document.getElementById('delete-grp-name').textContent  = 'Groupe : ' + name;
+    document.getElementById('delete-grp-form').action      = action;
+    document.getElementById('delete-grp-name').textContent = 'Groupe : ' + name;
     const btn = document.getElementById('delete-grp-btn');
     const w   = document.getElementById('delete-grp-warning');
     if (stagiaireCount > 0) {

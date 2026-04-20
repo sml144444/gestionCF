@@ -15,6 +15,10 @@ class Cours extends Model
 
     protected $casts = ['fichier' => 'array'];
 
+    public function emploi(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+{
+    return $this->belongsTo(\App\Models\EmploiDuTemps::class, 'id_emplois_du_temps');
+}
     public function emploiDuTemps()
     {
         return $this->belongsTo(EmploiDuTemps::class, 'id_emplois_du_temps');
