@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Groupe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AbsenceController extends Controller
 {
@@ -21,6 +22,7 @@ class AbsenceController extends Controller
         });
     }
 
+    // ── INDEX ─────────────────────────────────────────────────
     public function index(Request $request)
     {
         $user       = Auth::user();
@@ -62,6 +64,7 @@ class AbsenceController extends Controller
         $query->orderByDesc('date_event');
         $absences = $query->paginate(20)->withQueryString();
 
+        // ── Stats ──────────────────────────────────────────────
         $statsQuery = AbsenceRetard::whereNotNull('type');
         if (!$canViewAll) {
             $statsQuery->where('id_user', $user->id);
@@ -83,7 +86,8 @@ class AbsenceController extends Controller
             'injustifies' => (clone $statsQuery)->where('justifie', false)->count(),
         ];
 
-        $groupes = $canViewAll ? Groupe::orderBy('name')->get() : collect();
+        // ── Dropdowns ─────────────────────────────────────────
+        $groupes    = $canViewAll ? Groupe::orderBy('name')->get() : collect();
         $stagiaires = collect();
         if ($canViewAll) {
             $gId        = $request->filled('groupe_id') ? $request->groupe_id : null;
@@ -106,64 +110,59 @@ class AbsenceController extends Controller
     // ── TOGGLE JUSTIFICATION ──────────────────────────────────
     public function toggleJustification(Request $request, AbsenceRetard $absence)
     {
-        $user = Auth::user();
-
-        if (!in_array($user->role, ['admin', 'gestionnaire'])) {
+        if (!Auth::user()->can('absence-justify')) {
             abort(403);
         }
 
-        $absence->update([
-            'justifie' => !$absence->justifie,
-        ]);
+        $newStatus = !$absence->justifie;
+        $absence->update(['justifie' => $newStatus]);
 
         return back()->with('success',
-            'Absence marquée comme ' . ($absence->justifie ? 'non justifiée' : 'justifiée') . '.'
+            'Absence marquée comme ' . ($newStatus ? 'justifiée' : 'non justifiée') . '.'
         );
     }
-    
 
-    // ── UPLOAD FICHIER JUSTIFICATION ─────────────────────────
-public function uploadFichier(Request $request, AbsenceRetard $absence)
-{
-    if (!in_array(Auth::user()->role, ['admin', 'gestionnaire'])) {
-        abort(403);
-    }
+    // ── UPLOAD FICHIER JUSTIFICATION ──────────────────────────
+    public function uploadFichier(Request $request, AbsenceRetard $absence)
+    {
+        if (!Auth::user()->can('absence-justify')) {
+            abort(403);
+        }
 
-    $request->validate([
-        'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-    ]);
-
-    // Delete old file if exists
-    if ($absence->file_justification) {
-        \Storage::disk('public')->delete($absence->file_justification);
-    }
-
-    $path = $request->file('file_justification')->store('justifications', 'public');
-
-    $absence->update([
-        'file_justification' => $path,
-        'justifie'           => true, // auto-mark as justified when file uploaded
-    ]);
-
-    return back()->with('success', 'Fichier de justification uploadé avec succès.');
-}
-
-// ── DELETE FICHIER JUSTIFICATION ─────────────────────────
-public function deleteFichier(AbsenceRetard $absence)
-{
-    if (!in_array(Auth::user()->role, ['admin', 'gestionnaire'])) {
-        abort(403);
-    }
-
-    if ($absence->file_justification) {
-        \Storage::disk('public')->delete($absence->file_justification);
-        $absence->update([
-            'file_justification' => null,
-            'justifie'           => false, // auto-mark as not justified when file deleted
+        $request->validate([
+            'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
+
+        // Delete old file if exists
+        if ($absence->file_justification) {
+            Storage::disk('public')->delete($absence->file_justification);
+        }
+
+        $path = $request->file('file_justification')->store('justifications', 'public');
+
+        $absence->update([
+            'file_justification' => $path,
+            'justifie'           => true,
+        ]);
+
+        return back()->with('success', 'Fichier de justification uploadé avec succès.');
     }
 
-    return back()->with('success', 'Fichier supprimé.');
-}
-}
+    // ── DELETE FICHIER JUSTIFICATION ──────────────────────────
+    public function deleteFichier(AbsenceRetard $absence)
+    {
+        if (!Auth::user()->can('absence-justify')) {
+            abort(403);
+        }
 
+        if ($absence->file_justification) {
+            Storage::disk('public')->delete($absence->file_justification);
+            $absence->update([
+                'file_justification' => null,
+                'justifie'           => false,
+            ]);
+        }
+
+        return back()->with('success', 'Fichier supprimé.');
+    }
+}

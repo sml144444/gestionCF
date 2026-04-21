@@ -2,59 +2,107 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
+use App\Mail\PasswordChangedMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
+    public function __construct()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $this->middleware('auth');
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
+    // ─────────────────────────────────────────────────────────────────────────
+    // SHOW
+    // ─────────────────────────────────────────────────────────────────────────
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+    public function show()
+    {
+        $user = Auth::user()->load(['filiere', 'groupe', 'modules']);
+        return view('profile.show', compact('user'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UPDATE PROFILE INFO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function update(Request $request)
+    {
+        $user = Auth::user();
+
+        $rules = [
+            'name'           => 'required|string|max:255',
+            'email'          => 'required|email|unique:users,email,' . $user->id,
+            'phone'          => 'nullable|string|max:30',
+            'cin'            => 'nullable|string|max:50',
+            'date_naissance' => 'nullable|date',
+        ];
+
+        // Formateur-specific fields
+        if ($user->isFormateur()) {
+            $rules['matricule_formateur'] = 'nullable|string|max:50';
+            $rules['date_embauche']       = 'nullable|date';
         }
 
-        $request->user()->save();
+        $data = $request->validate($rules);
+        $user->update($data);
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return back()->with('success', 'Profil mis à jour avec succès.');
     }
 
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHANGE PASSWORD
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function updatePassword(Request $request)
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        $request->validate([
+            'current_password'      => 'required|string',
+            'password'              => 'required|string|min:8|confirmed',
         ]);
 
-        $user = $request->user();
+        $user = Auth::user();
 
-        Auth::logout();
+        if (! Hash::check($request->current_password, $user->password)) {
+            return back()
+                ->withErrors(['current_password' => 'Le mot de passe actuel est incorrect.'])
+                ->with('open_password_modal', true);
+        }
 
-        $user->delete();
+        $user->update(['password' => Hash::make($request->password)]);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Send security notification email (queued)
+        Mail::to($user->email)->queue(
+            new PasswordChangedMail($user, $request->ip() ?? 'inconnue')
+        );
 
-        return Redirect::to('/');
+        return back()->with('success', 'Mot de passe changé avec succès. Un e-mail de confirmation vous a été envoyé.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CHANGE PHOTO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ]);
+
+        $user = Auth::user();
+
+        // Delete old photo if exists
+        if ($user->photo && Storage::disk('public')->exists($user->photo)) {
+            Storage::disk('public')->delete($user->photo);
+        }
+
+        $path = $request->file('photo')->store('photos/users', 'public');
+        $user->update(['photo' => $path]);
+
+        return back()->with('success', 'Photo de profil mise à jour.');
     }
 }

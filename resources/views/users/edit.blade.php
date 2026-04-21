@@ -165,17 +165,30 @@
                     text-transform:uppercase; margin-bottom:16px;">Infos Formateur</div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
-            <div>
-                @include('users._field',['label'=>'Matricule formateur','name'=>'matricule_formateur',
-                    'type'=>'text','value'=>old('matricule_formateur',$user->matricule_formateur)])
+            {{-- Matricule: read-only, auto-generated at creation --}}
+            <div style="grid-column:1/-1;">
+                <label style="display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;">
+                    Matricule formateur
+                </label>
+                <div style="display:flex; align-items:center; gap:10px; height:40px; padding:0 14px;
+                            border-radius:10px; background:#f8fafc; border:1.5px solid #e2e8f0;">
+                    <span style="font-size:15px;">🪪</span>
+                    <span style="font-size:13px; font-weight:700; color:#334155;
+                                 font-family:'Courier New',monospace; letter-spacing:1px;">
+                        {{ $user->matricule_formateur ?? '—' }}
+                    </span>
+                    <span style="margin-left:auto; font-size:10px; color:#94a3b8; font-style:italic;">
+                        Non modifiable
+                    </span>
+                </div>
             </div>
             <div>
                 @include('users._field',['label'=>"Date d'embauche",'name'=>'date_embauche','type'=>'date',
                     'value'=>old('date_embauche',$user->date_embauche?->format('Y-m-d'))])
             </div>
             <div>
-                @include('users._field',['label'=>"Limite d'heures / an",'name'=>'nbr_heure_limit',
-                    'type'=>'number','value'=>old('nbr_heure_limit',$user->nbr_heure_limit)])
+                @include('users._field',['label'=>"Limite d'heures / semaine",'name'=>'nbr_heure_limit',
+                    'type'=>'number','value'=>old('nbr_heure_limit',$user->nbr_heure_limit ?? 30)])
             </div>
         </div>
 

@@ -126,6 +126,16 @@
                 'news-like'    => '❤️ Liker une publication',
             ]
         ],
+        'absence' => [
+            'label' => 'Absences & Retards',
+            'icon'  => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+            'color' => '#be185d', 'bg' => '#fdf2f8',
+            'perms' => [
+                'absence-view'     => '👁️ Consulter ses absences',
+                'absence-view-all' => '📋 Voir toutes les absences',
+                'absence-justify'  => '✅ Justifier / modifier une absence',
+            ]
+        ],
     ];
 @endphp
 

@@ -43,7 +43,7 @@
         </div>
         @endforeach
 
-        {{-- Create buttons --}}
+        {{-- Create buttons — gestionnaire button visible to admin only --}}
         <div style="display:flex; gap:8px; margin-left:8px;">
             <a href="{{ route('users.management.create', ['role'=>'formateur']) }}"
                style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px;
@@ -54,6 +54,7 @@
                onmouseout="this.style.background='#9333ea'">
                 + Formateur
             </a>
+            @if(Auth::user()->role === 'admin')
             <a href="{{ route('users.management.create', ['role'=>'gestionnaire']) }}"
                style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px;
                       border-radius:10px; background:#2563eb; color:white; font-size:12px;
@@ -63,6 +64,7 @@
                onmouseout="this.style.background='#2563eb'">
                 + Gestionnaire
             </a>
+            @endif
         </div>
     </div>
 </div>

@@ -1,48 +1,192 @@
 {{-- resources/views/gestionnaire/dashboard.blade.php --}}
+{{--
+    Controller should pass:
+    $stats = [
+        'stagiaires'          => User::where('role','stagiaire')->count(),
+        'groupes'             => Groupe::count(),
+        'edu_pending'         => Edu::where('used', false)->count(),
+        'reclamations_open'   => Reclamation::where('statut','en_attente')->count(),
+        'reportations_open'   => Reportation::where('statut','en_attente')->count(),
+        'seances_semaine'     => EmploiDuTemps::whereBetween('date_debut',[...weekStart, weekEnd])->where('statut','actif')->count(),
+        'seances_brouillon'   => EmploiDuTemps::where('statut','brouillon')->count(),
+    ]
+--}}
 @extends('layouts.app')
 @section('title', 'Espace Gestionnaire')
-@section('page-title', 'Dashboard')
-
-@section('sidebar-nav')
-    <x-nav-section label="Principal" />
-    <x-nav-item route="{{ route('gestionnaire.dashboard') }}" label="Dashboard"
-        icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    <x-nav-item route="#" label="Import EDU" icon="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-    <x-nav-item route="#" label="Emploi du temps" icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    
-    <x-nav-section label="Gestion" />
-    <x-nav-item route="#" label="Stagiaires" icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-    <x-nav-item route="#" label="Modules" icon="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    <x-nav-item route="#" label="Groupes" icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-    <x-nav-item route="#" label="Salles" icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    <x-nav-item route="#" label="Filières" icon="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    <x-nav-item route="#" label="Options" icon="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-    
-    <x-nav-section label="Traitement" />
-    <x-nav-item route="#" label="Réclamations" icon="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-    <x-nav-item route="#" label="Reportations" icon="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    <x-nav-item route="#" label="News" icon="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-@endsection
+@section('page-title', 'Dashboard Gestionnaire')
 
 @section('content')
-    {{-- Header avec bordure grise stylée (bhal dyal l-Admin) --}}
-    <div class="bg-white rounded-2xl border-l-4 border-slate-400 px-6 py-5 mb-5 shadow-sm">
+
+{{-- ══ Welcome Banner ══ --}}
+<div class="bg-white rounded-2xl border-l-4 border-slate-500 px-6 py-5 mb-6 shadow-sm flex items-center justify-between">
+    <div>
         <h2 class="text-lg font-semibold text-slate-800">Bonjour, {{ Auth::user()->name }} 👋</h2>
-        <p class="text-sm text-slate-500 mt-1">Tableau de bord gestionnaire</p>
+        <p class="text-sm text-slate-500 mt-0.5">Tableau de bord gestionnaire · {{ now()->isoFormat('dddd D MMMM') }}</p>
     </div>
+    @if(($stats['seances_brouillon'] ?? 0) > 0)
+    <a href="{{ route('emplois.index') }}"
+       class="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-2 text-xs font-semibold hover:bg-amber-100 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        {{ $stats['seances_brouillon'] }} brouillon(s) à publier
+    </a>
+    @endif
+</div>
 
-    {{-- Stats Cards mtanassqa --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-        @foreach([['Stagiaires','—'],['Groupes','—'],['En attente','—']] as [$l,$v])
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors">
-            <p class="text-xs text-slate-400 uppercase tracking-widest mb-2">{{ $l }}</p>
-            <p class="text-2xl font-semibold text-slate-700">{{ $v }}</p>
+{{-- ══ Primary Stats ══ --}}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
         </div>
-        @endforeach
+        <p class="text-2xl font-bold text-slate-800">{{ $stats['stagiaires'] ?? '—' }}</p>
+        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Stagiaires</p>
     </div>
 
-    {{-- Content Placeholder --}}
-    <div class="bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 shadow-sm text-center">
-        <p class="text-slate-400 text-sm">🚧 Contenu en cours de construction...</p>
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800">{{ $stats['groupes'] ?? '—' }}</p>
+        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Groupes</p>
     </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800">{{ $stats['seances_semaine'] ?? '—' }}</p>
+        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Séances cette semaine</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+            </div>
+            @if(($stats['edu_pending'] ?? 0) > 0)
+                <span class="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Libre</span>
+            @endif
+        </div>
+        <p class="text-2xl font-bold text-slate-800">{{ $stats['edu_pending'] ?? '—' }}</p>
+        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Comptes EDU dispo</p>
+    </div>
+
+</div>
+
+{{-- ══ Actions + Pending ══ --}}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    {{-- Quick Actions --}}
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-700">Actions rapides</h3>
+        </div>
+        <div class="p-4 space-y-2">
+            @foreach([
+                ['Emploi du temps',    route('emplois.index'),    'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',   'text-teal-600 bg-teal-50 hover:bg-teal-100'],
+                ['Import EDU',         route('edu-import.index'), 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',                              'text-amber-600 bg-amber-50 hover:bg-amber-100'],
+                ['Stagiaires',         route('stagiaire.index'),  'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', 'text-blue-600 bg-blue-50 hover:bg-blue-100'],
+                ['Groupes',            route('groupes.index'),    'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', 'text-slate-600 bg-slate-50 hover:bg-slate-100'],
+                ['Modules',            route('modules.index'),    'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', 'text-violet-600 bg-violet-50 hover:bg-violet-100'],
+                ['Salles',             route('salles.index'),     'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', 'text-slate-600 bg-slate-50 hover:bg-slate-100'],
+            ] as [$label, $route, $icon, $colorClass])
+            <a href="{{ $route }}"
+               class="flex items-center gap-3 rounded-xl {{ $colorClass }} px-4 py-2.5 transition-colors">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $icon }}"/>
+                </svg>
+                <span class="text-xs font-semibold">{{ $label }}</span>
+                <svg class="w-3.5 h-3.5 ml-auto opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Pending items ══ --}}
+    <div class="lg:col-span-2 grid grid-rows-2 gap-5">
+
+        {{-- Réclamations --}}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700">Réclamations en attente</h3>
+                <a href="{{ route('reclamations.index') }}"
+                   class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                    Voir tout
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="p-5 flex items-center gap-5">
+                <div class="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <span class="text-2xl font-bold text-orange-600">{{ $stats['reclamations_open'] ?? '—' }}</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-slate-700">
+                        {{ ($stats['reclamations_open'] ?? 0) === 0 ? 'Aucune réclamation en attente' : 'Réclamation(s) à traiter' }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">Consultez la liste pour répondre aux stagiaires</p>
+                </div>
+                <a href="{{ route('reclamations.index') }}"
+                   class="ml-auto flex-shrink-0 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+                    Traiter
+                </a>
+            </div>
+        </div>
+
+        {{-- Reportations --}}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700">Reportations en attente</h3>
+                <a href="{{ route('reportations.index') }}"
+                   class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                    Voir tout
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="p-5 flex items-center gap-5">
+                <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <span class="text-2xl font-bold text-blue-600">{{ $stats['reportations_open'] ?? '—' }}</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-slate-700">
+                        {{ ($stats['reportations_open'] ?? 0) === 0 ? 'Aucune reportation en attente' : 'Reportation(s) à valider' }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">Demandes de report de séance des formateurs</p>
+                </div>
+                <a href="{{ route('reportations.index') }}"
+                   class="ml-auto flex-shrink-0 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+                    Traiter
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 @endsection

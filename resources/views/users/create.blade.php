@@ -18,6 +18,21 @@
     <p style="font-size:12px; color:#64748b; margin:4px 0 0;">Formateur ou Gestionnaire</p>
 </div>
 
+{{-- Auto-credentials notice --}}
+<div style="margin-bottom:20px; padding:14px 18px; border-radius:14px;
+            background:#f0fdf4; border:1.5px solid #bbf7d0; display:flex; align-items:flex-start; gap:12px;">
+    <span style="font-size:20px; flex-shrink:0; margin-top:1px;">📧</span>
+    <div>
+        <div style="font-size:12px; font-weight:700; color:#15803d; margin-bottom:3px;">
+            Mot de passe & Matricule générés automatiquement
+        </div>
+        <div style="font-size:11px; color:#166534; line-height:1.6;">
+            Un mot de passe sécurisé (majuscules, chiffres, caractères spéciaux) et un matricule unique
+            seront générés automatiquement. Les identifiants seront envoyés à l'adresse e-mail renseignée.
+        </div>
+    </div>
+</div>
+
 {{-- Errors --}}
 @if($errors->any())
 <div style="margin-bottom:16px; padding:12px 16px; border-radius:12px;
@@ -38,6 +53,8 @@
         'formateur'    => ['#9333ea','#fdf4ff','🎓'],
         'gestionnaire' => ['#2563eb','#eff6ff','🏢'],
     ] as $r => [$col,$bg,$icon])
+    {{-- Gestionnaire tab only visible to admin --}}
+    @if($r === 'gestionnaire' && !$canCreateGestionnaire) @continue @endif
     @php $active = old('role', $role) === $r; @endphp
     <label style="flex:1; cursor:pointer;">
         <input type="radio" name="role" value="{{ $r }}"
@@ -86,14 +103,6 @@
             <div>
                 @include('users._field',['label'=>'Date de naissance','name'=>'date_naissance','type'=>'date'])
             </div>
-            <div>
-                @include('users._field',['label'=>'Mot de passe','name'=>'password','type'=>'password',
-                    'placeholder'=>'Min. 8 caractères','required'=>true])
-            </div>
-            <div>
-                @include('users._field',['label'=>'Confirmer le mot de passe',
-                    'name'=>'password_confirmation','type'=>'password','required'=>true])
-            </div>
         </div>
 
         <div style="margin-top:14px;">
@@ -114,16 +123,27 @@
                     text-transform:uppercase; margin-bottom:16px;">Infos Formateur</div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
-            <div>
-                @include('users._field',['label'=>'Matricule formateur','name'=>'matricule_formateur',
-                    'type'=>'text','placeholder'=>'Ex : FMT-2024-001'])
+            {{-- Matricule: auto-generated, shown as info only --}}
+            <div style="grid-column:1/-1;">
+                <div style="padding:12px 16px; border-radius:10px; background:#f8fafc;
+                            border:1.5px dashed #cbd5e1; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:18px;">🪪</span>
+                    <div>
+                        <div style="font-size:10px; font-weight:700; color:#9333ea;
+                                    text-transform:uppercase; letter-spacing:1px;">Matricule formateur</div>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                            Généré automatiquement après création
+                            <span style="color:#9333ea; font-weight:600;">(F + ID + horodatage)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div>
                 @include('users._field',['label'=>"Date d'embauche",'name'=>'date_embauche','type'=>'date'])
             </div>
             <div>
-                @include('users._field',['label'=>"Limite d'heures / an",'name'=>'nbr_heure_limit',
-                    'type'=>'number','placeholder'=>'Ex : 480'])
+                @include('users._field',['label'=>"Limite d'heures / semaine",'name'=>'nbr_heure_limit',
+                    'type'=>'number','value'=>old('nbr_heure_limit', 30),'placeholder'=>'Ex : 30'])
             </div>
         </div>
 
@@ -255,7 +275,6 @@ function filterMods() {
     );
 }
 
-// Init on load
 document.querySelectorAll('.mod-cb:checked').forEach(cb => syncModCard(cb));
 updateModCount();
 </script>

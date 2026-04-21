@@ -73,8 +73,9 @@ class PermissionsSeeder extends Seeder
             'news-like',
 
             // Absences & Retards
-            'absence-view',        // stagiaire: ses propres absences; staff: consulter
-            'absence-view-all',    // admin / gestionnaire / formateur: toutes les absences
+            'absence-view',
+            'absence-view-all',
+            'absence-justify',   // ← NEW
         ];
 
         foreach ($permissions as $perm) {
@@ -87,7 +88,7 @@ class PermissionsSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions(Permission::all());
 
-        // ── Gestionnaire — gestion complète sauf rôles ────────────
+        // ── Gestionnaire ──────────────────────────────────────────
         $gestionnaireRole = Role::firstOrCreate(['name' => 'gestionnaire', 'guard_name' => 'web']);
         $gestionnaireRole->syncPermissions([
             'emploi-view',
@@ -120,12 +121,12 @@ class PermissionsSeeder extends Seeder
             'news-delete',
             'news-comment',
             'news-like',
-            // Absences
             'absence-view',
             'absence-view-all',
+            'absence-justify',   // ← NEW
         ]);
 
-        // ── Formateur — ses séances + lien + module + report ──────
+        // ── Formateur ─────────────────────────────────────────────
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
         $formateurRole->syncPermissions([
             'emploi-view',
@@ -137,12 +138,12 @@ class PermissionsSeeder extends Seeder
             'news-list',
             'news-comment',
             'news-like',
-            // Absences
             'absence-view',
             'absence-view-all',
+            // no absence-justify
         ]);
 
-        // ── Stagiaire — son emploi du temps + réclamations + news ─
+        // ── Stagiaire ─────────────────────────────────────────────
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
         $stagiaireRole->syncPermissions([
             'emploi-view',
@@ -151,8 +152,8 @@ class PermissionsSeeder extends Seeder
             'news-list',
             'news-comment',
             'news-like',
-            // Absences
             'absence-view',
+            // no absence-justify
         ]);
 
         // ── Assignation des rôles Spatie aux users existants ──────

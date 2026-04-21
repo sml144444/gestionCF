@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportationController;
 use App\Http\Controllers\StagiaireController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\NewsEventController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReclamationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -366,15 +367,21 @@ Route::middleware(['auth'])->group(function () {
 
     Route::patch('/absences/{absence}/justification', [AbsenceController::class, 'toggleJustification'])
         ->name('absences.justify')
-        ->middleware('can:absence-view-all');
+        ->middleware('can:absence-justify');
 
-    // ← ADD THIS
     Route::post('/absences/{absence}/fichier', [AbsenceController::class, 'uploadFichier'])
         ->name('absences.fichier')
-        ->middleware('can:absence-view-all');
+        ->middleware('can:absence-justify');
 
-    // ← AND THIS (to delete the file)
     Route::delete('/absences/{absence}/fichier', [AbsenceController::class, 'deleteFichier'])
         ->name('absences.fichier.delete')
-        ->middleware('can:absence-view-all');
+        ->middleware('can:absence-justify');
 });
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile',          [ProfileController::class, 'show'])          ->name('profile.show');
+    Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
+});
+ 
