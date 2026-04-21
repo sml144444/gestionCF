@@ -7,6 +7,15 @@ use Illuminate\Http\Request;
 
 class SalleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:salle-list')->only(['index']);
+        $this->middleware('can:salle-create')->only(['store']);
+        $this->middleware('can:salle-edit')->only(['update']);
+        $this->middleware('can:salle-delete')->only(['destroy']);
+    }
+
     // ── LIST ──────────────────────────────────────────────
     public function index()
     {
@@ -46,7 +55,6 @@ class SalleController extends Controller
     // ── DELETE ────────────────────────────────────────────
     public function destroy(Salle $salle)
     {
-        // Prevent deletion if the salle is used in any emploi du temps
         if ($salle->emploisDuTemps()->exists()) {
             return back()->with('error', 'Impossible de supprimer : cette salle est utilisée dans un emploi du temps.');
         }

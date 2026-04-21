@@ -41,13 +41,10 @@
 
 
 {{-- ════ ADMINISTRATION ════ --}}
-{{-- Section visible uniquement si l'utilisateur a au moins une permission admin --}}
-@if($user->can('user-list') || $user->can('edu-import') || $user->can('role-list') || $user->can('groupe-list'))
+{{-- Gated on user-create — formateur only has user-list (for emploi display), not user-create --}}
+@can('user-create')
 <x-nav-section label="Administration" />
-@endif
 
-{{-- Gestion utilisateurs --}}
-@can('user-list')
 <x-nav-item
     route="{{ route('users.management.index') }}"
     label="Gestion utilisateurs"
@@ -72,8 +69,8 @@
 
 
 {{-- ════ GESTION ════ --}}
-{{-- Section visible pour gestionnaire et admin --}}
-@can('groupe-list')
+{{-- Gated on groupe-create — formateur only has groupe-list, not groupe-create --}}
+@can('groupe-create')
 <x-nav-section label="Gestion" />
 
 @can('stagiaire-list')
@@ -83,7 +80,9 @@
     icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
 @endcan
 
-<x-nav-item route="{{ route('modules.index') }}" label="Modules"
+<x-nav-item
+    route="{{ route('modules.index') }}"
+    label="Modules"
     icon="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
 
 <x-nav-item
@@ -120,12 +119,17 @@
 <x-nav-section label="Évaluation" />
 <x-nav-item route="#" label="Mes notes"
     icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-<x-nav-item route="#" label="Absences"
+
+{{-- Absences — lien vers la vraie page --}}
+@can('absence-view')
+<x-nav-item
+    route="{{ route('absences.index') }}"
+    label="Mes absences & retards"
     icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+@endcan
+
 <x-nav-item route="#" label="Bulletin"
     icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-<x-nav-item route="#" label="Choix option"
-    icon="M9 5l7 7-7 7" />
 @endif
 
 
@@ -149,7 +153,7 @@
 @endcannot
 @endcan
 
-{{-- Reportations --}}
+{{-- Reportations : admin/gestionnaire → toutes ; formateur → les siennes --}}
 @can('reportation-manage')
 <x-nav-item
     route="{{ route('reportations.index') }}"
@@ -158,11 +162,23 @@
 @endcan
 
 @can('reportation-create')
+@cannot('reportation-manage')
 <x-nav-item
     route="{{ route('reportations.my') }}"
     label="Mes reportations"
     icon="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+@endcannot
 @endcan
 
-<x-nav-item route="#" label="News / Événements"
+{{-- Absences : admin/gestionnaire/formateur → toutes avec filtres --}}
+@can('absence-view-all')
+<x-nav-item
+    route="{{ route('absences.index') }}"
+    label="Absences & Retards"
+    icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+@endcan
+
+<x-nav-item
+    route="{{ route('news.index') }}"
+    label="News / Événements"
     icon="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />

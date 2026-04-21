@@ -14,7 +14,15 @@ class UserManagementController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'role:admin']);
+        $this->middleware(['auth']);
+
+        // Both admin and gestionnaire can access user management
+        $this->middleware('can:user-list')->only(['index']);
+        $this->middleware('can:user-create')->only(['create', 'store']);
+        $this->middleware('can:user-edit')->only(['edit', 'update', 'updateRole']);
+
+        // Only admin can delete users
+        $this->middleware('role:admin')->only(['destroy']);
     }
 
     // ── INDEX ─────────────────────────────────────────────────────────────────
@@ -35,9 +43,9 @@ class UserManagementController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-$spatieRoles = \Spatie\Permission\Models\Role::with('permissions')
-    ->whereNotIn('name', ['admin', 'stagiaire'])
-    ->get();
+        $spatieRoles = \Spatie\Permission\Models\Role::with('permissions')
+            ->whereNotIn('name', ['admin', 'stagiaire'])
+            ->get();
 
         $stats = [
             'total'        => User::whereIn('role', ['formateur', 'gestionnaire'])->count(),
@@ -186,13 +194,13 @@ $spatieRoles = \Spatie\Permission\Models\Role::with('permissions')
     // ── UPDATE SPATIE ROLE (inline modal) ─────────────────────────────────────
     public function updateRole(Request $request, User $user): RedirectResponse
     {
-$allowedRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['admin', 'stagiaire'])
-    ->pluck('name')
-    ->implode(',');
+        $allowedRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['admin', 'stagiaire'])
+            ->pluck('name')
+            ->implode(',');
 
-$request->validate([
-    'spatie_role' => 'required|in:' . $allowedRoles,
-]);
+        $request->validate([
+            'spatie_role' => 'required|in:' . $allowedRoles,
+        ]);
 
         $user->syncRoles([$request->spatie_role]);
 

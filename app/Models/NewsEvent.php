@@ -14,4 +14,19 @@ class NewsEvent extends Model
     {
         return $this->belongsTo(User::class, 'id_user');
     }
+
+    public function comments()
+    {
+        return $this->hasMany(NewsComment::class, 'news_event_id')->with('auteur')->orderByDesc('created_at');
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(NewsLike::class, 'news_event_id');
+    }
+
+    public function isLikedBy(User $user): bool
+    {
+        return $this->likes()->where('user_id', $user->id)->exists();
+    }
 }

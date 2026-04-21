@@ -67,21 +67,18 @@
 {{-- ── STAT CARDS ───────────────────────────────────────────────────── --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
 
-    {{-- Total salles --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
         <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Total</p>
         <p class="text-2xl font-bold text-slate-800">{{ $salles->count() }}</p>
         <p class="text-xs text-slate-400 mt-0.5">salles</p>
     </div>
 
-    {{-- Capacité totale --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
         <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Capacité totale</p>
         <p class="text-2xl font-bold text-[#1a4f8a]">{{ $salles->sum('capacity') }}</p>
         <p class="text-xs text-slate-400 mt-0.5">places</p>
     </div>
 
-    {{-- Capacité moyenne --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
         <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Moy. capacité</p>
         <p class="text-2xl font-bold text-slate-800">
@@ -90,7 +87,6 @@
         <p class="text-xs text-slate-400 mt-0.5">places / salle</p>
     </div>
 
-    {{-- Utilisées --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
         <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Utilisées</p>
         <p class="text-2xl font-bold text-emerald-600">
@@ -159,8 +155,6 @@
                         <div class="flex items-center gap-2">
                             <span class="font-semibold text-slate-800">{{ $salle->capacity }}</span>
                             <span class="text-slate-400 text-xs">places</span>
-
-                            {{-- Mini capacity bar --}}
                             @php
                                 $maxCap = $salles->max('capacity') ?: 1;
                                 $pct    = round(($salle->capacity / $maxCap) * 100);
@@ -196,7 +190,6 @@
                         <div class="flex items-center justify-end gap-2">
 
                             @can('salle-edit')
-                            {{-- Edit button → opens pre-filled modal --}}
                             <button
                                 onclick="openEditModal({{ $salle->id }}, '{{ addslashes($salle->name) }}', {{ $salle->capacity }})"
                                 class="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-600
@@ -212,21 +205,19 @@
 
                             @can('salle-delete')
                             @if($salle->sessions_count === 0)
-                            <form method="POST" action="{{ route('salles.destroy', $salle) }}"
-                                  onsubmit="return confirm('Supprimer la salle « {{ addslashes($salle->name) }} » ?')">
-                                @csrf @method('DELETE')
-                                <button type="submit"
-                                        class="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500
-                                               hover:bg-red-100 flex items-center justify-center transition-colors"
-                                        title="Supprimer">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
-                                                 L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
-                                </button>
-                            </form>
+                            <button
+                                onclick="openDeleteModal({{ $salle->id }}, '{{ addslashes($salle->name) }}')"
+                                class="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500
+                                       hover:bg-red-100 flex items-center justify-center transition-colors"
+                                title="Supprimer">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
+                                             L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
                             @else
+                            {{-- Greyed-out icon when salle is in use --}}
                             <div class="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-300
                                         flex items-center justify-center cursor-not-allowed"
                                  title="Impossible — salle utilisée dans un EDT">
@@ -238,6 +229,7 @@
                             </div>
                             @endif
                             @endcan
+
                         </div>
                     </td>
                 </tr>
@@ -263,19 +255,20 @@
 
 {{-- ════════════════════════════════════════════════════════
      MODAL — CREATE
+     Wrapped in @can so the HTML is never even sent to the browser
+     for users without the permission.
 ════════════════════════════════════════════════════════ --}}
+@can('salle-create')
 <div id="modal-create"
      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
          onclick="event.stopPropagation()">
 
-        {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-[#1a4f8a]/10 flex items-center justify-center">
                     <svg class="w-5 h-5 text-[#1a4f8a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 4v16m8-8H4"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                 </div>
                 <h3 class="font-semibold text-slate-800">Nouvelle salle</h3>
@@ -289,7 +282,6 @@
             </button>
         </div>
 
-        {{-- Body --}}
         <form method="POST" action="{{ route('salles.store') }}" class="px-6 py-5 space-y-4">
             @csrf
 
@@ -303,6 +295,9 @@
                               focus:outline-none focus:ring-2 focus:ring-[#1a4f8a]/30 focus:border-[#1a4f8a]
                               bg-slate-50 text-slate-800 placeholder:text-slate-400"
                        required>
+                @error('name')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
@@ -315,6 +310,9 @@
                               focus:outline-none focus:ring-2 focus:ring-[#1a4f8a]/30 focus:border-[#1a4f8a]
                               bg-slate-50 text-slate-800 placeholder:text-slate-400"
                        required>
+                @error('capacity')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-2">
@@ -333,16 +331,17 @@
         </form>
     </div>
 </div>
+@endcan
 
 {{-- ════════════════════════════════════════════════════════
      MODAL — EDIT
 ════════════════════════════════════════════════════════ --}}
+@can('salle-edit')
 <div id="modal-edit"
      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
          onclick="event.stopPropagation()">
 
-        {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -352,7 +351,10 @@
                                  m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
                 </div>
-                <h3 class="font-semibold text-slate-800">Modifier la salle</h3>
+                <div>
+                    <h3 class="font-semibold text-slate-800">Modifier la salle</h3>
+                    <p id="edit-modal-subtitle" class="text-xs text-slate-400 mt-0.5"></p>
+                </div>
             </div>
             <button onclick="document.getElementById('modal-edit').classList.add('hidden')"
                     class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100
@@ -363,9 +365,10 @@
             </button>
         </div>
 
-        {{-- Body --}}
         <form method="POST" id="edit-form" action="" class="px-6 py-5 space-y-4">
             @csrf @method('PATCH')
+            {{-- Hidden field so we can detect which modal to re-open after a failed update --}}
+            <input type="hidden" name="_edit_id" id="edit-hidden-id" value="">
 
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
@@ -376,6 +379,9 @@
                               focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400
                               bg-slate-50 text-slate-800"
                        required>
+                @error('name')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
@@ -388,6 +394,9 @@
                               focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400
                               bg-slate-50 text-slate-800"
                        required>
+                @error('capacity')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-2">
@@ -406,39 +415,114 @@
         </form>
     </div>
 </div>
+@endcan
 
-{{-- Close modals on backdrop click --}}
+{{-- ════════════════════════════════════════════════════════
+     MODAL — DELETE CONFIRM
+════════════════════════════════════════════════════════ --}}
+@can('salle-delete')
+<div id="modal-delete"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+         onclick="event.stopPropagation()">
+
+        <div class="px-6 pt-6 pb-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858
+                             L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </div>
+            <h3 class="text-base font-semibold text-slate-800 mb-1">Supprimer la salle ?</h3>
+            <p id="delete-modal-name" class="text-sm text-slate-500 mb-1"></p>
+            <p class="text-xs text-slate-400">Cette action est irréversible.</p>
+        </div>
+
+        <div class="px-6 pb-6 flex gap-3">
+            <button onclick="document.getElementById('modal-delete').classList.add('hidden')"
+                    class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100
+                           hover:bg-slate-200 rounded-xl transition-colors">
+                Annuler
+            </button>
+            <form id="delete-form" method="POST" action="" class="flex-1">
+                @csrf @method('DELETE')
+                <button type="submit"
+                        class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-red-500
+                               hover:bg-red-600 rounded-xl transition-colors shadow-sm">
+                    Supprimer
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
+
+{{-- ── SCRIPTS ──────────────────────────────────────────────────────── --}}
 <script>
-    // Open edit modal and pre-fill fields
+    // ── Edit modal ────────────────────────────────────────────────────
     function openEditModal(id, name, capacity) {
-        document.getElementById('edit-form').action = '/salles/' + id;
-        document.getElementById('edit-name').value     = name;
-        document.getElementById('edit-capacity').value = capacity;
+        document.getElementById('edit-form').action            = '/salles/' + id;
+        document.getElementById('edit-name').value             = name;
+        document.getElementById('edit-capacity').value         = capacity;
+        document.getElementById('edit-hidden-id').value        = id;
+        document.getElementById('edit-modal-subtitle').textContent = name;
         document.getElementById('modal-edit').classList.remove('hidden');
     }
 
-    // Close modals on backdrop click
-    ['modal-create', 'modal-edit'].forEach(id => {
-        document.getElementById(id).addEventListener('click', function(e) {
+    // ── Delete modal ──────────────────────────────────────────────────
+    function openDeleteModal(id, name) {
+        document.getElementById('delete-form').action            = '/salles/' + id;
+        document.getElementById('delete-modal-name').textContent = '« ' + name + ' »';
+        document.getElementById('modal-delete').classList.remove('hidden');
+    }
+
+    // ── Backdrop click closes any open modal ──────────────────────────
+    ['modal-create', 'modal-edit', 'modal-delete'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', function(e) {
             if (e.target === this) this.classList.add('hidden');
         });
     });
 
-    // Live search / filter
+    // ── ESC key closes any open modal ────────────────────────────────
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        ['modal-create', 'modal-edit', 'modal-delete'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+    });
+
+    // ── Live search ───────────────────────────────────────────────────
     function filterTable(query) {
-        const q = query.toLowerCase().trim();
-        document.querySelectorAll('.salle-row').forEach(row => {
-            const name = row.dataset.name || '';
-            row.style.display = name.includes(q) ? '' : 'none';
+        var q = query.toLowerCase().trim();
+        document.querySelectorAll('.salle-row').forEach(function(row) {
+            row.style.display = (row.dataset.name || '').includes(q) ? '' : 'none';
         });
     }
 </script>
 
-{{-- Auto-open create modal if validation failed on store --}}
-@if($errors->any() && old('_method') === null)
+{{-- Auto-open CREATE modal when store validation fails --}}
+@if($errors->any() && old('_method') === null && !old('_edit_id'))
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('modal-create').classList.remove('hidden');
+    document.addEventListener('DOMContentLoaded', function() {
+        var modal = document.getElementById('modal-create');
+        if (modal) modal.classList.remove('hidden');
+    });
+</script>
+@endif
+
+{{-- Auto-open EDIT modal when update validation fails --}}
+@if($errors->any() && old('_method') === 'PATCH' && old('_edit_id'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        openEditModal(
+            {{ (int) old('_edit_id') }},
+            '{{ addslashes(old('name', '')) }}',
+            {{ (int) old('capacity', 0) }}
+        );
     });
 </script>
 @endif

@@ -39,6 +39,12 @@ class PermissionsSeeder extends Seeder
             'groupe-edit',
             'groupe-delete',
 
+            // Salles
+            'salle-list',
+            'salle-create',
+            'salle-edit',
+            'salle-delete',
+
             // EDU Import
             'edu-view',
             'edu-import',
@@ -53,10 +59,22 @@ class PermissionsSeeder extends Seeder
             'reportation-create',
             'reportation-manage',
 
-            // ── Réclamations ──────────────────────────────────
-            'reclamation-create',   // Stagiaire : soumettre une réclamation
-            'reclamation-list',     // Stagiaire : voir ses propres réclamations
-            'reclamation-manage',   // Admin/Gestionnaire : voir toutes + changer statut
+            // Réclamations
+            'reclamation-create',
+            'reclamation-list',
+            'reclamation-manage',
+
+            // News & Événements
+            'news-list',
+            'news-create',
+            'news-edit',
+            'news-delete',
+            'news-comment',
+            'news-like',
+
+            // Absences & Retards
+            'absence-view',        // stagiaire: ses propres absences; staff: consulter
+            'absence-view-all',    // admin / gestionnaire / formateur: toutes les absences
         ];
 
         foreach ($permissions as $perm) {
@@ -65,11 +83,11 @@ class PermissionsSeeder extends Seeder
             );
         }
 
-        // ── Admin — tout ──────────────────────────────────────
+        // ── Admin — tout ──────────────────────────────────────────
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions(Permission::all());
 
-        // ── Gestionnaire — gestion complète sauf rôles ────────
+        // ── Gestionnaire — gestion complète sauf rôles ────────────
         $gestionnaireRole = Role::firstOrCreate(['name' => 'gestionnaire', 'guard_name' => 'web']);
         $gestionnaireRole->syncPermissions([
             'emploi-view',
@@ -88,32 +106,56 @@ class PermissionsSeeder extends Seeder
             'stagiaire-create',
             'stagiaire-edit',
             'stagiaire-delete',
+            'salle-list',
+            'salle-create',
+            'salle-edit',
+            'salle-delete',
             'edu-view',
             'edu-import',
             'reportation-manage',
-            'reclamation-manage',   // ← voir toutes les réclamations + changer statut
+            'reclamation-manage',
+            'news-list',
+            'news-create',
+            'news-edit',
+            'news-delete',
+            'news-comment',
+            'news-like',
+            // Absences
+            'absence-view',
+            'absence-view-all',
         ]);
 
-        // ── Formateur — ses séances + lien + module + report ──
+        // ── Formateur — ses séances + lien + module + report ──────
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
         $formateurRole->syncPermissions([
             'emploi-view',
             'emploi-lien',
             'user-list',
             'groupe-list',
+            'salle-list',
             'reportation-create',
-            // Pas de permission réclamation pour le formateur
+            'news-list',
+            'news-comment',
+            'news-like',
+            // Absences
+            'absence-view',
+            'absence-view-all',
         ]);
 
-        // ── Stagiaire — son emploi du temps + réclamations ────
+        // ── Stagiaire — son emploi du temps + réclamations + news ─
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
         $stagiaireRole->syncPermissions([
             'emploi-view',
-            'reclamation-create',   // ← soumettre une réclamation
-            'reclamation-list',     // ← voir ses propres réclamations
+            'reclamation-create',
+            'reclamation-list',
+            'news-list',
+            'news-comment',
+            'news-like',
+            // Absences
+            'absence-view',
         ]);
 
-        // ── Assignation des rôles Spatie aux users existants ──
+        // ── Assignation des rôles Spatie aux users existants ──────
         User::all()->each(function (User $user) {
             $user->syncRoles([$user->role]);
         });

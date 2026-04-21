@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredStagiaireController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\EduImportController;
 use App\Http\Controllers\EmploiDuTempsController;
 use App\Http\Controllers\FiliereController;
@@ -9,10 +12,12 @@ use App\Http\Controllers\GroupeController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SalleController;
 use App\Http\Controllers\UserManagementController;
-use App\Http\Controllers\SeanceController;           // ← PATCH : CONTROLLER IMPORT
+use App\Http\Controllers\SeanceController;
 use App\Http\Controllers\ReportationController;
 use App\Http\Controllers\StagiaireController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\NewsEventController;
+use App\Http\Controllers\ReclamationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +30,12 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store'])->name('login.post');
     Route::get('register',  [RegisteredStagiaireController::class, 'create'])->name('register');
     Route::post('register', [RegisteredStagiaireController::class, 'store'])->name('register.post');
+
+    // Password reset
+    Route::get('forgot-password',        [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('forgot-password',       [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('reset-password',        [NewPasswordController::class, 'store'])->name('password.store');
 });
 
 // ─────────────────────────────────────────────
@@ -65,22 +76,34 @@ Route::middleware(['auth', 'role:gestionnaire'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// ADMIN
+// ADMIN ONLY
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', fn() => view('admin.dashboard'))
         ->name('admin.dashboard');
 
+    // Roles management — admin only
     Route::resource('roles', RoleController::class);
+});
 
+// ─────────────────────────────────────────────
+// USER MANAGEMENT — admin + gestionnaire
+// NOTE: constructor middleware in the controller
+//       handles fine-grained permission checks.
+// ─────────────────────────────────────────────
+Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
     Route::prefix('users')->name('users.management.')->group(function () {
         Route::get('/',              [UserManagementController::class, 'index'])      ->name('index');
         Route::get('/create',        [UserManagementController::class, 'create'])     ->name('create');
         Route::post('/',             [UserManagementController::class, 'store'])      ->name('store');
         Route::get('/{user}/edit',   [UserManagementController::class, 'edit'])       ->name('edit');
         Route::put('/{user}',        [UserManagementController::class, 'update'])     ->name('update');
-        Route::delete('/{user}',     [UserManagementController::class, 'destroy'])    ->name('destroy');
         Route::patch('/{user}/role', [UserManagementController::class, 'updateRole']) ->name('updateRole');
+
+        // Delete stays admin-only
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])
+            ->name('destroy')
+            ->middleware('role:admin');
     });
 });
 
@@ -124,15 +147,14 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->grou
         ->name('emplois.remplacant');
 });
 
-// ════════════════════════════════════════════════════════════════
-// PATCH: SÉANCE ROUTES (à l'intérieur du middleware auth)
-// ════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────
+// SÉANCES
+// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
-    // Séance detail — presence & classroom
-    Route::get('/seances/{emploi}',                             [SeanceController::class, 'show'])->name('seances.show');
-    Route::post('/seances/{emploi}/presence',                   [SeanceController::class, 'savePresence'])->name('seances.presence');
-    Route::post('/seances/{emploi}/ressources',                 [SeanceController::class, 'addRessource'])->name('seances.ressource.store');
-    Route::delete('/seances/{emploi}/ressources/{cours}',       [SeanceController::class, 'deleteRessource'])->name('seances.ressource.destroy');
+    Route::get('/seances/{emploi}',                       [SeanceController::class, 'show'])->name('seances.show');
+    Route::post('/seances/{emploi}/presence',             [SeanceController::class, 'savePresence'])->name('seances.presence');
+    Route::post('/seances/{emploi}/ressources',           [SeanceController::class, 'addRessource'])->name('seances.ressource.store');
+    Route::delete('/seances/{emploi}/ressources/{cours}', [SeanceController::class, 'deleteRessource'])->name('seances.ressource.destroy');
 });
 
 // ─────────────────────────────────────────────
@@ -266,56 +288,93 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
         ->name('stagiaire.destroy')->middleware('can:stagiaire-delete');
 });
 
-// Importer en haut du fichier
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\ReclamationController;
-
-// Dans le bloc guest
-Route::middleware('guest')->group(function () {
-    Route::get('/', fn() => redirect()->route('login'));
-    Route::get('login',   [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('login',  [AuthenticatedSessionController::class, 'store'])->name('login.post');
-    Route::get('register',  [RegisteredStagiaireController::class, 'create'])->name('register');
-    Route::post('register', [RegisteredStagiaireController::class, 'store'])->name('register.post');
-
-    // ← Ajouter ces 4 routes
-    Route::get('forgot-password',        [PasswordResetLinkController::class, 'create'])->name('password.request');
-    Route::post('forgot-password',       [PasswordResetLinkController::class, 'store'])->name('password.email');
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
-    Route::post('reset-password',        [NewPasswordController::class, 'store'])->name('password.store');
-});
-
-
-
+// ─────────────────────────────────────────────
+// RÉCLAMATIONS
+// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
- 
-    // Stagiaire : voir ses propres réclamations
-// ✅ CORRECT — pas de middleware can: sur l'index
-Route::get('/reclamations', [ReclamationController::class, 'index'])
-    ->name('reclamations.index'); // ← le controller fait abort(403) lui-même
-        // Note: Laravel @can pipe = OR → on utilise un middleware custom
-        // OU simplifier avec can:reclamation-list pour stagiaire
-        // et can:reclamation-manage pour admin/gestionnaire
-        // Le controller gère déjà la logique interne.
- 
-    // Stagiaire : formulaire nouvelle réclamation
+    Route::get('/reclamations', [ReclamationController::class, 'index'])
+        ->name('reclamations.index');
+
     Route::get('/reclamations/create', [ReclamationController::class, 'create'])
         ->name('reclamations.create')
         ->middleware('can:reclamation-create');
- 
-    // Stagiaire : soumettre la réclamation
+
     Route::post('/reclamations', [ReclamationController::class, 'store'])
         ->name('reclamations.store')
         ->middleware('can:reclamation-create');
- 
-    // Admin / Gestionnaire : changer le statut
+
     Route::patch('/reclamations/{reclamation}/status', [ReclamationController::class, 'updateStatus'])
         ->name('reclamations.status')
         ->middleware('can:reclamation-manage');
- 
-    // Admin : supprimer une réclamation
+
     Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
+});
+
+// ─────────────────────────────────────────────
+// NEWS & ÉVÉNEMENTS
+// ─────────────────────────────────────────────
+Route::middleware(['auth'])->group(function () {
+    Route::get('/news', [NewsEventController::class, 'index'])
+        ->name('news.index')
+        ->middleware('can:news-list');
+
+    Route::get('/news/create', [NewsEventController::class, 'create'])
+        ->name('news.create')
+        ->middleware('can:news-create');
+
+    Route::post('/news', [NewsEventController::class, 'store'])
+        ->name('news.store')
+        ->middleware('can:news-create');
+
+    Route::get('/news/{news}', [NewsEventController::class, 'show'])
+        ->name('news.show')
+        ->middleware('can:news-list');
+
+    Route::get('/news/{news}/edit', [NewsEventController::class, 'edit'])
+        ->name('news.edit')
+        ->middleware('can:news-edit');
+
+    Route::put('/news/{news}', [NewsEventController::class, 'update'])
+        ->name('news.update')
+        ->middleware('can:news-edit');
+
+    Route::delete('/news/{news}', [NewsEventController::class, 'destroy'])
+        ->name('news.destroy')
+        ->middleware('can:news-delete');
+
+    // Commentaires
+    Route::post('/news/{news}/comments', [NewsEventController::class, 'storeComment'])
+        ->name('news.comments.store')
+        ->middleware('can:news-comment');
+
+    Route::delete('/news/{news}/comments/{comment}', [NewsEventController::class, 'destroyComment'])
+        ->name('news.comments.destroy')
+        ->middleware('can:news-list');
+
+    // Likes (AJAX POST, retourne JSON)
+    Route::post('/news/{news}/like', [NewsEventController::class, 'toggleLike'])
+        ->name('news.like')
+        ->middleware('can:news-like');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/absences', [AbsenceController::class, 'index'])
+        ->name('absences.index')
+        ->middleware('can:absence-view');
+
+    Route::patch('/absences/{absence}/justification', [AbsenceController::class, 'toggleJustification'])
+        ->name('absences.justify')
+        ->middleware('can:absence-view-all');
+
+    // ← ADD THIS
+    Route::post('/absences/{absence}/fichier', [AbsenceController::class, 'uploadFichier'])
+        ->name('absences.fichier')
+        ->middleware('can:absence-view-all');
+
+    // ← AND THIS (to delete the file)
+    Route::delete('/absences/{absence}/fichier', [AbsenceController::class, 'deleteFichier'])
+        ->name('absences.fichier.delete')
+        ->middleware('can:absence-view-all');
 });

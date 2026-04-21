@@ -5,16 +5,76 @@
 @section('content')
 
 @php
-    $canCreate = Auth::user()->can('groupe-create');
-    $canEdit   = Auth::user()->can('groupe-edit');
-    $canDelete = Auth::user()->can('groupe-delete');
+    $user     = Auth::user();
+    $userRole = $user->role;
+
+    $palettes = [
+        'admin'        => [
+            'primary'   => '#0a6640',
+            'dark'      => '#065f38',
+            'light'     => '#e8f5ee',
+            'border'    => 'rgba(10,102,64,.18)',
+            'shadow'    => 'rgba(10,102,64,.3)',
+            'pill_bg'   => '#e8f5ee',
+            'pill_text' => '#065f38',
+            'pill_cnt'  => '#0a6640',
+            'yr2_bg'    => '#fdf4ff', 'yr2_text' => '#6b21a8', 'yr2_cnt' => '#7e22ce', 'yr2_lbl' => '#6b21a8',
+            'yr3_bg'    => '#fff7ed', 'yr3_text' => '#c2410c', 'yr3_cnt' => '#c2410c', 'yr3_lbl' => '#c2410c',
+        ],
+        'gestionnaire' => [
+            'primary'   => '#1e293b',
+            'dark'      => '#0f172a',
+            'light'     => '#f1f5f9',
+            'border'    => 'rgba(30,41,59,.18)',
+            'shadow'    => 'rgba(30,41,59,.3)',
+            'pill_bg'   => '#f1f5f9',
+            'pill_text' => '#1e293b',
+            'pill_cnt'  => '#334155',
+            'yr2_bg'    => '#fdf4ff', 'yr2_text' => '#6b21a8', 'yr2_cnt' => '#7e22ce', 'yr2_lbl' => '#6b21a8',
+            'yr3_bg'    => '#fff7ed', 'yr3_text' => '#c2410c', 'yr3_cnt' => '#c2410c', 'yr3_lbl' => '#c2410c',
+        ],
+        'formateur'    => [
+            'primary'   => '#1a4f8a',
+            'dark'      => '#1e40af',
+            'light'     => '#eff6ff',
+            'border'    => 'rgba(26,79,138,.18)',
+            'shadow'    => 'rgba(26,79,138,.3)',
+            'pill_bg'   => '#eff6ff',
+            'pill_text' => '#1e40af',
+            'pill_cnt'  => '#1a4f8a',
+            'yr2_bg'    => '#fdf4ff', 'yr2_text' => '#6b21a8', 'yr2_cnt' => '#7e22ce', 'yr2_lbl' => '#6b21a8',
+            'yr3_bg'    => '#fff7ed', 'yr3_text' => '#c2410c', 'yr3_cnt' => '#c2410c', 'yr3_lbl' => '#c2410c',
+        ],
+        'stagiaire'    => [
+            'primary'   => '#ea580c',
+            'dark'      => '#9a3412',
+            'light'     => '#fff7ed',
+            'border'    => 'rgba(234,88,12,.18)',
+            'shadow'    => 'rgba(234,88,12,.3)',
+            'pill_bg'   => '#fff7ed',
+            'pill_text' => '#9a3412',
+            'pill_cnt'  => '#ea580c',
+            'yr2_bg'    => '#fdf4ff', 'yr2_text' => '#6b21a8', 'yr2_cnt' => '#7e22ce', 'yr2_lbl' => '#6b21a8',
+            'yr3_bg'    => '#f0fdfa', 'yr3_text' => '#0f766e', 'yr3_cnt' => '#0f766e', 'yr3_lbl' => '#0f766e',
+        ],
+    ];
+
+    $p = $palettes[$userRole] ?? $palettes['gestionnaire'];
+
+    $canCreate = $user->can('groupe-create');
+    $canEdit   = $user->can('groupe-edit');
+    $canDelete = $user->can('groupe-delete');
 @endphp
 
 <style>
 :root {
-    --primary: #0a6640; --primary-dark: #065f38; --primary-light: #e8f5ee;
+    --primary:       {{ $p['primary'] }};
+    --primary-dark:  {{ $p['dark'] }};
+    --primary-light: {{ $p['light'] }};
+    --primary-border:{{ $p['border'] }};
+    --primary-shadow:{{ $p['shadow'] }};
     --warning: #f59e0b; --warning-light: #fef3c7;
-    --danger: #dc2626;  --danger-light: #fee2e2;
+    --danger:  #dc2626; --danger-light:  #fee2e2;
     --success: #15803d; --success-light: #f0fdf4;
     --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
     --gray-400: #94a3b8; --gray-500: #64748b; --gray-800: #1e293b; --gray-900: #0f172a;
@@ -43,19 +103,13 @@
     background: var(--gray-100); color: var(--gray-800); border: 1px solid var(--gray-200);
 }
 .code-badge.empty { color: var(--gray-400); font-style: italic; font-weight: 400; font-family: inherit; }
-.group-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: 8px;
-    background: var(--primary-light); color: var(--primary-dark); border: 1px solid rgba(10,102,64,.18);
-}
-.group-count { font-size: 9px; background: var(--primary); color: white; padding: 1px 6px; border-radius: 99px; font-weight: 700; }
 .btn-act {
     display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
     font-size: 12px; font-weight: 700; border-radius: 10px; border: none;
     cursor: pointer; transition: opacity .15s; text-decoration: none;
 }
 .btn-act:hover { opacity: .88; }
-.btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(10,102,64,.3); }
+.btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px var(--primary-shadow); }
 .btn-warning { background: var(--warning-light); color: #92400e; border: 1px solid #fde68a; }
 .btn-danger  { background: var(--danger-light);  color: var(--danger); border: 1px solid #fecaca; }
 .btn-ghost   { background: white; color: var(--gray-500); border: 1.5px solid var(--gray-200); }
@@ -75,7 +129,7 @@
 .modal-ft { padding:14px 24px; border-top:1px solid var(--gray-100); display:flex; gap:10px; }
 .f-label { display:block; font-size:9px; font-weight:800; color:var(--gray-400); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:7px; }
 .f-input { width:100%; height:42px; padding:0 12px; border-radius:10px; border:1.5px solid var(--gray-200); background:var(--gray-50); font-size:13px; color:var(--gray-800); outline:none; transition:all .15s; box-sizing:border-box; }
-.f-input:focus { border-color:var(--primary); background:white; box-shadow:0 0 0 3px rgba(10,102,64,.08); }
+.f-input:focus { border-color:var(--primary); background:white; box-shadow:0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent); }
 .f-input.edit-focus:focus { border-color:var(--warning); box-shadow:0 0 0 3px rgba(245,158,11,.1); }
 .f-hint { font-size:9px; color:var(--gray-400); margin-top:5px; line-height:1.5; }
 .f-code-hint { margin-top:6px; padding:7px 10px; border-radius:8px; background:#fffbeb; border:1px solid #fde68a; font-size:9px; color:#92400e; line-height:1.6; }
@@ -184,13 +238,13 @@
             @else
                 {{-- 1ère Année --}}
                 @if($groupes1->isNotEmpty())
-                    <div style="font-size:9px;font-weight:800;color:var(--gray-400);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1ère année</div>
+                    <div style="font-size:9px;font-weight:800;color:var(--primary-dark);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">1ère année</div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
                         @foreach($groupes1 as $g)
-                            <div class="group-pill">
-                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:var(--primary);color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
+                            <div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;background:{{ $p['pill_bg'] }};color:{{ $p['pill_text'] }};border:1px solid var(--primary-border);">
+                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:{{ $p['pill_cnt'] }};color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
                                 {{ $g->name }}
-                                <span class="group-count">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
+                                <span style="font-size:9px;background:{{ $p['pill_cnt'] }};color:white;padding:1px 6px;border-radius:99px;font-weight:700;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -198,13 +252,13 @@
 
                 {{-- 2ème Année --}}
                 @if($groupes2->isNotEmpty())
-                    <div style="font-size:9px;font-weight:800;color:#6b21a8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">2ème année</div>
+                    <div style="font-size:9px;font-weight:800;color:{{ $p['yr2_lbl'] }};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">2ème année</div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
                         @foreach($groupes2 as $g)
-                            <div class="group-pill" style="background:#fdf4ff;color:#6b21a8;border-color:rgba(107,33,168,.18);">
-                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:#7e22ce;color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
+                            <div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;background:{{ $p['yr2_bg'] }};color:{{ $p['yr2_text'] }};border:1px solid rgba(107,33,168,.18);">
+                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:{{ $p['yr2_cnt'] }};color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
                                 {{ $g->name }}
-                                <span class="group-count" style="background:#7e22ce;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
+                                <span style="font-size:9px;background:{{ $p['yr2_cnt'] }};color:white;padding:1px 6px;border-radius:99px;font-weight:700;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -212,13 +266,13 @@
 
                 {{-- 3ème Année --}}
                 @if($groupes3->isNotEmpty())
-                    <div style="font-size:9px;font-weight:800;color:#c2410c;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">3ème année</div>
+                    <div style="font-size:9px;font-weight:800;color:{{ $p['yr3_lbl'] }};letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">3ème année</div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;">
                         @foreach($groupes3 as $g)
-                            <div class="group-pill" style="background:#fff7ed;color:#c2410c;border-color:rgba(194,65,12,.18);">
-                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:#c2410c;color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
+                            <div style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;background:{{ $p['yr3_bg'] }};color:{{ $p['yr3_text'] }};border:1px solid rgba(194,65,12,.18);">
+                                @if($g->code)<span style="font-family:monospace;font-size:9px;font-weight:800;background:{{ $p['yr3_cnt'] }};color:white;padding:1px 5px;border-radius:4px;">{{ $g->code }}</span>@endif
                                 {{ $g->name }}
-                                <span class="group-count" style="background:#c2410c;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
+                                <span style="font-size:9px;background:{{ $p['yr3_cnt'] }};color:white;padding:1px 6px;border-radius:99px;font-weight:700;">{{ $g->stagiaires_count }}/{{ $g->nbr_limit }}</span>
                             </div>
                         @endforeach
                     </div>

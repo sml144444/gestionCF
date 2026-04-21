@@ -6,7 +6,7 @@
 @php
     $user = Auth::user();
     $userRole = $user->role;
-    
+
     $palettes = [
         'admin'        => ['primary'=>'#0a6640','medium'=>'#1a8c56','light'=>'#e8f5ee','lighter'=>'#f0fdf4','text'=>'#065f38','border'=>'#bbf7d0','shadow'=>'rgba(10,102,64,0.15)','gradient'=>'linear-gradient(135deg,#0a6640 0%,#1a8c56 100%)'],
         'gestionnaire' => ['primary'=>'#1e293b','medium'=>'#334155','light'=>'#f1f5f9','lighter'=>'#f8fafc','text'=>'#1e293b','border'=>'#cbd5e1','shadow'=>'rgba(30,41,59,0.15)','gradient'=>'linear-gradient(135deg,#1e293b 0%,#334155 100%)'],
@@ -14,20 +14,20 @@
         'stagiaire'    => ['primary'=>'#ea580c','medium'=>'#f97316','light'=>'#fff7ed','lighter'=>'#fffbeb','text'=>'#9a3412','border'=>'#fed7aa','shadow'=>'rgba(234,88,12,0.15)','gradient'=>'linear-gradient(135deg,#ea580c 0%,#f97316 100%)'],
     ];
     $p = $palettes[$userRole] ?? $palettes['gestionnaire'];
-    
+
     $groupLabels = [
         'emploi' => [
             'label' => 'Emploi du temps',
             'icon'  => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
             'color' => '#2563eb', 'bg' => '#eff6ff',
             'perms' => [
-                'emploi-view' => '📅 Consulter son planning',
+                'emploi-view'            => '📅 Consulter son planning',
                 'emploi-view-all-groups' => '👑 Consulter tous les groupes',
-                'emploi-create' => '➕ Créer une séance',
-                'emploi-edit' => '✏️ Modifier une séance',
-                'emploi-delete' => '🗑️ Supprimer une séance',
-                'emploi-lien' => '🔗 Gérer les liens de réunion',
-                'emploi-change-module' => '📚 Changer le module d\'une séance',
+                'emploi-create'          => '➕ Créer une séance',
+                'emploi-edit'            => '✏️ Modifier une séance',
+                'emploi-delete'          => '🗑️ Supprimer une séance',
+                'emploi-lien'            => '🔗 Gérer les liens de réunion',
+                'emploi-change-module'   => '📚 Changer le module d\'une séance',
             ]
         ],
         'user' => [
@@ -35,9 +35,9 @@
             'icon'  => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v2h5M7 20v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z',
             'color' => '#16a34a', 'bg' => '#f0fdf4',
             'perms' => [
-                'user-list' => '📋 Voir la liste des utilisateurs',
+                'user-list'   => '📋 Voir la liste des utilisateurs',
                 'user-create' => '➕ Créer un utilisateur',
-                'user-edit' => '✏️ Modifier un utilisateur',
+                'user-edit'   => '✏️ Modifier un utilisateur',
                 'user-delete' => '🗑️ Supprimer un utilisateur',
             ]
         ],
@@ -46,10 +46,10 @@
             'icon'  => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
             'color' => '#0891b2', 'bg' => '#ecfeff',
             'perms' => [
-                'stagiaire-list' => '👥 Voir la liste des stagiaires',
-                'stagiaire-create' => '➕ Créer un stagiaire',      
-                'stagiaire-edit'   => '✏️ Modifier un stagiaire',  
-                'stagiaire-delete' => '🗑️ Supprimer un stagiaire', 
+                'stagiaire-list'   => '👥 Voir la liste des stagiaires',
+                'stagiaire-create' => '➕ Créer un stagiaire',
+                'stagiaire-edit'   => '✏️ Modifier un stagiaire',
+                'stagiaire-delete' => '🗑️ Supprimer un stagiaire',
             ]
         ],
         'groupe' => [
@@ -57,10 +57,21 @@
             'icon'  => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
             'color' => '#9333ea', 'bg' => '#fdf4ff',
             'perms' => [
-                'groupe-list' => '📋 Voir les groupes',
+                'groupe-list'   => '📋 Voir les groupes',
                 'groupe-create' => '➕ Créer un groupe',
-                'groupe-edit' => '✏️ Modifier un groupe',
+                'groupe-edit'   => '✏️ Modifier un groupe',
                 'groupe-delete' => '🗑️ Supprimer un groupe',
+            ]
+        ],
+        'salle' => [
+            'label' => 'Salles',
+            'icon'  => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+            'color' => '#0f766e', 'bg' => '#f0fdfa',
+            'perms' => [
+                'salle-list'   => '📋 Voir les salles',
+                'salle-create' => '➕ Créer une salle',
+                'salle-edit'   => '✏️ Modifier une salle',
+                'salle-delete' => '🗑️ Supprimer une salle',
             ]
         ],
         'edu' => [
@@ -69,7 +80,7 @@
             'color' => '#ea580c', 'bg' => '#fff7ed',
             'perms' => [
                 'edu-import' => '📥 Importer des données EDU',
-                'edu-view' => '📋 Voir les imports',
+                'edu-view'   => '📋 Voir les imports',
             ]
         ],
         'role' => [
@@ -77,9 +88,9 @@
             'icon'  => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
             'color' => '#dc2626', 'bg' => '#fff1f2',
             'perms' => [
-                'role-list' => '📋 Voir les rôles',
+                'role-list'   => '📋 Voir les rôles',
                 'role-create' => '➕ Créer un rôle',
-                'role-edit' => '✏️ Modifier un rôle',
+                'role-edit'   => '✏️ Modifier un rôle',
                 'role-delete' => '🗑️ Supprimer un rôle',
             ]
         ],
@@ -88,30 +99,31 @@
             'icon'  => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
             'color' => '#7c3aed', 'bg' => '#f5f3ff',
             'perms' => [
-                'reportation-create' => '📋 Demander un report de séance',
-                'reportation-manage' => '✅ Gérer les reportations (accepter/refuser)',
+                'reportation-create' => '📝 Créer une reportation',
+                'reportation-manage' => '⚙️ Gérer toutes les reportations',
             ]
         ],
-        'salle' => [
-            'label' => 'Salles',
-            'icon'  => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-            'color' => '#0d9488', 'bg' => '#f0fdfa',
-            'perms' => [
-                'salle-list'   => '🏫 Voir la liste des salles',
-                'salle-create' => '➕ Ajouter une salle',
-                'salle-edit'   => '✏️ Modifier une salle',
-                'salle-delete' => '🗑️ Supprimer une salle',
-            ]
-        ],
-        // 👇 BLOC RÉCLAMATIONS AJOUTÉ ICI
         'reclamation' => [
             'label' => 'Réclamations',
             'icon'  => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
-            'color' => '#db2777', 'bg' => '#fdf2f8',
+            'color' => '#0f766e', 'bg' => '#f0fdfa',
             'perms' => [
                 'reclamation-create' => '📝 Soumettre une réclamation',
-                'reclamation-list'   => '📋 Voir ses propres réclamations',
-                'reclamation-manage' => '✅ Gérer toutes les réclamations',
+                'reclamation-list'   => '📋 Voir ses réclamations',
+                'reclamation-manage' => '⚙️ Gérer toutes les réclamations',
+            ]
+        ],
+        'news' => [
+            'label' => 'News & Événements',
+            'icon'  => 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z',
+            'color' => '#b45309', 'bg' => '#fefce8',
+            'perms' => [
+                'news-list'    => '📰 Voir les publications',
+                'news-create'  => '✍️ Publier une actualité',
+                'news-edit'    => '✏️ Modifier une publication',
+                'news-delete'  => '🗑️ Supprimer une publication',
+                'news-comment' => '💬 Commenter une publication',
+                'news-like'    => '❤️ Liker une publication',
             ]
         ],
     ];
@@ -119,315 +131,170 @@
 
 <style>
 :root {
-    --accent: {{ $p['primary'] }};
-    --accent-gr: {{ $p['gradient'] }};
+    --accent:    {{ $p['primary'] }};
+    --accent-md: {{ $p['medium'] }};
+    --accent-lt: {{ $p['light'] }};
+    --accent-ltr:{{ $p['lighter'] }};
+    --accent-tx: {{ $p['text'] }};
+    --accent-bd: {{ $p['border'] }};
     --accent-sh: {{ $p['shadow'] }};
+    --accent-gr: {{ $p['gradient'] }};
 }
-.role-create-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:900px; margin:0 auto; }
-.role-hero { background:var(--accent-gr); border-radius:20px; padding:28px 32px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; position:relative; overflow:hidden; }
-.role-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
-.role-hero-icon { width:52px; height:52px; border-radius:16px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.role-hero-title { font-size:20px; font-weight:800; color:white; margin:0; }
-.role-hero-sub { font-size:12px; color:rgba(255,255,255,0.75); margin-top:3px; }
-.role-hero-badge { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); color:white; font-size:11px; font-weight:700; padding:6px 14px; border-radius:99px; }
-.flash-error { padding:14px 18px; background:#fff1f2; border:1px solid #fecdd3; border-radius:14px; margin-bottom:16px; }
-.flash-error li { font-size:12px; color:#be123c; margin:2px 0; }
-.role-form-card { background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.05); }
-.role-form-section { padding:22px 28px; border-bottom:1px solid #f1f5f9; }
-.role-form-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
-.role-input { width:100%; height:44px; padding:0 14px; border-radius:12px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:14px; font-weight:600; color:#1e293b; outline:none; box-sizing:border-box; transition:all .15s; }
-.role-input:focus { border-color:var(--accent); background:white; }
-.role-input::placeholder { font-weight:400; color:#cbd5e1; }
-.perms-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
-.perms-actions { display:flex; gap:8px; }
-.perms-action-btn { font-size:10px; font-weight:600; padding:5px 12px; border-radius:8px; border:none; cursor:pointer; transition:all .15s; }
-.perms-action-btn.select-all { background:#e8f5ee; color:#0a6640; }
-.perms-action-btn.select-all:hover { background:#d1fae5; }
-.perms-action-btn.deselect-all { background:#f1f5f9; color:#64748b; }
-.perms-action-btn.deselect-all:hover { background:#e2e8f0; }
-.perms-group { border:1px solid #e2e8f0; border-radius:16px; overflow:hidden; margin-bottom:14px; transition:all .2s; }
-.perms-group:hover { border-color:var(--accent); box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-.perms-group-header { padding:14px 20px; display:flex; align-items:center; gap:12px; cursor:pointer; background:white; }
-.perms-group-icon { width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.perms-group-title { font-size:14px; font-weight:700; }
-.perms-group-count { margin-left:auto; font-size:10px; font-weight:800; padding:3px 10px; border-radius:99px; }
-.perms-group-toggle { transition:transform 0.2s; }
-.perms-group-body { padding:14px 20px; display:flex; flex-wrap:wrap; gap:8px; background:#fafbfc; border-top:1px solid #f1f5f9; }
-.permission-check { display:inline-flex; align-items:center; gap:8px; cursor:pointer; padding:8px 14px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; transition:all .15s; user-select:none; }
-.permission-check:hover { border-color:var(--accent); transform:translateY(-1px); }
-.permission-tick { width:18px; height:18px; border-radius:6px; background:white; border:2px solid #cbd5e1; display:flex; align-items:center; justify-content:center; transition:all .15s; flex-shrink:0; }
-.permission-check.selected .permission-tick { background:var(--accent); border-color:var(--accent); }
-.permission-check.selected .permission-tick svg { display:block; }
-.permission-tick svg { display:none; width:10px; height:10px; stroke:white; stroke-width:3; }
-.permission-label { font-size:11px; font-weight:600; color:#475569; }
-.permission-check.selected .permission-label { color:var(--accent); }
-.btn-back { display:inline-flex; align-items:center; gap:8px; padding:8px 18px; border-radius:12px; background:white; color:#475569; font-size:12px; font-weight:600; text-decoration:none; border:1.5px solid #e2e8f0; margin-bottom:20px; transition:all .2s; }
-.btn-back:hover { border-color:var(--accent); background:var(--accent); color:white; }
-.btn-back:hover svg { stroke:white; }
-.btn-submit { flex:1; height:48px; border-radius:12px; border:none; background:var(--accent-gr); color:white; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 4px 12px var(--accent-sh); transition:opacity .15s; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
-.btn-submit:hover { opacity:.88; }
-.btn-cancel { flex:1; height:48px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; color:#64748b; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; transition:all .15s; }
-.btn-cancel:hover { border-color:var(--accent); background:var(--accent-lt); color:var(--accent-tx); }
-.search-perms { margin-bottom:20px; position:relative; }
-.search-perms input { width:100%; height:42px; padding:0 14px 0 38px; border-radius:12px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; outline:none; }
-.search-perms input:focus { border-color:var(--accent); background:white; }
-.search-perms svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); stroke:#94a3b8; }
-.stats-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:99px; font-size:10px; font-weight:700; background:#f1f5f9; color:#64748b; }
+.rc-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:900px; margin:0 auto; }
+.rc-back { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#64748b; text-decoration:none; padding:8px 14px; border-radius:10px; background:white; border:1.5px solid #e2e8f0; margin-bottom:20px; transition:all .15s; }
+.rc-back:hover { color:var(--accent-tx); border-color:var(--accent-bd); background:var(--accent-lt); }
+.rc-hero { background:var(--accent-gr); border-radius:20px; padding:24px 28px; margin-bottom:24px; display:flex; align-items:center; gap:16px; position:relative; overflow:hidden; }
+.rc-hero::after { content:''; position:absolute; right:-30px; top:-30px; width:160px; height:160px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
+.rc-hero-icon { width:48px; height:48px; border-radius:15px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rc-hero-title { font-size:18px; font-weight:800; color:white; margin:0; }
+.rc-hero-sub { font-size:11px; color:rgba(255,255,255,0.75); margin-top:2px; }
+.rc-card { background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; }
+.rc-name-field { padding:24px 24px 16px; border-bottom:1px solid #f1f5f9; }
+.rc-label { display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:8px; }
+.rc-input { width:100%; padding:10px 14px; border-radius:12px; border:1.5px solid #e2e8f0; font-size:13px; font-weight:500; color:#1e293b; outline:none; transition:border .15s; }
+.rc-input:focus { border-color:var(--accent-bd); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent); }
+.rc-perm-group { border-bottom:1px solid #f1f5f9; }
+.rc-perm-group:last-child { border-bottom:none; }
+.rc-perm-group-header { padding:14px 24px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; transition:background .1s; }
+.rc-perm-group-header:hover { background:#fafafa; }
+.rc-perm-group-label { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; }
+.rc-perm-group-icon { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rc-perm-group-body { display:flex; flex-wrap:wrap; gap:8px; padding:4px 24px 16px; }
+.rc-perm-item { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; border:1.5px solid #e2e8f0; cursor:pointer; transition:all .15s; background:white; }
+.rc-perm-item:hover { border-color:var(--accent-bd); background:var(--accent-ltr); }
+.rc-perm-item input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+.rc-perm-item label { font-size:12px; font-weight:600; color:#374151; cursor:pointer; }
+.rc-footer { padding:20px 24px; border-top:1px solid #f1f5f9; display:flex; gap:12px; justify-content:flex-end; }
+.btn-primary { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:12px; border:none; background:var(--accent-gr); color:white; font-size:14px; font-weight:700; cursor:pointer; transition:all .15s; box-shadow:0 4px 12px var(--accent-sh); }
+.btn-primary:hover { opacity:.88; }
+.btn-outline { display:inline-flex; align-items:center; gap:6px; padding:11px 20px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; color:#64748b; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; text-decoration:none; }
+.btn-outline:hover { border-color:var(--accent-bd); color:var(--accent-tx); background:var(--accent-lt); }
+.rc-select-all { font-size:10px; font-weight:700; padding:4px 10px; border-radius:8px; border:1px solid #e2e8f0; background:white; color:#64748b; cursor:pointer; }
+.rc-select-all:hover { background:#f1f5f9; }
+.flash-err { padding:14px 18px; background:#fff1f2; border:1px solid #fecdd3; border-radius:14px; margin-bottom:16px; }
 </style>
 
-<div class="role-create-wrap">
+<div class="rc-wrap">
+    <a href="{{ route('roles.index') }}" class="rc-back">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Retour aux rôles
+    </a>
 
-{{-- Back button --}}
-<a href="{{ route('roles.index') }}" class="btn-back">
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
-    </svg>
-    Retour aux rôles
-</a>
+    @if($errors->any())
+        <div class="flash-err">
+            @foreach($errors->all() as $error)
+                <p style="font-size:12px;color:#be123c;margin:0;">✕ {{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
 
-{{-- Hero section --}}
-<div class="role-hero">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <div class="role-hero-icon">
-            <svg width="26" height="26" fill="none" stroke="white" viewBox="0 0 24 24">
+    <div class="rc-hero">
+        <div class="rc-hero-icon">
+            <svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
         </div>
         <div>
-            <h1 class="role-hero-title">Créer un nouveau rôle</h1>
-            <p class="role-hero-sub">Définissez un nom et sélectionnez les permissions</p>
+            <h1 class="rc-hero-title">Créer un nouveau rôle</h1>
+            <p class="rc-hero-sub">Définissez le nom et les permissions de ce rôle</p>
         </div>
     </div>
-    <span class="role-hero-badge">{{ ucfirst($userRole) }}</span>
-</div>
 
-{{-- Errors --}}
-@if($errors->any())
-    <div class="flash-error">
-        <ul style="margin:0; padding-left:16px;">
-            @foreach($errors->all() as $e)<li>✕ {{ $e }}</li>@endforeach
-        </ul>
-    </div>
-@endif
+    <div class="rc-card">
+        <form action="{{ route('roles.store') }}" method="POST">
+            @csrf
 
-{{-- Form --}}
-<div class="role-form-card">
-    <form method="POST" action="{{ route('roles.store') }}" id="role-form">
-        @csrf
-
-        {{-- Role name --}}
-        <div class="role-form-section">
-            <label class="role-form-label">
-                <span style="color:#ef4444;">*</span> Nom du rôle
-            </label>
-            <input type="text" name="name" value="{{ old('name') }}"
-                   placeholder="ex: coordinateur, responsable pédagogique, assistant..."
-                   class="role-input" required>
-            <div style="font-size:10px; color:#94a3b8; margin-top:6px;">
-                ⚡ Utilisez des lettres minuscules et des tirets (ex: responsable-pedagogique)
-            </div>
-        </div>
-
-        {{-- Permissions section --}}
-        <div class="role-form-section" style="border-bottom:none;">
-            <div class="perms-header">
-                <div>
-                    <div class="role-form-label" style="margin-bottom:0;">Permissions</div>
-                    <div style="font-size:11px; color:#64748b; margin-top:4px;">
-                        Sélectionnez les droits à attribuer à ce rôle
-                    </div>
-                </div>
-                <div class="perms-actions">
-                    <button type="button" class="perms-action-btn select-all" onclick="toggleAllPermissions(true)">
-                        ✅ Tout sélectionner
-                    </button>
-                    <button type="button" class="perms-action-btn deselect-all" onclick="toggleAllPermissions(false)">
-                        ❌ Tout désélectionner
-                    </button>
-                </div>
+            {{-- NOM --}}
+            <div class="rc-name-field">
+                <label class="rc-label" for="name">Nom du rôle <span style="color:#dc2626">*</span></label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    class="rc-input"
+                    value="{{ old('name') }}"
+                    placeholder="ex: coordinateur, observateur..."
+                    style="max-width:400px;"
+                    required>
             </div>
 
-            {{-- Search filter --}}
-            <div class="search-perms">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                <input type="text" id="search-perms" placeholder="Filtrer les permissions..." onkeyup="filterPermissions()">
+            {{-- PERMISSIONS --}}
+            <div style="padding:20px 24px 8px;">
+                <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px;">Permissions</div>
+                <div style="font-size:11px;color:#94a3b8;">Cochez les permissions à attribuer à ce rôle</div>
             </div>
 
-            <div id="permissions-container">
-                @foreach($groupLabels as $groupKey => $group)
-                    @php 
-                        $g = $group;
-                        $oldPermissions = old('permission', []);
-                    @endphp
-                    <div class="perms-group" data-group="{{ $groupKey }}">
-                        <div class="perms-group-header" onclick="toggleGroup(this)">
-                            <div class="perms-group-icon" style="background:{{ $g['color'] }}20;">
-                                <svg width="18" height="18" fill="none" stroke="{{ $g['color'] }}" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ $g['icon'] }}"/>
+            @foreach($groupLabels as $groupKey => $group)
+                @php
+                    $groupPerms = isset($permissions[$groupKey]) ? $permissions[$groupKey] : collect();
+                @endphp
+                @if($groupPerms->isNotEmpty() || !empty($group['perms']))
+                <div class="rc-perm-group">
+                    <div class="rc-perm-group-header" onclick="toggleGroup('{{ $groupKey }}')">
+                        <div class="rc-perm-group-label">
+                            <div class="rc-perm-group-icon" style="background:{{ $group['bg'] }};">
+                                <svg width="18" height="18" fill="none" stroke="{{ $group['color'] }}" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ $group['icon'] }}"/>
                                 </svg>
                             </div>
-                            <span class="perms-group-title" style="color:{{ $g['color'] }};">{{ $g['label'] }}</span>
-                            <span class="perms-group-count" style="background:{{ $g['color'] }}10; color:{{ $g['color'] }};" id="count-{{ $groupKey }}">
-                                {{ count($g['perms']) }} permission(s)
-                            </span>
-                            <svg class="perms-group-toggle" width="14" height="14" fill="none" stroke="{{ $g['color'] }}" viewBox="0 0 24 24" style="transition:transform 0.2s;">
+                            <span style="color:{{ $group['color'] }};">{{ $group['label'] }}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button type="button" class="rc-select-all" onclick="event.stopPropagation();selectAll('{{ $groupKey }}', true)">Tout</button>
+                            <button type="button" class="rc-select-all" onclick="event.stopPropagation();selectAll('{{ $groupKey }}', false)">Aucun</button>
+                            <svg id="chevron-{{ $groupKey }}" width="16" height="16" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" style="transition:.2s;transform:rotate(180deg);">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </div>
-                        <div class="perms-group-body">
-                            @foreach($g['perms'] as $permName => $permLabel)
-                                <label class="permission-check" data-perm="{{ $permName }}" onclick="togglePermission(this, event)">
-                                    <span class="permission-tick">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </span>
-                                    <span class="permission-label">{{ $permLabel }}</span>
-                                    <input type="checkbox" name="permission[]" value="{{ $permName }}"
-                                           {{ in_array($permName, $oldPermissions) ? 'checked' : '' }}
-                                           style="display:none;">
-                                </label>
-                            @endforeach
-                        </div>
                     </div>
-                @endforeach
-            </div>
-
-            {{-- Selected count only --}}
-            <div style="margin-top:20px; padding:12px 16px; background:#f8fafc; border-radius:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                <div class="stats-badge">
-                    <span>📋</span>
-                    <span id="selected-count">0</span>
-                    <span>permission(s) sélectionnée(s)</span>
+                    <div id="group-{{ $groupKey }}" class="rc-perm-group-body">
+                        @foreach($group['perms'] as $permName => $permLabel)
+                            @php
+                                $exists = $groupPerms->where('name', $permName)->isNotEmpty();
+                            @endphp
+                            @if($exists)
+                                <div class="rc-perm-item" onclick="toggleCheck('cb-{{ str_replace(['-','.',' '], '_', $permName) }}')">
+                                    <input type="checkbox"
+                                        id="cb-{{ str_replace(['-','.',' '], '_', $permName) }}"
+                                        name="permission[]"
+                                        value="{{ $permName }}"
+                                        data-group="{{ $groupKey }}"
+                                        {{ in_array($permName, old('permission', [])) ? 'checked' : '' }}>
+                                    <label for="cb-{{ str_replace(['-','.',' '], '_', $permName) }}">{{ $permLabel }}</label>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
+                @endif
+            @endforeach
+
+            {{-- FOOTER --}}
+            <div class="rc-footer">
+                <a href="{{ route('roles.index') }}" class="btn-outline">Annuler</a>
+                <button type="submit" class="btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Créer le rôle
+                </button>
             </div>
-        </div>
-
-        {{-- Submit buttons --}}
-        <div style="padding:20px 28px; border-top:1px solid #f1f5f9; display:flex; gap:12px;">
-            <a href="{{ route('roles.index') }}" class="btn-cancel">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-                Annuler
-            </a>
-            <button type="submit" class="btn-submit">
-                <svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                </svg>
-                Créer le rôle
-            </button>
-        </div>
-    </form>
-</div>
-
+        </form>
+    </div>
 </div>
 
 <script>
-// Initialize all checkboxes style
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.permission-check').forEach(function(label) {
-        const cb = label.querySelector('input');
-        if (cb && cb.checked) {
-            label.classList.add('selected');
-        }
-    });
-    updateSelectedCount();
-    
-    // Open first group by default
-    const firstGroup = document.querySelector('.perms-group');
-    if (firstGroup) {
-        const body = firstGroup.querySelector('.perms-group-body');
-        const icon = firstGroup.querySelector('.perms-group-toggle');
-        if (body && icon) {
-            body.style.display = 'flex';
-            icon.style.transform = 'rotate(0deg)';
-        }
-    }
-});
-
-function togglePermission(label, event) {
-    event.stopPropagation();
-    const cb = label.querySelector('input');
-    cb.checked = !cb.checked;
-    
-    if (cb.checked) {
-        label.classList.add('selected');
-    } else {
-        label.classList.remove('selected');
-    }
-    
-    updateSelectedCount();
+function toggleGroup(key) {
+    const body = document.getElementById('group-' + key);
+    const chevron = document.getElementById('chevron-' + key);
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'flex' : 'none';
+    chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
 }
-
-function toggleAllPermissions(checked) {
-    document.querySelectorAll('.permission-check').forEach(function(label) {
-        const cb = label.querySelector('input');
-        cb.checked = checked;
-        if (checked) {
-            label.classList.add('selected');
-        } else {
-            label.classList.remove('selected');
-        }
-    });
-    updateSelectedCount();
+function selectAll(key, checked) {
+    document.querySelectorAll(`input[type=checkbox][data-group="${key}"]`).forEach(cb => cb.checked = checked);
 }
-
-function updateSelectedCount() {
-    const count = document.querySelectorAll('.permission-check input:checked').length;
-    document.getElementById('selected-count').textContent = count;
-}
-
-function toggleGroup(header) {
-    const body = header.nextElementSibling;
-    const icon = header.querySelector('.perms-group-toggle');
-    if (body.style.display === 'none' || getComputedStyle(body).display === 'none') {
-        body.style.display = 'flex';
-        icon.style.transform = 'rotate(0deg)';
-    } else {
-        body.style.display = 'none';
-        icon.style.transform = 'rotate(-90deg)';
-    }
-}
-
-function filterPermissions() {
-    const searchTerm = document.getElementById('search-perms').value.toLowerCase();
-    const groups = document.querySelectorAll('.perms-group');
-    
-    groups.forEach(group => {
-        const labels = group.querySelectorAll('.permission-check');
-        let hasVisible = false;
-        
-        labels.forEach(label => {
-            const text = label.querySelector('.permission-label').textContent.toLowerCase();
-            if (searchTerm === '' || text.includes(searchTerm)) {
-                label.style.display = 'inline-flex';
-                hasVisible = true;
-            } else {
-                label.style.display = 'none';
-            }
-        });
-        
-        if (searchTerm !== '') {
-            const header = group.querySelector('.perms-group-header');
-            const body = group.querySelector('.perms-group-body');
-            if (hasVisible) {
-                group.style.display = 'block';
-                body.style.display = 'flex';
-                if (header) {
-                    const icon = header.querySelector('.perms-group-toggle');
-                    if (icon) icon.style.transform = 'rotate(0deg)';
-                }
-            } else {
-                group.style.display = 'none';
-            }
-        } else {
-            group.style.display = 'block';
-        }
-    });
+function toggleCheck(id) {
+    const cb = document.getElementById(id);
+    if (cb) cb.checked = !cb.checked;
 }
 </script>
-
 @endsection

@@ -116,9 +116,9 @@ class SeanceController extends Controller
                         'id_user'  => $stagiaireId,
                     ],
                     [
-                        'type'       => $status,           // 'retard' | 'absence'
+                        'type'       => $status,
                         'date_event' => $emploi->date_debut,
-                        'duree'      => null,
+                        'duree'      => round($emploi->date_debut->diffInMinutes($emploi->date_fin) / 60, 1), // ← was null
                         'justifie'   => false,
                     ]
                 );
