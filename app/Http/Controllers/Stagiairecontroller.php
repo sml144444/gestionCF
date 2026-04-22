@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\WelcomeMail;
+use App\Models\Edu;
 use App\Models\EmploiDuTemps;
 use App\Models\Filiere;
 use App\Models\Groupe;
@@ -27,7 +28,7 @@ class StagiaireController extends Controller
         $isFormateur = $user->role === 'formateur';
 
         // ── Formateur scope: resolve which groups they teach ──────────────────
-        $formateurGroupeIds = collect();
+        $formateurGroupeIds  = collect();
         $formateurFiliereIds = collect();
 
         if ($isFormateur) {
@@ -45,7 +46,6 @@ class StagiaireController extends Controller
                 ->unique()
                 ->values();
         }
-        // ─────────────────────────────────────────────────────────────────────
 
         $filiereId     = $request->get('filiere_id');
         $search        = $request->get('search', '');
@@ -66,7 +66,6 @@ class StagiaireController extends Controller
 
         $filieres = $filieresQuery->get();
 
-        // For formateurs, filter stagiaires count to their groups only
         $totalStagiaires = $isFormateur
             ? User::where('role', 'stagiaire')->whereIn('id_groupe', $formateurGroupeIds)->count()
             : User::where('role', 'stagiaire')->count();
@@ -97,12 +96,10 @@ class StagiaireController extends Controller
         // ── MODE B — filière selected ─────────────────────────────────────────
         $selectedFiliere = Filiere::findOrFail($filiereId);
 
-        // Formateur: enforce they can only see filieres they teach in
         if ($isFormateur && ! $formateurFiliereIds->contains($filiereId)) {
             abort(403, 'Vous n\'enseignez pas dans cette filière.');
         }
 
-        // Groups visible: for formateurs, restricted to their teaching groups
         $groupes = Groupe::where('id_filiere', $filiereId)
             ->when($isFormateur, fn ($q) => $q->whereIn('id', $formateurGroupeIds))
             ->withCount('stagiaires')
@@ -110,8 +107,7 @@ class StagiaireController extends Controller
             ->orderBy('name')
             ->get();
 
-        $allGroupes = $groupes;
-
+        $allGroupes      = $groupes;
         $promos          = $groupes->pluck('promo')->filter()->unique()->sort()->values();
         $anneesScolaires = collect();
 
@@ -128,7 +124,6 @@ class StagiaireController extends Controller
             ->with('groupe')
             ->orderBy('name');
 
-        // Formateur: only see stagiaires from their groups
         if ($isFormateur) {
             $query->whereIn('id_groupe', $formateurGroupeIds);
         }
@@ -252,15 +247,30 @@ class StagiaireController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // DELETE
+    // DELETE — ✅ remet le compte EDU en "en attente" si existe
     // ─────────────────────────────────────────────────────────────────────────
 
     public function destroy(User $stagiaire)
     {
-        $name = $stagiaire->name;
+        $name  = $stagiaire->name;
+        $email = $stagiaire->email;
+
+        // ✅ Chercher un compte EDU lié au même email
+        //    et le remettre en "en attente" (used = false)
+        $edu = Edu::where('edu_email', $email)->first();
+        if ($edu && $edu->used) {
+            $edu->used = false;
+            $edu->save();
+        }
+
         $stagiaire->delete();
 
-        return back()->with('success', 'Stagiaire "' . $name . '" supprimé.');
+        $message = "Stagiaire \"{$name}\" supprimé.";
+        if ($edu && $edu->wasChanged('used')) {
+            $message .= " Le compte EDU associé a été remis en attente.";
+        }
+
+        return back()->with('success', $message);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

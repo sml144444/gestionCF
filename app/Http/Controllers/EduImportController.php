@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\WelcomeEduMail;          // ← WelcomeMail spécifique au modèle Edu
+use App\Mail\WelcomeEduMail;
 use App\Models\Edu;
 use App\Models\EduImportLog;
 use App\Models\Filiere;
 use App\Models\Groupe;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -151,17 +152,36 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // DELETE
+    // DELETE — ✅ cascade suppression stagiaire si compte actif
     // ─────────────────────────────────────────────────────────
     public function destroy(Edu $edu): RedirectResponse
     {
         abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
 
         $name = "{$edu->prenom} {$edu->nom}";
+        $deletedStagiaire = false;
+
+        // ✅ Si le stagiaire a créé son compte (used = true),
+        //    supprimer aussi le User stagiaire correspondant
+        if ($edu->used) {
+            $stagiaire = User::where('email', $edu->edu_email)
+                             ->where('role', 'stagiaire')
+                             ->first();
+            if ($stagiaire) {
+                $stagiaire->delete();
+                $deletedStagiaire = true;
+            }
+        }
+
         $edu->delete();
 
+        $message = "Compte EDU de {$name} supprimé.";
+        if ($deletedStagiaire) {
+            $message .= " Le compte stagiaire associé a également été supprimé.";
+        }
+
         return redirect()->route('edu-import.index', ['tab' => 'accounts'])
-            ->with('success', "Compte de {$name} supprimé.");
+            ->with('success', $message);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -194,6 +214,15 @@ class EduImportController extends Controller
                 ->with('error', 'Aucune donnée à importer. Veuillez re-uploader le fichier.');
         }
 
+        // ✅ Créer le log EN PREMIER pour avoir son ID
+        $log = EduImportLog::create([
+            'id_user'  => auth()->id(),
+            'filename' => session('edu_import_filename', 'fichier.xlsx'),
+            'imported' => 0,
+            'skipped'  => 0,
+            'errors'   => count($preview['errors'] ?? []),
+        ]);
+
         $imported = 0;
         $skipped  = 0;
 
@@ -206,16 +235,16 @@ class EduImportController extends Controller
             $plainPassword = $row['plain_password'];
 
             $edu = Edu::create([
-                'edu_email'    => $row['edu_email'],
-                'password'     => Hash::make($plainPassword),
-                'nom'          => $row['nom'],
-                'prenom'       => $row['prenom'],
-                'filiere_code' => $row['filiere_code'],
-                'groupe_code'  => $row['groupe_code'],
-                'used'         => false,
+                'edu_email'         => $row['edu_email'],
+                'password'          => Hash::make($plainPassword),
+                'nom'               => $row['nom'],
+                'prenom'            => $row['prenom'],
+                'filiere_code'      => $row['filiere_code'],
+                'groupe_code'       => $row['groupe_code'],
+                'used'              => false,
+                'edu_import_log_id' => $log->id, // ✅ lier au log
             ]);
 
-            // ✅ Envoi de l'email de bienvenue avec les identifiants générés
             try {
                 Mail::to($edu->edu_email)->send(new WelcomeEduMail($edu, $plainPassword));
             } catch (\Exception $e) {
@@ -225,13 +254,8 @@ class EduImportController extends Controller
             $imported++;
         }
 
-        EduImportLog::create([
-            'id_user'  => auth()->id(),
-            'filename' => session('edu_import_filename', 'fichier.xlsx'),
-            'imported' => $imported,
-            'skipped'  => $skipped,
-            'errors'   => count($preview['errors'] ?? []),
-        ]);
+        // ✅ Mettre à jour les compteurs réels
+        $log->update(['imported' => $imported, 'skipped' => $skipped]);
 
         session()->forget(['edu_preview', 'edu_import_filename']);
 
@@ -244,7 +268,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // MANUAL ADD
+    // MANUAL ADD — ✅ vérification capacité groupe
     // ─────────────────────────────────────────────────────────
     public function manualStore(Request $request): RedirectResponse
     {
@@ -269,19 +293,23 @@ class EduImportController extends Controller
                 ->withInput();
         }
 
+        // ✅ Vérification capacité groupe
+        $groupe = Groupe::where('code', $data['groupe_code'])
+                        ->withCount('stagiaires')
+                        ->first();
+
+        if ($groupe && $groupe->stagiaires_count >= $groupe->nbr_limit) {
+            return back()
+                ->withErrors([
+                    'groupe_code' => "Le groupe «{$data['groupe_code']}» est complet ({$groupe->stagiaires_count}/{$groupe->nbr_limit} places). Choisissez un autre groupe.",
+                ])
+                ->withInput();
+        }
+
         $plainPassword = $this->generateSecurePassword();
 
-        $edu = Edu::create([
-            'nom'          => $data['nom'],
-            'prenom'       => $data['prenom'],
-            'edu_email'    => $data['edu_email'],
-            'password'     => Hash::make($plainPassword),
-            'filiere_code' => $data['filiere_code'],
-            'groupe_code'  => $data['groupe_code'],
-            'used'         => false,
-        ]);
-
-        EduImportLog::create([
+        // ✅ Créer le log EN PREMIER
+        $log = EduImportLog::create([
             'id_user'  => auth()->id(),
             'filename' => 'Ajout manuel',
             'imported' => 1,
@@ -289,7 +317,17 @@ class EduImportController extends Controller
             'errors'   => 0,
         ]);
 
-        // ✅ Envoi de l'email de bienvenue avec les identifiants générés
+        $edu = Edu::create([
+            'nom'               => $data['nom'],
+            'prenom'            => $data['prenom'],
+            'edu_email'         => $data['edu_email'],
+            'password'          => Hash::make($plainPassword),
+            'filiere_code'      => $data['filiere_code'],
+            'groupe_code'       => $data['groupe_code'],
+            'used'              => false,
+            'edu_import_log_id' => $log->id, // ✅ lier au log
+        ]);
+
         try {
             Mail::to($edu->edu_email)->send(new WelcomeEduMail($edu, $plainPassword));
         } catch (\Exception $e) {
@@ -298,6 +336,32 @@ class EduImportController extends Controller
 
         return redirect()->route('edu-import.index', ['tab' => 'accounts'])
             ->with('success', "Stagiaire {$data['prenom']} {$data['nom']} ajouté avec succès. Les identifiants ont été envoyés par e-mail.");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // SHOW LOG — détails d'un import (AJAX JSON)
+    // ─────────────────────────────────────────────────────────
+    public function showLog(EduImportLog $log): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(auth()->user()->hasPermissionTo('edu-view'), 403);
+
+        $accounts = $log->eduAccounts()
+            ->select('id', 'nom', 'prenom', 'edu_email', 'filiere_code', 'groupe_code', 'used', 'created_at')
+            ->orderBy('nom')
+            ->get();
+
+        return response()->json([
+            'log'      => [
+                'id'         => $log->id,
+                'filename'   => $log->filename,
+                'imported'   => $log->imported,
+                'skipped'    => $log->skipped,
+                'errors'     => $log->errors,
+                'created_at' => $log->created_at->format('d M Y H:i'),
+                'user'       => $log->user?->name ?? 'Inconnu',
+            ],
+            'accounts' => $accounts,
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -408,6 +472,7 @@ class EduImportController extends Controller
 
     /**
      * Validate rows — mot de passe auto-généré par ligne valide.
+     * ✅ Vérification capacité groupe ajoutée.
      */
     private function validateRows(array $rows): array
     {
@@ -424,6 +489,19 @@ class EduImportController extends Controller
             ->get()
             ->pluck('filiere_code', 'groupe_code')
             ->toArray();
+
+        // ✅ Pré-charger les capacités et le nombre de stagiaires actuels par groupe
+        $groupeCapacities = Groupe::withCount('stagiaires')
+            ->get()
+            ->keyBy('code')
+            ->map(fn($g) => [
+                'limit' => $g->nbr_limit,
+                'count' => $g->stagiaires_count,
+            ])
+            ->toArray();
+
+        // ✅ Compteur local pour les ajouts en cours d'import (même fichier)
+        $groupeAddedCount = [];
 
         $seenEmails = [];
 
@@ -468,6 +546,21 @@ class EduImportController extends Controller
                 continue;
             }
 
+            // ✅ Vérification capacité groupe (DB + ajouts du fichier en cours)
+            if (isset($groupeCapacities[$gc])) {
+                $currentCount = $groupeCapacities[$gc]['count'] + ($groupeAddedCount[$gc] ?? 0);
+                $limit        = $groupeCapacities[$gc]['limit'];
+
+                if ($currentCount >= $limit) {
+                    $errors[]       = "Ligne {$line} — Le groupe «{$gc}» est complet ({$currentCount}/{$limit} places). «{$email}» ignoré.";
+                    $skippedLines[] = $line;
+                    continue;
+                }
+            }
+
+            // ✅ Incrémenter le compteur local pour ce groupe
+            $groupeAddedCount[$gc] = ($groupeAddedCount[$gc] ?? 0) + 1;
+
             // ✅ Mot de passe généré ici — stocké temporairement en session pour l'envoi email
             $plainPassword = $this->generateSecurePassword();
 
@@ -494,7 +587,7 @@ class EduImportController extends Controller
     }
 
     /**
-     * Mot de passe sécurisé aléatoire — même algorithme que UserManagementController.
+     * Mot de passe sécurisé aléatoire.
      */
     private function generateSecurePassword(int $length = 12): string
     {

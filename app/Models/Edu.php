@@ -7,15 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Edu extends Model
 {
     protected $table = 'edu';
-    protected $fillable = [
-        'edu_email',
-        'password',
-        'nom',
-        'prenom',
-        'filiere_code',
-        'groupe_code',
-        'used',
-    ];
+protected $fillable = [
+    'edu_email', 'password', 'nom', 'prenom',
+    'filiere_code', 'groupe_code', 'used',
+    'edu_import_log_id',   // ← ajouter
+];
+
+public function importLog()
+{
+    return $this->belongsTo(EduImportLog::class, 'edu_import_log_id');
+}
 
     protected $hidden = ['password'];
 

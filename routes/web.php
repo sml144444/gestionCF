@@ -195,6 +195,10 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/edu-import/{edu}', [EduImportController::class, 'destroy'])
         ->name('edu-import.destroy')
         ->middleware('can:edu-import');
+
+    Route::get('/edu-import/log/{log}', [EduImportController::class, 'showLog'])
+    ->name('edu-import.log')
+    ->middleware('can:edu-view');
 });
 
 // ─────────────────────────────────────────────

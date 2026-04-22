@@ -14,4 +14,8 @@ class EduImportLog extends Model
     {
         return $this->belongsTo(User::class, 'id_user');
     }
+    public function eduAccounts()
+{
+    return $this->hasMany(Edu::class, 'edu_import_log_id');
+}
 }

@@ -53,6 +53,8 @@
             $progressFlat[$gId . '_' . $mId] = round($hours, 2);
         }
     }
+
+    $today = \Carbon\Carbon::today();
 @endphp
 
 <style>
@@ -111,7 +113,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
 .tt-session-td { padding: 5px; }
 
-/* ════ NEW CARD STYLES (modernized) ════ */
+/* ════ CARD STYLES ════ */
 .tt-card {
     border-radius: 14px;
     background: white;
@@ -127,10 +129,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     box-shadow: 0 6px 20px rgba(0,0,0,0.09);
 }
 
-/* ── Body section ── */
 .tt-card-body { padding: 11px 12px 9px; }
 
-/* ── Header row: module name + time pill ── */
 .tt-card-header {
     display: flex;
     align-items: flex-start;
@@ -162,7 +162,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     flex-shrink: 0;
 }
 
-/* ── Meta rows ── */
 .tt-card-meta { display: flex; flex-direction: column; gap: 4px; }
 .tt-card-row  { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #475569; }
 .tt-card-icon {
@@ -174,12 +173,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-card-icon svg { width: 9px; height: 9px; }
 .tt-card-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 
-/* ── Variant: distance ── */
 .card-distance { border-top-color: #f59e0b; background: #fffbeb; }
 .card-distance .tt-card-module { color: #92400e; }
 .card-distance .tt-card-time   { background: #fef3c7; color: #b45309; }
 
-/* ── Variant: brouillon ── */
 .card-brouillon {
     opacity: 0.7;
     border-style: dashed;
@@ -198,19 +195,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     margin-bottom: 5px;
 }
 
-/* ── Variant colours (role-1…4) — border-top only ── */
 .card-role-1 { border-top-color: {{ $cardPalette['medium'] }}; }
 .card-role-2 { border-top-color: {{ $cardPalette['text'] }}; }
 .card-role-3 { border-top-color: {{ $cardPalette['text'] }}80; }
 .card-role-4 { border-top-color: {{ $cardPalette['medium'] }}b0; }
 
-/* ── Progress bar ── */
 .card-progress { margin-top: 6px; }
 .card-progress-track { height: 3px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
 .card-progress-fill  { height: 100%; border-radius: 99px; transition: width 0.3s; }
 .card-progress-meta  { display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: 2px; }
 
-/* ── Replacement badges ── */
 .remplacant-badge {
     display: inline-flex; align-items: center; gap: 3px;
     font-size: 7px; font-weight: 800; padding: 1px 5px; border-radius: 99px;
@@ -224,7 +218,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     text-transform: uppercase; letter-spacing: .3px;
 }
 
-/* ── Footer: 3-button strip (always visible) ── */
 .tt-card-footer {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -246,17 +239,38 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-foot-btn-cls:hover         { background: {{ $p['light'] }}; color: {{ $p['text'] }}; }
 .card-distance .tt-card-footer { background: #fef9ee; }
 
-/* ── Hover action buttons (edit/del, appear on hover, kept for compat) ── */
 .tt-actions { position: absolute; top: 7px; right: 7px; display: none; gap: 3px; }
 .tt-card:hover .tt-actions { display: flex; }
 .tt-btn-edit { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
 .tt-btn-del  { font-size: 9px; font-weight: 700; background: #fee2e2; color: #dc2626; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
 .tt-btn-edit:hover, .tt-btn-del:hover { opacity: 0.8; }
 
-/* ── Empty cell / add button ── */
+/* ── Empty cell ── */
 .tt-empty-td { padding: 5px; }
-.tt-add-btn { width: 100%; min-height: 72px; border: 1.5px dashed #e2e8f0; border-radius: 10px; background: transparent; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #e2e8f0; cursor: pointer; transition: all 0.15s; }
+.tt-add-btn {
+    width: 100%; min-height: 72px;
+    border: 1.5px dashed #e2e8f0; border-radius: 10px;
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #e2e8f0;
+    cursor: pointer; transition: all 0.15s;
+}
 .tt-add-btn:hover { border-color: {{ $accentColor }}; color: {{ $accentColor }}; background: {{ $p['light'] }}; }
+
+/* ── Past day locked cell ── */
+.tt-past-cell {
+    width: 100%; min-height: 72px;
+    border-radius: 10px;
+    background: repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 4px,
+        #f1f5f9 4px,
+        #f1f5f9 8px
+    );
+    display: flex; align-items: center; justify-content: center;
+    cursor: not-allowed;
+}
 
 /* ── Navigation ── */
 .tt-nav-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; color: #475569; text-decoration: none; transition: all 0.15s; cursor: pointer; }
@@ -529,6 +543,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </td>
 
             @foreach($dayDates as $dayNum => $date)
+                @php $isPastDay = $date->copy()->startOfDay()->lt($today); @endphp
                 @foreach(EmploiDuTempsController::SEANCES as $sNum => $seance)
                     @php
                         $cell      = $grid[$groupe->id][$dayNum][$sNum] ?? ['type' => 'empty'];
@@ -587,10 +602,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                         @endphp
                         <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
 
-                            {{-- ═══ NEW CARD STRUCTURE ═══ --}}
                             <div class="tt-card {{ $cardClass }}">
 
-                                {{-- Hover action buttons (edit/delete/lien/report/remplacant) --}}
                                 @if($canEdit || $canDelete || $canLien || $canChangeModule || $isGestionnaire || $canReport)
                                 <div class="tt-actions">
                                     @if($canEdit)
@@ -666,7 +679,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                 </div>
                                 @endif
 
-                                {{-- ── Card body ── --}}
                                 <div class="tt-card-body">
 
                                     @if($isDraft)<div class="draft-badge">Brouillon</div>@endif
@@ -677,7 +689,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                     </div>
 
                                     <div class="tt-card-meta">
-                                        {{-- Formateur / remplaçant --}}
                                         @if($hasRemplacant)
                                             <div class="tt-card-row" style="flex-direction:column; align-items:flex-start; gap:2px;">
                                                 <div style="display:flex;align-items:center;gap:5px;">
@@ -706,7 +717,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                             </div>
                                         @endif
 
-                                        {{-- Salle / lien distance --}}
                                         @if($isRemote && $emploi->lien_distance)
                                             <div class="tt-card-row">
                                                 <div class="tt-card-icon" style="background:#fef3c7;">
@@ -731,12 +741,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                             </div>
                                         @endif
 
-                                        {{-- Time --}}
                                         <div class="tt-card-row" style="color:#94a3b8; font-size:9px;">
                                             {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
                                         </div>
 
-                                        {{-- Progress bar --}}
                                         @if($progTotal > 0 && $emploi->date_debut->isPast())
                                             @php $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture(); @endphp
                                             <div class="card-progress">
@@ -756,11 +764,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                             </div>
                                         @endif
                                     </div>
-                                </div>{{-- /.tt-card-body --}}
+                                </div>
 
-                                {{-- ── Footer: 3 permanent buttons ── --}}
                                 <div class="tt-card-footer">
-                                    {{-- Voir --}}
                                     <a href="{{ route('seances.show', $emploi) }}"
                                        class="tt-foot-btn"
                                        title="Voir le détail">
@@ -771,7 +777,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                         Voir
                                     </a>
 
-                                    {{-- Présence (admin / gestionnaire / formateur) --}}
                                     @if(in_array(Auth::user()->role, ['admin','gestionnaire','formateur']))
                                         @if(!$isDraft)
                                             <a href="{{ route('seances.show', $emploi) }}#presence"
@@ -789,11 +794,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                             </span>
                                         @endif
                                     @else
-                                        {{-- stagiaire: empty spacer keeps grid balanced --}}
                                         <span></span>
                                     @endif
 
-                                    {{-- Cours / Classroom --}}
                                     <a href="{{ route('seances.show', $emploi) }}#classroom"
                                        class="tt-foot-btn tt-foot-btn-cls"
                                        title="Ressources du cours">
@@ -803,18 +806,28 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                         </svg>
                                         Cours
                                     </a>
-                                </div>{{-- /.tt-card-footer --}}
+                                </div>
 
-                            </div>{{-- /.tt-card --}}
+                            </div>
                         </td>
 
                     @else
+                        {{-- ── EMPTY CELL ── --}}
                         <td class="tt-empty-td" style="{{ $cellBorder }}">
-                            @if($canCreate)
+                            @if($canCreate && !$isPastDay)
+                                {{-- Future or today: show + button --}}
                                 <button class="tt-add-btn"
                                         onclick="openModalWithSlot({{ $dayNum }}, {{ $sNum }}, '{{ $date->toDateString() }}', {{ $groupe->id }})">
                                     +
                                 </button>
+                            @elseif($canCreate && $isPastDay)
+                                {{-- Past day: locked cell --}}
+                                <div class="tt-past-cell" title="Impossible de créer une séance sur une date passée">
+                                    <svg width="14" height="14" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" stroke-width="2"/>
+                                        <path stroke-width="2" d="M7 11V7a5 5 0 0110 0v4"/>
+                                    </svg>
+                                </div>
                             @else
                                 <div style="min-height:72px;"></div>
                             @endif
@@ -872,7 +885,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 </div>{{-- .tt-wrap --}}
 
 {{-- ════════════════════════════════════════════════════════════
-     MODALS (DELETE, LIEN, REMPLACEMENT, REPORT, CREATE/EDIT)
+     MODALS
      ════════════════════════════════════════════════════════════ --}}
 
 {{-- ── DELETE ──────────────────────────────────────────────── --}}
@@ -1160,7 +1173,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </div>
 
             @if($canCreate || $canEdit)
-            {{-- Mode --}}
             <div>
                 <label class="tt-modal-label">Mode de séance</label>
                 <div class="mode-toggle">
@@ -1176,7 +1188,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <input type="hidden" name="mode" id="m-mode" value="presentiel">
             </div>
 
-            {{-- Durée --}}
             <div>
                 <label class="tt-modal-label">Durée</label>
                 <select id="m-dur" onchange="onDurationChange()" class="tt-modal-input">
@@ -1187,7 +1198,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
-            {{-- Preview bar --}}
             <div style="border-radius:12px; padding:12px; background:{{ $p['light'] }}; border:1px solid {{ $accentColor }}20;">
                 <div style="display:flex; justify-content:space-between; font-size:9px; color:#475569; margin-bottom:8px;">
                     <span id="prev-start" style="font-weight:700;">08:30</span>
@@ -1206,7 +1216,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </div>
             </div>
 
-            {{-- Module --}}
             @if($canSelectModule)
             <div id="module-row">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
@@ -1243,7 +1252,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </div>
             @endif
 
-            {{-- Formateur --}}
             <div>
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">Formateur</label>
@@ -1258,7 +1266,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
-            {{-- Salle --}}
             <div id="salle-row">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">Salle</label>
@@ -1273,7 +1280,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
-            {{-- Lien distance --}}
             <div id="lien-row" style="display:none;">
                 <label class="tt-modal-label">Lien de réunion (Teams / Zoom…)</label>
                 <input type="text" name="lien_distance" id="m-lien" placeholder="https://teams.microsoft.com/..." class="tt-modal-input" style="height:42px;">
@@ -1295,9 +1301,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 </div>
 @endif
 
-{{-- ════════════════════════════════════════════════════════════
-     JAVASCRIPT
-     ════════════════════════════════════════════════════════════ --}}
+{{-- ════ JAVASCRIPT ════ --}}
 <script>
 const SEANCE_STARTS = ['08:30','11:00','13:30','16:00'];
 const SEANCE_ENDS   = ['11:00','13:30','16:00','18:30'];
@@ -1329,7 +1333,6 @@ let _currentMode   = 'presentiel';
 let _allFormateurs = @json($formateurs->map(fn($f) => ['id'=>$f->id,'name'=>$f->name]));
 let _allSalles     = @json($salles->map(fn($s) => ['id'=>$s->id,'name'=>$s->name,'capacity'=>$s->capacity]));
 
-// ── Mode toggle ───────────────────────────────────────────────
 function setMode(mode) {
     _currentMode = mode;
     document.getElementById('m-mode').value = mode;
@@ -1358,7 +1361,6 @@ function setMode(mode) {
     loadAvailable();
 }
 
-// ── Preview bar ───────────────────────────────────────────────
 function updatePreview(seanceIdx, duration) {
     let totalH = 0;
     for (let i = 1; i <= 4; i++) {
@@ -1374,7 +1376,6 @@ function updatePreview(seanceIdx, duration) {
     document.getElementById('prev-label').textContent = totalH + 'h · ' + duration + ' séance' + (duration > 1 ? 's' : '');
 }
 
-// ── Populate select ───────────────────────────────────────────
 function populateSelect(selectId, items, labelFn, countSpanId, loadingSpanId) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
@@ -1400,7 +1401,6 @@ function populateSelect(selectId, items, labelFn, countSpanId, loadingSpanId) {
     if (countEl) { countEl.textContent = available.length + ' dispo.'; countEl.style.display = available.length < items.length ? 'inline' : 'none'; }
 }
 
-// ── Populate module select ────────────────────────────────────
 function populateModuleSelect(modules) {
     const sel = document.getElementById('m-module');
     if (!sel) return;
@@ -1419,7 +1419,6 @@ function populateModuleSelect(modules) {
     updateModuleProgress();
 }
 
-// ── Module progress inside modal ──────────────────────────────
 function updateModuleProgress() {
     const sel  = document.getElementById('m-module');
     const wrap = document.getElementById('module-progress-wrap');
@@ -1446,7 +1445,6 @@ function onModuleChange() {
     loadAvailable();
 }
 
-// ── Load available resources ──────────────────────────────────
 function loadAvailable() {
     if (!_slotGroupeId || !_slotDate || !_slotSeance) return;
     const duration   = parseInt(document.getElementById('m-dur') ? document.getElementById('m-dur').value : 1);
@@ -1505,7 +1503,6 @@ function loadAvailable() {
 
 function onDurationChange() { loadAvailable(); }
 
-// ── Open from cell click ──────────────────────────────────────
 function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     _slotGroupeId  = groupeId;
     _slotDate      = dateStr;
@@ -1531,7 +1528,6 @@ function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     showModal();
 }
 
-// ── Edit existing ─────────────────────────────────────────────
 function openEditModal(id) {
     const e = emploisData.find(x => x.id === id);
     if (!e) return;
@@ -1586,7 +1582,6 @@ function openEditModal(id) {
 function showModal()  { document.getElementById('emploi-modal').classList.add('open');    }
 function closeModal() { document.getElementById('emploi-modal').classList.remove('open'); }
 
-// ── Delete modal ──────────────────────────────────────────────
 function openDeleteModal(action, groupe, module, date, span, heureDebut, heureFin, salle) {
     document.getElementById('delete-form').action = action;
     document.getElementById('delete-session-label').textContent = groupe + ' — ' + module;
@@ -1595,7 +1590,6 @@ function openDeleteModal(action, groupe, module, date, span, heureDebut, heureFi
 }
 function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; }
 
-// ── Lien modal ────────────────────────────────────────────────
 function openLienModal(id, currentLien, groupeLabel, dateMeta) {
     document.getElementById('lien-form').action  = '/emplois/' + id + '/lien';
     document.getElementById('lien-input').value  = currentLien || '';
@@ -1609,7 +1603,6 @@ function submitLien() {
     document.getElementById('lien-form').submit();
 }
 
-// ── Replacement modal ─────────────────────────────────────────
 function openRemplacantModal(emploiId, sessionLabel, sessionMeta, currentRemplacantId) {
     document.getElementById('remplacant-form').action = '/emplois/' + emploiId + '/remplacant';
     document.getElementById('remplacant-session-label').textContent = sessionLabel;
@@ -1622,7 +1615,6 @@ function closeRemplacantModal() {
     document.getElementById('remplacant-modal').style.display = 'none';
 }
 
-// ── Report modal ──────────────────────────────────────────────
 function openReportModal(emploiId, sessionLabel, dateLabel, dateStr, spanLabel, heureDebut, heureFin) {
     document.getElementById('report-emploi-id').value           = emploiId;
     document.getElementById('report-session-label').textContent = sessionLabel;

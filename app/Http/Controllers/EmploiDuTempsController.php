@@ -31,7 +31,6 @@ class EmploiDuTempsController extends Controller
     {
         $user = auth()->user();
 
-        // ✅ Default year to the stagiaire's own year, not always 1
         $defaultYear = 1;
         if ($user->role === 'stagiaire' && $user->id_groupe) {
             $defaultYear = $user->groupe?->annee ?? 1;
@@ -56,7 +55,6 @@ class EmploiDuTempsController extends Controller
         $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
 
         if ($canSeeDraft) {
-            // ── Admin / Gestionnaire : see all groups ──
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
                 ->orderBy('id_filiere')->orderBy('id')
@@ -75,7 +73,6 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            // ── Stagiaire : own group only, with visibility window ──
             $joursAvance   = 2;
             $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
             $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
@@ -111,7 +108,6 @@ class EmploiDuTempsController extends Controller
             }
 
         } else {
-            // ── Formateur : sessions where they are original, session replacement, or module replacement ──
             $emplois = EmploiDuTemps::with([
                     'module.remplacant',
                     'groupe.filiere',
@@ -122,11 +118,8 @@ class EmploiDuTempsController extends Controller
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->where(function ($q) use ($user) {
-                    // 1. Original assigned formateur
                     $q->where('id_user', $user->id)
-                    // 2. Session-level replacement
                       ->orWhere('id_user_remplacant', $user->id)
-                    // 3. Module-level replacement (future sessions, no session replacement set)
                       ->orWhere(function ($q2) use ($user) {
                           $q2->whereNull('id_user_remplacant')
                              ->where('date_debut', '>', now())
@@ -236,6 +229,13 @@ class EmploiDuTempsController extends Controller
 
         $debut = Carbon::parse($data['date_debut']);
         $fin   = Carbon::parse($data['date_fin']);
+
+        // ── ✅ Block creation on past dates ──────────────────
+        if ($debut->copy()->startOfDay()->lt(Carbon::today())) {
+            throw ValidationException::withMessages([
+                'date_debut' => 'Impossible de créer une séance sur une date passée.',
+            ]);
+        }
 
         $this->checkOverlaps($debut, $fin, $data, null);
 
@@ -566,7 +566,6 @@ class EmploiDuTempsController extends Controller
         ];
 
         if ($user->hasPermissionTo('emploi-view-all-groups')) {
-            // ── Admin / Gestionnaire ──
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
                 ->orderBy('id_filiere')->orderBy('id')
@@ -579,7 +578,6 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            // ── Stagiaire ──
             $emplois = EmploiDuTemps::with($withRelations)
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
@@ -592,16 +590,12 @@ class EmploiDuTempsController extends Controller
                 ->get();
 
         } else {
-            // ── Formateur : original + session replacement + module replacement ──
             $emplois = EmploiDuTemps::with($withRelations)
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
                 ->where(function ($q) use ($user) {
-                    // 1. Original assigned formateur
                     $q->where('id_user', $user->id)
-                    // 2. Session-level replacement
                       ->orWhere('id_user_remplacant', $user->id)
-                    // 3. Module-level replacement (future sessions, no session replacement set)
                       ->orWhere(function ($q2) use ($user) {
                           $q2->whereNull('id_user_remplacant')
                              ->where('date_debut', '>', now())

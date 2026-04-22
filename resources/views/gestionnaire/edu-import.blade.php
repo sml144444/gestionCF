@@ -10,7 +10,7 @@
     $palettes = [
         'admin'        => ['primary'=>'#0a6640','medium'=>'#1a8c56','light'=>'#e8f5ee','lighter'=>'#f0fdf4','text'=>'#065f38','border'=>'#bbf7d0','shadow'=>'rgba(10,102,64,0.15)','gradient'=>'linear-gradient(135deg,#0a6640 0%,#1a8c56 100%)'],
         'gestionnaire' => ['primary'=>'#1e293b','medium'=>'#334155','light'=>'#f1f5f9','lighter'=>'#f8fafc','text'=>'#1e293b','border'=>'#cbd5e1','shadow'=>'rgba(30,41,59,0.15)','gradient'=>'linear-gradient(135deg,#1e293b 0%,#334155 100%)'],
-        'formateur'    => ['primary'=>'#1a4f8a','medium'=>'#2563eb','light'=>'#eff6ff','lighter'=>'#f0f7ff','text'=>'#1e40af','border'=>'#bfdbfe','shadow'=>'rgba(26,79,138,0.15)','gradient'=>'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)'],
+        'formateur'    => ['primary'=>'#1a4f8a','medium'=>'#25-63eb','light'=>'#eff6ff','lighter'=>'#f0f7ff','text'=>'#1e40af','border'=>'#bfdbfe','shadow'=>'rgba(26,79,138,0.15)','gradient'=>'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)'],
     ];
     $p = $palettes[$role] ?? $palettes['gestionnaire'];
 @endphp
@@ -711,7 +711,7 @@
         <div class="edu-card-head">
             <div>
                 <p class="edu-card-title">Historique des imports</p>
-                <p class="edu-card-sub">{{ $history->count() }} opération(s) — données persistantes</p>
+                <p class="edu-card-sub">{{ $history->count() }} opération(s) — cliquez sur une ligne pour voir les détails</p>
             </div>
         </div>
 
@@ -732,6 +732,7 @@
                             <th>Ignorés</th>
                             <th>Erreurs</th>
                             <th>Statut</th>
+                            <th>Détails</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -743,7 +744,7 @@
                             $importerInitials = strtoupper(substr($name, 0, 1))
                                              . strtoupper(substr(explode(' ', $name . ' ')[1] ?? '', 0, 1));
                         @endphp
-                        <tr>
+                        <tr style="cursor:pointer;" onclick="openLogModal({{ $log->id }})">
                             <td style="white-space:nowrap;">
                                 <div style="font-weight:600;color:#334155;">{{ $log->created_at->format('d M Y') }}</div>
                                 <div style="font-size:10px;color:#94a3b8;">{{ $log->created_at->format('H:i') }}</div>
@@ -788,6 +789,22 @@
                                                  background:#fff1f2;color:#dc2626;border:1px solid #fecdd3;">✕ Erreurs</span>
                                 @endif
                             </td>
+                            <td onclick="event.stopPropagation()">
+                                <button onclick="openLogModal({{ $log->id }})"
+                                        style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
+                                               border-radius:8px;border:1.5px solid var(--accent-bd);
+                                               background:var(--accent-lt);color:var(--accent-tx);
+                                               font-size:10px;font-weight:700;cursor:pointer;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7
+                                                 -1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    Voir détails
+                                </button>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -797,6 +814,81 @@
     </div>
 </div>
 
+{{-- ══════════════════════════════════════════════════
+     MODAL DÉTAILS LOG
+══════════════════════════════════════════════════ --}}
+<div id="log-modal-overlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+            z-index:9999;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:20px;width:100%;max-width:860px;
+                max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+
+        {{-- Modal header --}}
+        <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9;
+                    display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div>
+                <p id="modal-title" style="font-size:15px;font-weight:800;color:#1e293b;margin:0;">
+                    Détails de l'import
+                </p>
+                <p id="modal-subtitle" style="font-size:11px;color:#64748b;margin-top:3px;"></p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button id="modal-export-btn"
+                        onclick="exportModalToCSV()"
+                        style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+                               background:var(--accent-lt);border:1.5px solid var(--accent-bd);
+                               border-radius:10px;font-size:11px;font-weight:700;
+                               color:var(--accent-tx);cursor:pointer;">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Exporter CSV
+                </button>
+                <button onclick="closeLogModal()"
+                        style="width:34px;height:34px;border-radius:10px;border:1.5px solid #e2e8f0;
+                               background:white;font-size:16px;cursor:pointer;color:#64748b;
+                               display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+        </div>
+
+        {{-- Modal stats --}}
+        <div id="modal-stats"
+             style="padding:14px 24px;border-bottom:1px solid #f1f5f9;
+                    display:flex;gap:12px;flex-wrap:wrap;flex-shrink:0;">
+        </div>
+
+        {{-- Modal body --}}
+        <div style="overflow-y:auto;flex:1;padding:0;">
+            <div id="modal-loading"
+                 style="padding:48px;text-align:center;color:#94a3b8;font-size:13px;">
+                Chargement…
+            </div>
+            <div id="modal-table-wrap" style="display:none;">
+                <table class="edu-table" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nom complet</th>
+                            <th>Email EDU</th>
+                            <th>Filière</th>
+                            <th>Groupe</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-tbody"></tbody>
+                </table>
+                <div id="modal-empty"
+                     style="display:none;padding:48px;text-align:center;color:#94a3b8;font-size:13px;">
+                    Aucun compte lié à cet import
+                    <p style="font-size:11px;margin-top:6px;">
+                        (Les imports effectués avant cette mise à jour n'ont pas de liaison enregistrée)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {{-- ══════════════════════════════════════════════════
      TAB : AJOUT MANUEL
@@ -1101,5 +1193,136 @@ document.addEventListener('DOMContentLoaded', function () {
         updateGroupeOptions(filiereSelect.value);
     }
 });
+
+
+// ── Log modal ──────────────────────────────────────────────────────────────────
+let modalData = [];
+
+function openLogModal(logId) {
+    const overlay = document.getElementById('log-modal-overlay');
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Reset
+    document.getElementById('modal-loading').style.display    = 'block';
+    document.getElementById('modal-table-wrap').style.display = 'none';
+    document.getElementById('modal-stats').innerHTML           = '';
+    document.getElementById('modal-tbody').innerHTML           = '';
+    modalData = [];
+
+    fetch(`/edu-import/log/${logId}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const log = data.log;
+        modalData  = data.accounts;
+
+        // Title
+        document.getElementById('modal-title').textContent =
+            log.filename === 'Ajout manuel' ? 'Ajout manuel — détails' : `Import : ${log.filename}`;
+        document.getElementById('modal-subtitle').textContent =
+            `${log.created_at} · par ${log.user}`;
+
+        // Stats
+        document.getElementById('modal-stats').innerHTML = `
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <span style="padding:5px 14px;border-radius:99px;font-size:11px;font-weight:700;
+                             background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
+                    ✓ ${log.imported} importés
+                </span>
+                <span style="padding:5px 14px;border-radius:99px;font-size:11px;font-weight:700;
+                             background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
+                    ⏭ ${log.skipped} ignorés
+                </span>
+                <span style="padding:5px 14px;border-radius:99px;font-size:11px;font-weight:700;
+                             background:#fff1f2;color:#dc2626;border:1px solid #fecdd3;">
+                    ✕ ${log.errors} erreurs
+                </span>
+            </div>`;
+
+        // Table
+        document.getElementById('modal-loading').style.display = 'none';
+        document.getElementById('modal-table-wrap').style.display = 'block';
+
+        if (modalData.length === 0) {
+            document.getElementById('modal-empty').style.display = 'block';
+            return;
+        }
+
+        const tbody = document.getElementById('modal-tbody');
+        tbody.innerHTML = modalData.map((acc, i) => {
+            const initials = (acc.prenom?.[0] ?? '?').toUpperCase() + (acc.nom?.[0] ?? '?').toUpperCase();
+            const statusBadge = acc.used
+                ? `<span style="padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;
+                                background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ Compte créé</span>`
+                : `<span style="padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;
+                                background:#fffbeb;color:#92400e;border:1px solid #fde68a;">⏳ En attente</span>`;
+            return `
+                <tr>
+                    <td style="color:#94a3b8;font-size:10px;">${acc.id}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="width:28px;height:28px;border-radius:8px;flex-shrink:0;
+                                        background:var(--accent-lt);border:1px solid var(--accent-bd);
+                                        display:flex;align-items:center;justify-content:center;
+                                        font-size:9px;font-weight:800;color:var(--accent-tx);">
+                                ${initials}
+                            </div>
+                            <span style="font-weight:700;color:#0f172a;font-size:12px;">
+                                ${acc.prenom ?? ''} ${acc.nom ?? ''}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="color:#1e40af;font-weight:600;font-size:11px;">${acc.edu_email}</td>
+                    <td>
+                        <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;
+                                     background:var(--accent-lt);color:var(--accent-tx);">
+                            ${acc.filiere_code ?? '—'}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;
+                                     background:#f1f5f9;color:#334155;">
+                            ${acc.groupe_code ?? '—'}
+                        </span>
+                    </td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+        }).join('');
+    })
+    .catch(() => {
+        document.getElementById('modal-loading').textContent = 'Erreur de chargement.';
+    });
+}
+
+function closeLogModal() {
+    document.getElementById('log-modal-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// Fermer en cliquant sur l'overlay
+document.getElementById('log-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeLogModal();
+});
+
+// Exporter les données du modal en CSV
+function exportModalToCSV() {
+    if (!modalData.length) return;
+    const rows = [['ID','Prénom','Nom','Email EDU','Filière','Groupe','Statut']];
+    modalData.forEach(a => {
+        rows.push([a.id, a.prenom ?? '', a.nom ?? '', a.edu_email,
+                   a.filiere_code ?? '', a.groupe_code ?? '',
+                   a.used ? 'Compte créé' : 'En attente']);
+    });
+    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'details_import.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
 </script>
 @endsection
