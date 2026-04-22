@@ -23,11 +23,18 @@ class PermissionsSeeder extends Seeder
             'emploi-lien',
             'emploi-change-module',
 
-            // Utilisateurs
+            // Utilisateurs — accès général
             'user-list',
             'user-create',
             'user-edit',
             'user-delete',
+
+            // ── Nouvelles permissions granulaires ─────────────────
+            // Chacune contrôle la visibilité ET le CRUD d'un type de compte
+            'user-manage-formateur',     // voir, créer, modifier, supprimer des formateurs
+            'user-manage-gestionnaire',  // voir, créer, modifier, supprimer des gestionnaires
+            // ──────────────────────────────────────────────────────
+
             'stagiaire-list',
             'stagiaire-create',
             'stagiaire-edit',
@@ -75,7 +82,7 @@ class PermissionsSeeder extends Seeder
             // Absences & Retards
             'absence-view',
             'absence-view-all',
-            'absence-justify',   // ← NEW
+            'absence-justify',
         ];
 
         foreach ($permissions as $perm) {
@@ -88,7 +95,7 @@ class PermissionsSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions(Permission::all());
 
-        // ── Gestionnaire ──────────────────────────────────────────
+        // ── Gestionnaire — gère uniquement les formateurs ─────────
         $gestionnaireRole = Role::firstOrCreate(['name' => 'gestionnaire', 'guard_name' => 'web']);
         $gestionnaireRole->syncPermissions([
             'emploi-view',
@@ -97,9 +104,13 @@ class PermissionsSeeder extends Seeder
             'emploi-edit',
             'emploi-delete',
             'emploi-change-module',
+
             'user-list',
             'user-create',
             'user-edit',
+            'user-manage-formateur',       // ← peut gérer les formateurs
+            // pas user-manage-gestionnaire   ← ne peut PAS gérer les gestionnaires
+
             'groupe-list',
             'groupe-create',
             'groupe-edit',
@@ -123,7 +134,7 @@ class PermissionsSeeder extends Seeder
             'news-like',
             'absence-view',
             'absence-view-all',
-            'absence-justify',   // ← NEW
+            'absence-justify',
         ]);
 
         // ── Formateur ─────────────────────────────────────────────
@@ -140,7 +151,6 @@ class PermissionsSeeder extends Seeder
             'news-like',
             'absence-view',
             'absence-view-all',
-            // no absence-justify
         ]);
 
         // ── Stagiaire ─────────────────────────────────────────────
@@ -153,7 +163,6 @@ class PermissionsSeeder extends Seeder
             'news-comment',
             'news-like',
             'absence-view',
-            // no absence-justify
         ]);
 
         // ── Assignation des rôles Spatie aux users existants ──────

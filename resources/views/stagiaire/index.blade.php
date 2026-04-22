@@ -425,8 +425,7 @@
                 @php
                     $initials   = strtoupper(substr($stagiaire->name,0,1))
                                 . strtoupper(substr(explode(' ',$stagiaire->name.' ')[1]??'',0,1));
-                    
-                    // Gestion des 3 années
+
                     $anneeValue = $stagiaire->groupe?->annee;
                     $anneeLabel = match($anneeValue) {
                         1 => '1ère année',
@@ -434,23 +433,20 @@
                         3 => '3ème année',
                         default => 'Non assigné'
                     };
-                    
+
                     $anneeStyle = match($anneeValue) {
                         1 => 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;',
                         2 => 'background:#fdf4ff;color:#6b21a8;border:1px solid #e9d5ff;',
                         3 => 'background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;',
                         default => 'background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;'
                     };
-                    
-                    $groupeAS   = $hasAnneeScolaireColumn ? ($stagiaire->groupe?->annee_scolaire ?? null) : null;
+
+                    $groupeAS = $hasAnneeScolaireColumn ? ($stagiaire->groupe?->annee_scolaire ?? null) : null;
                 @endphp
                 <tr>
-                    {{-- N° --}}
                     <td style="padding-left:20px;color:#94a3b8;font-size:11px;font-weight:700;">
                         {{ $stagiaires->firstItem() + $i }}
                     </td>
-
-                    {{-- Identity --}}
                     <td>
                         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
                             <div class="sg-avatar">{{ $initials }}</div>
@@ -467,8 +463,6 @@
                             </div>
                         </div>
                     </td>
-
-                    {{-- Groupe --}}
                     <td>
                         @if($stagiaire->groupe)
                         <span class="sg-badge" style="background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;">
@@ -478,15 +472,9 @@
                         <span style="font-size:11px;color:#94a3b8;font-style:italic;">Non assigné</span>
                         @endif
                     </td>
-
-                    {{-- Année --}}
                     <td>
-                        <span class="sg-badge" style="{{ $anneeStyle }}">
-                            {{ $anneeLabel }}
-                        </span>
+                        <span class="sg-badge" style="{{ $anneeStyle }}">{{ $anneeLabel }}</span>
                     </td>
-
-                    {{-- Année scolaire --}}
                     @if($hasAnneeScolaireColumn)
                     <td>
                         @if($groupeAS)
@@ -497,11 +485,9 @@
                     </td>
                     @endif
 
-                    {{-- ── ACTIONS ── --}}
                     @canany(['stagiaire-edit','stagiaire-delete'])
                     <td>
                         <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-
                             @can('stagiaire-edit')
                             <button type="button"
                                     class="sg-btn-edit"
@@ -532,11 +518,9 @@
                                 Supprimer
                             </button>
                             @endcan
-
                         </div>
                     </td>
                     @endcanany
-
                 </tr>
                 @endforeach
             </tbody>
@@ -568,71 +552,98 @@
                 Nouveau stagiaire
             </span>
         </h2>
+
+        {{-- ✅ Auto-password notice --}}
+        <div style="margin-bottom:18px;padding:12px 14px;border-radius:12px;
+                    background:#f0fdf4;border:1.5px solid #bbf7d0;
+                    display:flex;align-items:flex-start;gap:10px;">
+            <span style="font-size:18px;flex-shrink:0;margin-top:1px;">📧</span>
+            <div>
+                <div style="font-size:11px;font-weight:700;color:#15803d;margin-bottom:3px;">
+                    Mot de passe généré automatiquement
+                </div>
+                <div style="font-size:10px;color:#166534;line-height:1.5;">
+                    Un mot de passe sécurisé (majuscules, chiffres, caractères spéciaux)
+                    sera généré et envoyé directement à l'adresse e-mail du stagiaire.
+                </div>
+            </div>
+        </div>
+
         <form method="POST" action="{{ route('stagiaire.store') }}">
             @csrf
             <input type="hidden" name="_modal" value="create">
             <input type="hidden" name="id_filiere" value="{{ $filiereId }}">
 
             <div class="sg-grid-2">
-                <div class="field">
+                <div class="field" style="grid-column:1/-1;">
                     <label>Nom complet <span style="color:#e11d48;">*</span></label>
-                    <input type="text" name="name" class="sg-input" value="{{ old('name') }}" placeholder="Ex: Youssef Ait Ali" required autofocus>
+                    <input type="text" name="name" class="sg-input" value="{{ old('name') }}"
+                           placeholder="Ex: Youssef Ait Ali" required autofocus>
                     @error('name') <span class="err">{{ $message }}</span> @enderror
                 </div>
-                <div class="field">
+            </div>
+
+            <div class="sg-grid-2">
+                <div class="field" style="grid-column:1/-1;">
                     <label>Email <span style="color:#e11d48;">*</span></label>
-                    <input type="email" name="email" class="sg-input" value="{{ old('email') }}" placeholder="email@exemple.com" required>
+                    <input type="email" name="email" class="sg-input" value="{{ old('email') }}"
+                           placeholder="email@exemple.com" required>
                     @error('email') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
 
             <div class="sg-grid-2">
                 <div class="field">
-                    <label>Mot de passe <span style="color:#e11d48;">*</span></label>
-                    <input type="password" name="password" class="sg-input" placeholder="Min. 6 caractères" required>
-                    @error('password') <span class="err">{{ $message }}</span> @enderror
+                    <label>CIN</label>
+                    <input type="text" name="cin" class="sg-input" value="{{ old('cin') }}"
+                           placeholder="Ex: BE123456">
+                    @error('cin') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
-                    <label>CIN</label>
-                    <input type="text" name="cin" class="sg-input" value="{{ old('cin') }}" placeholder="Ex: BE123456">
-                    @error('cin') <span class="err">{{ $message }}</span> @enderror
+                    <label>Téléphone</label>
+                    <input type="tel" name="phone" class="sg-input" value="{{ old('phone') }}"
+                           placeholder="+212 6XX XXX XXX"
+                           inputmode="tel"
+                           pattern="[\+0-9\s\-\(\)\.]{6,20}"
+                           maxlength="20"
+                           title="Numéro de téléphone valide uniquement (ex: +212 6XX XXX XXX)"
+                           oninput="this.value=this.value.replace(/[^+0-9\s\-\(\)\.]/g,'')" >
+                    <div style="font-size:9px;color:#94a3b8;margin-top:2px;">Chiffres, espaces, +, -, ( ) uniquement</div>
+                    @error('phone') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
 
             <div class="sg-grid-2">
                 <div class="field">
-                    <label>Téléphone</label>
-                    <input type="text" name="phone" class="sg-input" value="{{ old('phone') }}" placeholder="06 00 00 00 00">
-                    @error('phone') <span class="err">{{ $message }}</span> @enderror
-                </div>
-                <div class="field">
                     <label>Date de naissance</label>
-                    <input type="date" name="date_naissance" class="sg-input" value="{{ old('date_naissance') }}">
+                    <input type="date" name="date_naissance" class="sg-input"
+                           value="{{ old('date_naissance') }}">
                     @error('date_naissance') <span class="err">{{ $message }}</span> @enderror
                 </div>
-            </div>
-
-            <div class="field">
-                <label>Groupe</label>
-                <select name="id_groupe" class="sg-input" style="appearance:none;cursor:pointer;">
-                    <option value="">— Aucun —</option>
-                    @foreach($allGroupes as $g)
-                        @php $full = $g->stagiaires_count >= $g->nbr_limit; @endphp
-                        <option value="{{ $g->id }}"
-                                {{ old('id_groupe') == $g->id ? 'selected' : '' }}
-                                {{ $full ? 'disabled' : '' }}>
-                            {{ $g->name }} (An.{{ $g->annee }}) — {{ $g->stagiaires_count }}/{{ $g->nbr_limit }}
-                            {{ $full ? '⛔ COMPLET' : ($g->nbr_limit - $g->stagiaires_count).' libre(s)' }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
+                <div class="field">
+                    <label>Groupe</label>
+                    <select name="id_groupe" class="sg-input" style="appearance:none;cursor:pointer;">
+                        <option value="">— Aucun —</option>
+                        @foreach($allGroupes as $g)
+                            @php $full = $g->stagiaires_count >= $g->nbr_limit; @endphp
+                            <option value="{{ $g->id }}"
+                                    {{ old('id_groupe') == $g->id ? 'selected' : '' }}
+                                    {{ $full ? 'disabled' : '' }}>
+                                {{ $g->name }} (An.{{ $g->annee }}) — {{ $g->stagiaires_count }}/{{ $g->nbr_limit }}
+                                {{ $full ? '⛔ COMPLET' : ($g->nbr_limit - $g->stagiaires_count).' libre(s)' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('id_groupe') <span class="err">{{ $message }}</span> @enderror
+                </div>
             </div>
 
             <div class="sg-modal-footer">
                 <button type="button" class="sg-btn-ghost" onclick="closeModal('modal-create')">Annuler</button>
                 <button type="submit" class="sg-btn-primary">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
                     Créer le stagiaire
                 </button>
             </div>
@@ -662,25 +673,34 @@
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Nom complet <span style="color:#e11d48;">*</span></label>
-                    <input type="text" name="name" id="edit-name" class="sg-input" value="{{ old('name','') }}" placeholder="Nom complet" required>
+                    <input type="text" name="name" id="edit-name" class="sg-input"
+                           value="{{ old('name','') }}" placeholder="Nom complet" required>
                     @error('name') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
                     <label>Email <span style="color:#e11d48;">*</span></label>
-                    <input type="email" name="email" id="edit-email" class="sg-input" value="{{ old('email','') }}" placeholder="email@exemple.com" required>
+                    <input type="email" name="email" id="edit-email" class="sg-input"
+                           value="{{ old('email','') }}" placeholder="email@exemple.com" required>
                     @error('email') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
 
             <div class="sg-grid-2">
                 <div class="field">
-                    <label>Nouveau mot de passe <span style="color:#94a3b8;font-weight:500;text-transform:none;letter-spacing:0;">(vide = inchangé)</span></label>
-                    <input type="password" name="password" class="sg-input" placeholder="Nouveau mot de passe…">
+                    <label>
+                        Nouveau mot de passe
+                        <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94a3b8;">
+                            (vide = inchangé)
+                        </span>
+                    </label>
+                    <input type="password" name="password" class="sg-input"
+                           placeholder="Nouveau mot de passe…">
                     @error('password') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
                     <label>CIN</label>
-                    <input type="text" name="cin" id="edit-cin" class="sg-input" value="{{ old('cin','') }}" placeholder="BE123456">
+                    <input type="text" name="cin" id="edit-cin" class="sg-input"
+                           value="{{ old('cin','') }}" placeholder="BE123456">
                     @error('cin') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -688,12 +708,20 @@
             <div class="sg-grid-2">
                 <div class="field">
                     <label>Téléphone</label>
-                    <input type="text" name="phone" id="edit-phone" class="sg-input" value="{{ old('phone','') }}" placeholder="06 00 00 00 00">
+                    <input type="tel" name="phone" id="edit-phone" class="sg-input"
+                           value="{{ old('phone','') }}" placeholder="+212 6XX XXX XXX"
+                           inputmode="tel"
+                           pattern="[\+0-9\s\-\(\)\.]{6,20}"
+                           maxlength="20"
+                           title="Numéro de téléphone valide uniquement (ex: +212 6XX XXX XXX)"
+                           oninput="this.value=this.value.replace(/[^+0-9\s\-\(\)\.]/g,'')" >
+                    <div style="font-size:9px;color:#94a3b8;margin-top:2px;">Chiffres, espaces, +, -, ( ) uniquement</div>
                     @error('phone') <span class="err">{{ $message }}</span> @enderror
                 </div>
                 <div class="field">
                     <label>Date de naissance</label>
-                    <input type="date" name="date_naissance" id="edit-dob" class="sg-input" value="{{ old('date_naissance','') }}">
+                    <input type="date" name="date_naissance" id="edit-dob" class="sg-input"
+                           value="{{ old('date_naissance','') }}">
                     @error('date_naissance') <span class="err">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -721,7 +749,9 @@
             <div class="sg-modal-footer">
                 <button type="button" class="sg-btn-ghost" onclick="closeModal('modal-edit')">Annuler</button>
                 <button type="submit" class="sg-btn-primary">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
                     Enregistrer
                 </button>
             </div>

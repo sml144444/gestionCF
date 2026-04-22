@@ -5,7 +5,6 @@
     $user = Auth::user();
     $role = $user->role;
 
-    // Dashboard route par rôle
     $dashRoute = match($role) {
         'admin'        => route('admin.dashboard'),
         'gestionnaire' => route('gestionnaire.dashboard'),
@@ -23,7 +22,7 @@
     label="Dashboard"
     icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
 
-{{-- Emploi du temps — visible à tous ceux qui ont emploi-view --}}
+{{-- Emploi du temps --}}
 @can('emploi-view')
 <x-nav-item
     route="{{ route('emplois.index') }}"
@@ -31,36 +30,60 @@
     icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 @endcan
 
-{{-- Mes cours — formateur et stagiaire --}}
-@if(in_array($role, ['formateur', 'stagiaire']))
-<x-nav-item
-    route="#"
-    label="Mes cours"
-    icon="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-@endif
 
-
-{{-- ════ PROFIL ════ --}}
+{{-- ════ COMPTE ════ --}}
 <x-nav-section label="Compte" />
- 
+
 <x-nav-item
     route="{{ route('profile.show') }}"
     label="Mon profil"
     icon="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 
 
-{{-- ════ ADMINISTRATION ════ --}}
-{{-- Gated on user-create — formateur only has user-list (for emploi display), not user-create --}}
-@can('user-create')
+{{-- ════ MA FORMATION — formateur uniquement, chaque item protégé par @can ════ --}}
+@if($role === 'formateur')
+    @php
+        $hasFormationItems =
+            $user->can('groupe-list') ||
+            $user->can('stagiaire-list');
+    @endphp
+
+    @if($hasFormationItems)
+    <x-nav-section label="Ma formation" />
+
+    @can('groupe-list')
+    <x-nav-item
+        route="{{ route('modules.index') }}"
+        label="Mes modules"
+        icon="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+
+    <x-nav-item
+        route="{{ route('groupes.index') }}"
+        label="Mes groupes"
+        icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    @endcan
+
+    @can('stagiaire-list')
+    <x-nav-item
+        route="{{ route('stagiaire.index') }}"
+        label="Mes stagiaires"
+        icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    @endcan
+
+    @endif
+@endif
+
+
+{{-- ════ ADMINISTRATION — admin + gestionnaire ════ --}}
+@if($user->canAny(['user-manage-formateur', 'user-manage-gestionnaire']))
 <x-nav-section label="Administration" />
 
 <x-nav-item
     route="{{ route('users.management.index') }}"
     label="Gestion utilisateurs"
     icon="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-@endcan
+@endif
 
-{{-- Rôles & Permissions --}}
 @can('role-list')
 <x-nav-item
     route="{{ route('roles.index') }}"
@@ -68,7 +91,6 @@
     icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
 @endcan
 
-{{-- Import EDU --}}
 @can('edu-import')
 <x-nav-item
     route="{{ route('edu-import.index') }}"
@@ -77,8 +99,7 @@
 @endcan
 
 
-{{-- ════ GESTION ════ --}}
-{{-- Gated on groupe-create — formateur only has groupe-list, not groupe-create --}}
+{{-- ════ GESTION — admin + gestionnaire ════ --}}
 @can('groupe-create')
 <x-nav-section label="Gestion" />
 
@@ -89,15 +110,11 @@
     icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
 @endcan
 
+@can('groupe-list')
 <x-nav-item
     route="{{ route('modules.index') }}"
     label="Modules"
     icon="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-
-<x-nav-item
-    route="{{ route('salles.index') }}"
-    label="Salles"
-    icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
 
 <x-nav-item
     route="{{ route('filieres.index') }}"
@@ -110,26 +127,52 @@
     icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
 @endcan
 
+@can('salle-list')
+<x-nav-item
+    route="{{ route('salles.index') }}"
+    label="Salles"
+    icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+@endcan
+
+@endcan
+
 
 {{-- ════ FORMATEUR — Saisie ════ --}}
 @if($role === 'formateur')
-<x-nav-section label="Saisie" />
-<x-nav-item route="#" label="Saisir notes"
-    icon="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-<x-nav-item route="#" label="Saisir absences"
-    icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-<x-nav-item route="#" label="Contrôles"
-    icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    @php
+        $hasSaisieItems =
+            $user->can('absence-view-all') ||
+            $user->can('reportation-create');
+    @endphp
+
+    @if($hasSaisieItems)
+    <x-nav-section label="Saisie" />
+
+    {{-- placeholder items — guard individually when real routes exist --}}
+    @can('absence-view-all')
+    <x-nav-item route="#" label="Saisir absences"
+        icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    @endcan
+
+    @can('groupe-list')
+    <x-nav-item route="#" label="Saisir notes"
+        icon="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+
+    <x-nav-item route="#" label="Contrôles"
+        icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    @endcan
+
+    @endif
 @endif
 
 
 {{-- ════ STAGIAIRE — Évaluation ════ --}}
 @if($role === 'stagiaire')
 <x-nav-section label="Évaluation" />
+
 <x-nav-item route="#" label="Mes notes"
     icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 
-{{-- Absences — lien vers la vraie page --}}
 @can('absence-view')
 <x-nav-item
     route="{{ route('absences.index') }}"
@@ -143,9 +186,20 @@
 
 
 {{-- ════ TRAITEMENT ════ --}}
+@php
+    $hasTraitementItems =
+        $user->can('reclamation-manage') ||
+        $user->can('reclamation-list')   ||
+        $user->can('reclamation-create') ||
+        $user->can('reportation-manage') ||
+        $user->can('reportation-create') ||
+        $user->can('absence-view-all')   ||
+        $user->can('news-list');
+@endphp
+
+@if($hasTraitementItems)
 <x-nav-section label="Traitement" />
 
-{{-- Réclamations : admin/gestionnaire → toutes ; stagiaire → les siennes --}}
 @can('reclamation-manage')
 <x-nav-item
     route="{{ route('reclamations.index') }}"
@@ -153,7 +207,7 @@
     icon="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
 @endcan
 
-@can('reclamation-list')
+@can('reclamation-create')
 @cannot('reclamation-manage')
 <x-nav-item
     route="{{ route('reclamations.index') }}"
@@ -162,7 +216,6 @@
 @endcannot
 @endcan
 
-{{-- Reportations : admin/gestionnaire → toutes ; formateur → les siennes --}}
 @can('reportation-manage')
 <x-nav-item
     route="{{ route('reportations.index') }}"
@@ -179,7 +232,6 @@
 @endcannot
 @endcan
 
-{{-- Absences : admin/gestionnaire/formateur → toutes avec filtres --}}
 @can('absence-view-all')
 <x-nav-item
     route="{{ route('absences.index') }}"
@@ -187,7 +239,11 @@
     icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 @endcan
 
+@can('news-list')
 <x-nav-item
     route="{{ route('news.index') }}"
     label="News / Événements"
     icon="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+@endcan
+
+@endif

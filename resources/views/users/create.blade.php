@@ -53,8 +53,8 @@
         'formateur'    => ['#9333ea','#fdf4ff','🎓'],
         'gestionnaire' => ['#2563eb','#eff6ff','🏢'],
     ] as $r => [$col,$bg,$icon])
-    {{-- Gestionnaire tab only visible to admin --}}
-    @if($r === 'gestionnaire' && !$canCreateGestionnaire) @continue @endif
+    {{-- Gestionnaire tab only visible if user has user-manage-gestionnaire permission --}}
+    @if($r === 'gestionnaire' && !$canManageGestionnaire) @continue @endif
     @php $active = old('role', $role) === $r; @endphp
     <label style="flex:1; cursor:pointer;">
         <input type="radio" name="role" value="{{ $r }}"
@@ -97,8 +97,7 @@
                     'placeholder'=>'AB123456'])
             </div>
             <div>
-                @include('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'text',
-                    'placeholder'=>'+212 6XX XXX XXX'])
+                @include('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'tel'])
             </div>
             <div>
                 @include('users._field',['label'=>'Date de naissance','name'=>'date_naissance','type'=>'date'])

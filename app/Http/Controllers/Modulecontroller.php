@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ModuleController extends Controller
@@ -22,21 +23,29 @@ class ModuleController extends Controller
     // ── INDEX ─────────────────────────────────────────────
     public function index(Request $request): View
     {
+        $user        = Auth::user();
+        $isFormateur = $user->role === 'formateur';
+
         $filiereId   = $request->get('filiere');
         $search      = $request->get('search', '');
         $typeFilter  = $request->get('type', '');
-        $anneeFilter = $request->integer('annee', 0) ?: null; // 1, 2 or 3
+        $anneeFilter = $request->integer('annee', 0) ?: null;
 
         $filieres   = Filiere::orderBy('name')->get();
         $formateurs = User::where('role', 'formateur')->orderBy('name')->get();
 
         $modules = Module::with(['filiere', 'formateur'])
             ->withCount('emploisDuTemps')
+            // ── Formateur scope: only show own modules ──────────
+            ->when($isFormateur, fn($q) => $q->where(function ($q2) use ($user) {
+                $q2->where('id_user', $user->id)
+                   ->orWhere('id_user_remplacant', $user->id);
+            }))
+            // ────────────────────────────────────────────────────
             ->when($filiereId,   fn($q) => $q->where('id_filiere', $filiereId))
             ->when($search,      fn($q) => $q->where('name', 'like', "%{$search}%"))
             ->when($typeFilter,  fn($q) => $q->where('type', $typeFilter))
             ->when($anneeFilter, fn($q) => $q->where(fn($q2) =>
-                // annee=3 also catches legacy null records
                 $anneeFilter == 3
                     ? $q2->where('annee', 3)->orWhereNull('annee')
                     : $q2->where('annee', $anneeFilter)
@@ -49,39 +58,42 @@ class ModuleController extends Controller
 
         $selectedFiliere = $filiereId ? Filiere::find($filiereId) : null;
 
-        // ── Real progress: hours already done (past sessions) per module ──
- $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
-    ->whereIn('statut', ['actif', 'brouillon'])
-    ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
-    ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
-    ->selectRaw('
-        emplois_du_temps.id_module,
-        emplois_du_temps.id_groupe,
-        groupes.annee   AS groupe_annee,
-        groupes.name    AS groupe_name,
-        SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) AS total_minutes
-    ')
-    ->groupBy(
-        'emplois_du_temps.id_module',
-        'emplois_du_temps.id_groupe',
-        'groupes.annee',
-        'groupes.name'
-    )
-    ->get()
-    ->groupBy('id_module');
-        // Result: [module_id => [1 => minutes_A1, 2 => minutes_A2, 3 => minutes_A3]]
+        // ── Real progress per module ──────────────────────────
+        $moduleProgressMap = EmploiDuTemps::whereNotNull('id_module')
+            ->whereIn('statut', ['actif', 'brouillon'])
+            ->where('emplois_du_temps.date_fin', '<=', Carbon::now())
+            ->join('groupes', 'emplois_du_temps.id_groupe', '=', 'groupes.id')
+            ->selectRaw('
+                emplois_du_temps.id_module,
+                emplois_du_temps.id_groupe,
+                groupes.annee   AS groupe_annee,
+                groupes.name    AS groupe_name,
+                SUM(TIMESTAMPDIFF(MINUTE, emplois_du_temps.date_debut, emplois_du_temps.date_fin)) AS total_minutes
+            ')
+            ->groupBy(
+                'emplois_du_temps.id_module',
+                'emplois_du_temps.id_groupe',
+                'groupes.annee',
+                'groupes.name'
+            )
+            ->get()
+            ->groupBy('id_module');
 
-        // Stats
-        $totalModules  = Module::count();
-        $totalHeures   = Module::sum('nbr_heure');
-        $totalRegional = Module::where('type', 'regional')->count();
-        $totalLocal    = Module::where('type', 'local')->count();
+        // ── Stats (scoped for formateur) ──────────────────────
+        $baseQuery     = $isFormateur
+            ? Module::where(fn($q) => $q->where('id_user', $user->id)->orWhere('id_user_remplacant', $user->id))
+            : Module::query();
+
+        $totalModules  = (clone $baseQuery)->count();
+        $totalHeures   = (clone $baseQuery)->sum('nbr_heure');
+        $totalRegional = (clone $baseQuery)->where('type', 'regional')->count();
+        $totalLocal    = (clone $baseQuery)->where('type', 'local')->count();
 
         return view('modules.index', compact(
             'modules', 'filieres', 'formateurs',
             'selectedFiliere', 'search', 'typeFilter', 'anneeFilter',
             'totalModules', 'totalHeures', 'totalRegional', 'totalLocal',
-            'moduleProgressMap'
+            'moduleProgressMap', 'isFormateur'
         ));
     }
 
@@ -91,13 +103,13 @@ class ModuleController extends Controller
         $this->authorize('groupe-create');
 
         $data = $request->validate([
-            'id_filiere'   => 'required|exists:filieres,id',
-            'name'         => 'required|string|max:150',
-            'coefficience' => 'required|numeric|min:0.5|max:10',
-            'nbr_heure'    => 'required|integer|min:1|max:500',
-            'id_user'      => 'required|exists:users,id',
-            'type'         => 'required|in:regional,local',
-            'annee'        => 'required|integer|in:1,2,3',
+            'id_filiere'         => 'required|exists:filieres,id',
+            'name'               => 'required|string|max:150',
+            'coefficience'       => 'required|numeric|min:0.5|max:10',
+            'nbr_heure'          => 'required|integer|min:1|max:500',
+            'id_user'            => 'required|exists:users,id',
+            'type'               => 'required|in:regional,local',
+            'annee'              => 'required|integer|in:1,2,3',
             'id_user_remplacant' => 'nullable|exists:users,id|different:id_user',
         ]);
 
@@ -122,12 +134,12 @@ class ModuleController extends Controller
         $this->authorize('groupe-edit');
 
         $data = $request->validate([
-            'name'         => 'required|string|max:150',
-            'coefficience' => 'required|numeric|min:0.5|max:10',
-            'nbr_heure'    => 'required|integer|min:1|max:500',
-            'id_user'      => 'required|exists:users,id',
-            'type'         => 'required|in:regional,local',
-            'annee'        => 'required|integer|in:1,2,3',
+            'name'               => 'required|string|max:150',
+            'coefficience'       => 'required|numeric|min:0.5|max:10',
+            'nbr_heure'          => 'required|integer|min:1|max:500',
+            'id_user'            => 'required|exists:users,id',
+            'type'               => 'required|in:regional,local',
+            'annee'              => 'required|integer|in:1,2,3',
             'id_user_remplacant' => 'nullable|exists:users,id|different:id_user',
         ]);
 

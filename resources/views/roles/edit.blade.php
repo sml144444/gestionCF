@@ -37,10 +37,8 @@
             'icon'  => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v2h5M7 20v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z',
             'color' => '#16a34a', 'bg' => '#f0fdf4',
             'perms' => [
-                'user-list'   => '📋 Voir la liste des utilisateurs',
-                'user-create' => '➕ Créer un utilisateur',
-                'user-edit'   => '✏️ Modifier un utilisateur',
-                'user-delete' => '🗑️ Supprimer un utilisateur',
+                'user-manage-formateur'    => '🎓 Gérer les comptes formateurs',
+                'user-manage-gestionnaire' => '🏢 Gérer les comptes gestionnaires',
             ]
         ],
         'stagiaire' => [

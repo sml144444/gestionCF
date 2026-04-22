@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\WelcomeMail;
+use App\Models\EmploiDuTemps;
 use App\Models\Filiere;
 use App\Models\Groupe;
+use App\Models\Module;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Role;
 
 class StagiaireController extends Controller
 {
@@ -17,6 +23,30 @@ class StagiaireController extends Controller
 
     public function index(Request $request)
     {
+        $user        = Auth::user();
+        $isFormateur = $user->role === 'formateur';
+
+        // ── Formateur scope: resolve which groups they teach ──────────────────
+        $formateurGroupeIds = collect();
+        $formateurFiliereIds = collect();
+
+        if ($isFormateur) {
+            $moduleIds = Module::where('id_user', $user->id)
+                ->orWhere('id_user_remplacant', $user->id)
+                ->pluck('id');
+
+            $formateurGroupeIds = EmploiDuTemps::whereIn('id_module', $moduleIds)
+                ->pluck('id_groupe')
+                ->unique()
+                ->values();
+
+            $formateurFiliereIds = Groupe::whereIn('id', $formateurGroupeIds)
+                ->pluck('id_filiere')
+                ->unique()
+                ->values();
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         $filiereId     = $request->get('filiere_id');
         $search        = $request->get('search', '');
         $groupeId      = $request->get('groupe_id');
@@ -26,13 +56,22 @@ class StagiaireController extends Controller
 
         $hasAnneeScolaireColumn = Schema::hasColumn('groupes', 'annee_scolaire');
 
-        $filieres = Filiere::withCount('stagiaires')
-            ->with(['groupes' => fn ($q) => $q->withCount('stagiaires')])
-            ->get();
+        // Filieres visible to this user
+        $filieresQuery = Filiere::withCount('stagiaires')
+            ->with(['groupes' => fn ($q) => $q->withCount('stagiaires')]);
 
-        $totalStagiaires = User::where('role', 'stagiaire')->count();
+        if ($isFormateur) {
+            $filieresQuery->whereIn('id', $formateurFiliereIds);
+        }
 
-        // ── MODE A — no filière selected ────────────────────────────────────
+        $filieres = $filieresQuery->get();
+
+        // For formateurs, filter stagiaires count to their groups only
+        $totalStagiaires = $isFormateur
+            ? User::where('role', 'stagiaire')->whereIn('id_groupe', $formateurGroupeIds)->count()
+            : User::where('role', 'stagiaire')->count();
+
+        // ── MODE A — no filière selected ──────────────────────────────────────
         if (! $filiereId) {
             return view('stagiaire.index', [
                 'filiereId'              => null,
@@ -51,13 +90,21 @@ class StagiaireController extends Controller
                 'hasFilters'             => false,
                 'anneesScolaires'        => collect(),
                 'promos'                 => collect(),
+                'isFormateur'            => $isFormateur,
             ]);
         }
 
-        // ── MODE B — filière selected ───────────────────────────────────────
+        // ── MODE B — filière selected ─────────────────────────────────────────
         $selectedFiliere = Filiere::findOrFail($filiereId);
 
+        // Formateur: enforce they can only see filieres they teach in
+        if ($isFormateur && ! $formateurFiliereIds->contains($filiereId)) {
+            abort(403, 'Vous n\'enseignez pas dans cette filière.');
+        }
+
+        // Groups visible: for formateurs, restricted to their teaching groups
         $groupes = Groupe::where('id_filiere', $filiereId)
+            ->when($isFormateur, fn ($q) => $q->whereIn('id', $formateurGroupeIds))
             ->withCount('stagiaires')
             ->orderBy('annee')
             ->orderBy('name')
@@ -70,6 +117,7 @@ class StagiaireController extends Controller
 
         if ($hasAnneeScolaireColumn) {
             $anneesScolaires = Groupe::where('id_filiere', $filiereId)
+                ->when($isFormateur, fn ($q) => $q->whereIn('id', $formateurGroupeIds))
                 ->whereNotNull('annee_scolaire')
                 ->pluck('annee_scolaire')
                 ->unique()->sort()->values();
@@ -79,6 +127,11 @@ class StagiaireController extends Controller
             ->where('id_filiere', $filiereId)
             ->with('groupe')
             ->orderBy('name');
+
+        // Formateur: only see stagiaires from their groups
+        if ($isFormateur) {
+            $query->whereIn('id_groupe', $formateurGroupeIds);
+        }
 
         if ($search) {
             $query->where(fn ($q) => $q
@@ -103,7 +156,7 @@ class StagiaireController extends Controller
             'stagiaires', 'groupes', 'allGroupes',
             'search', 'groupeId', 'annee', 'promo', 'anneeScolaire',
             'hasFilters', 'hasAnneeScolaireColumn', 'anneesScolaires',
-            'totalStagiaires', 'promos'
+            'totalStagiaires', 'promos', 'isFormateur'
         ));
     }
 
@@ -116,9 +169,8 @@ class StagiaireController extends Controller
         $data = $request->validate([
             'name'           => 'required|string|max:255',
             'email'          => 'required|email|unique:users,email',
-            'password'       => 'required|string|min:6',
             'cin'            => 'nullable|string|max:50',
-            'phone'          => 'nullable|string|max:30',
+            'phone'          => ['nullable', 'string', 'max:20', 'regex:/^[\+]?[0-9\s\-\(\)\.]{6,20}$/'],
             'date_naissance' => 'nullable|date',
             'id_groupe'      => 'nullable|exists:groupes,id',
             'id_filiere'     => 'required|exists:filieres,id',
@@ -127,23 +179,28 @@ class StagiaireController extends Controller
         if (! empty($data['id_groupe'])) {
             $groupe = Groupe::withCount('stagiaires')->findOrFail($data['id_groupe']);
 
-            // ✅ CAPACITY CHECK
             if ($groupe->stagiaires_count >= $groupe->nbr_limit) {
                 return back()->withInput()->withErrors([
                     'id_groupe' => "Le groupe \"{$groupe->name}\" est complet ({$groupe->stagiaires_count}/{$groupe->nbr_limit} places).",
                 ]);
             }
 
-            // Sync filiere from the chosen group
             $data['id_filiere'] = $groupe->id_filiere;
         }
 
-        $data['password'] = Hash::make($data['password']);
+        $plainPassword    = $this->generateSecurePassword();
+        $data['password'] = Hash::make($plainPassword);
         $data['role']     = 'stagiaire';
 
-        User::create($data);
+        $stagiaire = User::create($data);
 
-        return back()->with('success', 'Stagiaire créé avec succès.');
+        if (Role::where('name', 'stagiaire')->exists()) {
+            $stagiaire->syncRoles(['stagiaire']);
+        }
+
+        Mail::to($stagiaire->email)->queue(new WelcomeMail($stagiaire, $plainPassword));
+
+        return back()->with('success', "Stagiaire \"{$stagiaire->name}\" créé. Ses identifiants ont été envoyés par e-mail.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -157,7 +214,7 @@ class StagiaireController extends Controller
             'email'          => 'required|email|unique:users,email,' . $stagiaire->id,
             'password'       => 'nullable|string|min:6',
             'cin'            => 'nullable|string|max:50',
-            'phone'          => 'nullable|string|max:30',
+            'phone'          => ['nullable', 'string', 'max:20', 'regex:/^[\+]?[0-9\s\-\(\)\.]{6,20}$/'],
             'date_naissance' => 'nullable|date',
             'id_groupe'      => 'nullable|exists:groupes,id',
             'id_filiere'     => 'required|exists:filieres,id',
@@ -168,14 +225,12 @@ class StagiaireController extends Controller
 
             $isChangingGroup = (string) $stagiaire->id_groupe !== (string) $data['id_groupe'];
 
-            // ✅ CAPACITY CHECK — only when moving to a different group
             if ($isChangingGroup && $groupe->stagiaires_count >= $groupe->nbr_limit) {
                 return back()->withInput()->withErrors([
                     'id_groupe' => "Le groupe \"{$groupe->name}\" est complet ({$groupe->stagiaires_count}/{$groupe->nbr_limit} places).",
                 ]);
             }
 
-            // Sync filiere from the chosen group
             $data['id_filiere'] = $groupe->id_filiere;
         } else {
             $data['id_groupe'] = null;
@@ -188,6 +243,10 @@ class StagiaireController extends Controller
         }
 
         $stagiaire->update($data);
+
+        if (Role::where('name', 'stagiaire')->exists() && ! $stagiaire->hasRole('stagiaire')) {
+            $stagiaire->syncRoles(['stagiaire']);
+        }
 
         return back()->with('success', 'Stagiaire "' . $stagiaire->name . '" mis à jour.');
     }
@@ -202,5 +261,27 @@ class StagiaireController extends Controller
         $stagiaire->delete();
 
         return back()->with('success', 'Stagiaire "' . $name . '" supprimé.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PRIVATE HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function generateSecurePassword(int $length = 12): string
+    {
+        $upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $lower   = 'abcdefghjkmnpqrstuvwxyz';
+        $digits  = '23456789';
+        $special = '@#$%!&*';
+
+        $password  = substr(str_shuffle($upper),   0, 2);
+        $password .= substr(str_shuffle($lower),   0, 3);
+        $password .= substr(str_shuffle($digits),  0, 3);
+        $password .= substr(str_shuffle($special), 0, 2);
+
+        $all      = $upper . $lower . $digits . $special;
+        $password .= substr(str_shuffle(str_repeat($all, 3)), 0, $length - 10);
+
+        return str_shuffle($password);
     }
 }

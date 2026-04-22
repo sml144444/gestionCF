@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EmploiDuTemps;
 use App\Models\Filiere;
 use App\Models\Groupe;
+use App\Models\Module;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class GroupeController extends Controller
 {
@@ -14,6 +17,9 @@ class GroupeController extends Controller
 
     public function index(Request $request)
     {
+        $user        = Auth::user();
+        $isFormateur = $user->role === 'formateur';
+
         $filiereFilter   = $request->get('filiere');
         $promoFilter     = $request->get('promo');
 
@@ -22,7 +28,24 @@ class GroupeController extends Controller
 
         // Build query
         $query = Groupe::with('filiere')
-            ->withCount('stagiaires'); // ✅ now only counts role=stagiaire (model fixed)
+            ->withCount('stagiaires');
+
+        // ── Formateur scope: only groups where they teach ────────────────────
+        if ($isFormateur) {
+            // Step 1: get module IDs assigned to this formateur (principal or remplaçant)
+            $moduleIds = Module::where('id_user', $user->id)
+                ->orWhere('id_user_remplacant', $user->id)
+                ->pluck('id');
+
+            // Step 2: get group IDs from emplois_du_temps linked to those modules
+            $groupeIds = EmploiDuTemps::whereIn('id_module', $moduleIds)
+                ->pluck('id_groupe')
+                ->unique()
+                ->values();
+
+            $query->whereIn('id', $groupeIds);
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         if ($filiereFilter) {
             $query->where('id_filiere', $filiereFilter);
@@ -43,7 +66,7 @@ class GroupeController extends Controller
             ->values();
 
         return view('groupes.index', compact(
-            'groupes', 'filieres', 'selectedFiliere', 'promos'
+            'groupes', 'filieres', 'selectedFiliere', 'promos', 'isFormateur'
         ));
     }
 
@@ -92,7 +115,6 @@ class GroupeController extends Controller
 
     public function destroy(Groupe $groupe)
     {
-        // ✅ stagiaires() now correctly counts only role=stagiaire
         if ($groupe->stagiaires()->count() > 0) {
             return back()->with('error',
                 'Impossible de supprimer "' . $groupe->name . '" — ' .

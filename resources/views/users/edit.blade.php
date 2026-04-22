@@ -110,8 +110,7 @@
             </div>
             @endif
             <div>
-                @include('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'text',
-                    'value'=>old('phone',$user->phone)])
+                @include('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'tel','value'=>old('phone',$user->phone)])
             </div>
             <div>
                 @include('users._field',['label'=>'Date de naissance','name'=>'date_naissance','type'=>'date',

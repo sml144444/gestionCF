@@ -29,22 +29,26 @@
     {{-- Right: stats + create button --}}
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
 
-        {{-- Stats --}}
+        {{-- Stats — only shown for role types the user can manage --}}
         @foreach([
             ['#0a6640','#e8f5ee', $stats['total'],        'Total'],
-            ['#2563eb','#eff6ff', $stats['gestionnaire'],  'Gestionnaires'],
-            ['#9333ea','#fdf4ff', $stats['formateur'],     'Formateurs'],
-        ] as [$col,$bg,$cnt,$lbl])
+            $canManageGestionnaire ? ['#2563eb','#eff6ff', $stats['gestionnaire'], 'Gestionnaires'] : null,
+            $canManageFormateur    ? ['#9333ea','#fdf4ff', $stats['formateur'],    'Formateurs']    : null,
+        ] as $stat)
+        @if($stat)
+        @php [$col,$bg,$cnt,$lbl] = $stat; @endphp
         <div style="padding:8px 14px; border-radius:12px; background:{{ $bg }};
                     border:1px solid {{ $col }}20; text-align:center; min-width:72px;">
             <div style="font-size:18px; font-weight:800; color:{{ $col }};">{{ $cnt }}</div>
             <div style="font-size:9px; font-weight:700; color:{{ $col }}80;
                         text-transform:uppercase; letter-spacing:0.5px;">{{ $lbl }}</div>
         </div>
+        @endif
         @endforeach
 
-        {{-- Create buttons — gestionnaire button visible to admin only --}}
+        {{-- Create buttons — shown based on granular permissions --}}
         <div style="display:flex; gap:8px; margin-left:8px;">
+            @if($canManageFormateur)
             <a href="{{ route('users.management.create', ['role'=>'formateur']) }}"
                style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px;
                       border-radius:10px; background:#9333ea; color:white; font-size:12px;
@@ -54,7 +58,8 @@
                onmouseout="this.style.background='#9333ea'">
                 + Formateur
             </a>
-            @if(Auth::user()->role === 'admin')
+            @endif
+            @if($canManageGestionnaire)
             <a href="{{ route('users.management.create', ['role'=>'gestionnaire']) }}"
                style="display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 16px;
                       border-radius:10px; background:#2563eb; color:white; font-size:12px;

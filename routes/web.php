@@ -89,8 +89,6 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 // ─────────────────────────────────────────────
 // USER MANAGEMENT — admin + gestionnaire
-// NOTE: constructor middleware in the controller
-//       handles fine-grained permission checks.
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
     Route::prefix('users')->name('users.management.')->group(function () {
@@ -100,52 +98,56 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
         Route::get('/{user}/edit',   [UserManagementController::class, 'edit'])       ->name('edit');
         Route::put('/{user}',        [UserManagementController::class, 'update'])     ->name('update');
         Route::patch('/{user}/role', [UserManagementController::class, 'updateRole']) ->name('updateRole');
-
-        // Delete stays admin-only
-        Route::delete('/{user}', [UserManagementController::class, 'destroy'])
-            ->name('destroy')
-            ->middleware('role:admin');
+        Route::delete('/{user}',     [UserManagementController::class, 'destroy'])    ->name('destroy');
     });
 });
 
 // ─────────────────────────────────────────────
 // EMPLOI DU TEMPS
-// IMPORTANT: static sub-routes (available, pdf, publish)
-// MUST be declared BEFORE the {emploi} wildcard routes.
+// Static sub-routes MUST be declared BEFORE {emploi} wildcard routes.
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->group(function () {
 
     // ── READ ────────────────────────────────────────────────
     Route::get('/emplois', [EmploiDuTempsController::class, 'index'])
-        ->name('emplois.index');
+        ->name('emplois.index')
+        ->middleware('can:emploi-view');
 
-    // ── Static sub-routes FIRST (before any {emploi} routes) ─
+    // ── Static sub-routes FIRST ──────────────────────────────
     Route::get('/emplois/available', [EmploiDuTempsController::class, 'available'])
-        ->name('emplois.available');
+        ->name('emplois.available')
+        ->middleware('can:emploi-view');
 
     Route::get('/emplois/pdf', [EmploiDuTempsController::class, 'downloadPdf'])
-        ->name('emplois.pdf');
+        ->name('emplois.pdf')
+        ->middleware('can:emploi-view');
 
     Route::post('/emplois/publish', [EmploiDuTempsController::class, 'publish'])
-        ->name('emplois.publish');
+        ->name('emplois.publish')
+        ->middleware('can:emploi-edit');
 
     // ── CREATE ──────────────────────────────────────────────
     Route::post('/emplois', [EmploiDuTempsController::class, 'store'])
-        ->name('emplois.store');
+        ->name('emplois.store')
+        ->middleware('can:emploi-create');
 
     // ── UPDATE / DELETE (wildcard routes last) ───────────────
     Route::put('/emplois/{emploi}', [EmploiDuTempsController::class, 'update'])
-        ->name('emplois.update');
+        ->name('emplois.update')
+        ->middleware('can:emploi-edit');
 
     Route::delete('/emplois/{emploi}', [EmploiDuTempsController::class, 'destroy'])
-        ->name('emplois.destroy');
+        ->name('emplois.destroy')
+        ->middleware('can:emploi-delete');
 
     Route::patch('/emplois/{emploi}/lien', [EmploiDuTempsController::class, 'updateLien'])
-        ->name('emplois.updateLien');
+        ->name('emplois.updateLien')
+        ->middleware('can:emploi-lien');
 
     // ── REPLACEMENT ─────────────────────────────────────────
     Route::post('/emplois/{emploi}/remplacant', [EmploiDuTempsController::class, 'assignRemplacant'])
-        ->name('emplois.remplacant');
+        ->name('emplois.remplacant')
+        ->middleware('can:emploi-edit');
 });
 
 // ─────────────────────────────────────────────
@@ -277,10 +279,18 @@ Route::middleware(['auth'])->group(function () {
 
 // ─────────────────────────────────────────────
 // STAGIAIRES
+// ✅ FIX: added can:stagiaire-list to enforce permission check,
+//    not just the role column. A formateur with 0 permissions
+//    now gets a proper 403 instead of passing through.
+// WRITE operations stay admin + gestionnaire only.
 // ─────────────────────────────────────────────
-Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
+Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
     Route::get('/stagiaire', [StagiaireController::class, 'index'])
-        ->name('stagiaire.index')->middleware('can:stagiaire-list');
+        ->name('stagiaire.index')
+        ->middleware('can:stagiaire-list'); // ← THE FIX
+});
+
+Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
     Route::post('/stagiaire', [StagiaireController::class, 'store'])
         ->name('stagiaire.store')->middleware('can:stagiaire-create');
     Route::put('/stagiaire/{stagiaire}', [StagiaireController::class, 'update'])
@@ -360,6 +370,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('can:news-like');
 });
 
+// ─────────────────────────────────────────────
+// ABSENCES
+// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Route::get('/absences', [AbsenceController::class, 'index'])
         ->name('absences.index')
@@ -378,10 +391,12 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('can:absence-justify');
 });
 
+// ─────────────────────────────────────────────
+// PROFILE
+// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile',          [ProfileController::class, 'show'])          ->name('profile.show');
     Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
 });
- 
