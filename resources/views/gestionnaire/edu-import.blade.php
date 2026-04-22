@@ -88,9 +88,10 @@
 .btn-action-edit:hover { background:#dbeafe; }
 .btn-action-delete { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:8px; border:1.5px solid #fecdd3; background:#fff1f2; color:#dc2626; font-size:10px; font-weight:700; cursor:pointer; transition:all .15s; }
 .btn-action-delete:hover { background:#fee2e2; }
-.fmt-header { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent); }
-.fmt-row-a  { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent-lt); }
-.fmt-row-b  { display:grid; grid-template-columns:repeat(6,1fr); }
+/* ✅ 5-column format table */
+.fmt-header { display:grid; grid-template-columns:repeat(5,1fr); background:var(--accent); }
+.fmt-row-a  { display:grid; grid-template-columns:repeat(5,1fr); background:var(--accent-lt); }
+.fmt-row-b  { display:grid; grid-template-columns:repeat(5,1fr); }
 .fmt-cell { padding:7px 10px; font-size:9px; font-weight:700; border-right:1px solid rgba(255,255,255,0.12); }
 .fmt-header .fmt-cell { color:rgba(255,255,255,0.85); text-transform:uppercase; }
 .fmt-row-a  .fmt-cell,.fmt-row-b .fmt-cell { font-size:10px; font-weight:500; }
@@ -104,6 +105,9 @@
 .filter-bar-title { font-size:9px; font-weight:800; color:var(--accent-tx); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
 .filter-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; align-items:end; }
 .filter-active-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:99px; font-size:10px; font-weight:700; background:#fff7ed; color:#92400e; border:1px solid #fde68a; }
+.info-notice { padding:11px 14px; border-radius:10px; font-size:11px; display:flex; align-items:center; gap:8px; }
+.info-notice.blue  { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+.info-notice.green { background:var(--accent-lt); border:1px solid var(--accent-bd); color:var(--accent-tx); }
 </style>
 
 <div class="edu-wrap">
@@ -112,7 +116,11 @@
 @if(session('import_success'))
     @php $s = session('import_success'); @endphp
     <div class="flash-ok">
-        <div class="flash-ok-icon"><svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>
+        <div class="flash-ok-icon">
+            <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
         <div>
             <p style="font-size:13px;font-weight:700;color:var(--accent-tx);margin:0;">Import terminé !</p>
             <p style="font-size:11px;color:var(--accent-tx);opacity:.8;margin-top:2px;">
@@ -126,14 +134,22 @@
 
 @if(session('success'))
     <div class="flash-ok">
-        <div class="flash-ok-icon"><svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></div>
+        <div class="flash-ok-icon">
+            <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
         <p style="font-size:13px;font-weight:600;color:var(--accent-tx);margin:0;">{{ session('success') }}</p>
     </div>
 @endif
 
 @if(session('error'))
     <div class="flash-ok" style="background:#fff1f2;border-color:#fecdd3;">
-        <div class="flash-ok-icon" style="background:#dc2626;"><svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg></div>
+        <div class="flash-ok-icon" style="background:#dc2626;">
+            <svg width="18" height="18" fill="none" stroke="white" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
         <p style="font-size:13px;font-weight:600;color:#be123c;margin:0;">{{ session('error') }}</p>
     </div>
 @endif
@@ -151,7 +167,10 @@
     <div style="display:flex;align-items:center;gap:16px;">
         <div class="edu-hero-icon">
             <svg width="26" height="26" fill="none" stroke="white" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
+                         M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
+                         m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
         </div>
         <div>
@@ -170,30 +189,44 @@
 <div class="edu-tabs">
     @can('edu-import')
     <button class="edu-tab {{ $activeTab==='import' ? 'active' : '' }}" id="tab-btn-import" onclick="showTab('import')">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
         Import Excel
     </button>
     @endcan
 
     <button class="edu-tab {{ $activeTab==='accounts' ? 'active' : '' }}" id="tab-btn-accounts" onclick="showTab('accounts')">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
+                     M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
+                     m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
         Comptes EDU
         <span class="tab-badge">{{ $eduStats['total'] }}</span>
     </button>
 
     <button class="edu-tab {{ $activeTab==='history' ? 'active' : '' }}" id="tab-btn-history" onclick="showTab('history')">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
         Historique
         <span class="tab-badge">{{ $history->count() }}</span>
     </button>
 
     @can('edu-import')
     <button class="edu-tab {{ $activeTab==='manual' ? 'active' : '' }}" id="tab-btn-manual" onclick="showTab('manual')">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
         Ajout manuel
     </button>
     @endcan
 </div>
+
 
 {{-- ══════════════════════════════════════════════════
      TAB : IMPORT EXCEL
@@ -225,7 +258,8 @@
                           border-radius:10px;font-size:11px;font-weight:700;
                           color:var(--accent-tx);text-decoration:none;">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                     </svg>
                     Modèle Excel
                 </a>
@@ -237,7 +271,8 @@
                        ondrop="handleDrop(event)">
                     <div class="upload-zone-icon">
                         <svg width="28" height="28" fill="none" stroke="var(--accent)" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
                         </svg>
                     </div>
                     <p id="upload-label" style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">
@@ -255,30 +290,45 @@
             <div class="edu-card-head">
                 <div>
                     <p class="edu-card-title">Format attendu</p>
-                    <p class="edu-card-sub">6 colonnes dans cet ordre exact</p>
+                    {{-- ✅ 5 columns now --}}
+                    <p class="edu-card-sub">5 colonnes dans cet ordre exact — pas de colonne mot de passe</p>
                 </div>
             </div>
             <div class="edu-card-body">
-                <div style="border-radius:12px;overflow:hidden;margin-bottom:18px;border:1px solid var(--accent-bd);">
+                <div style="border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--accent-bd);">
+                    {{-- ✅ 5-col header --}}
                     <div class="fmt-header">
-                        @foreach(['edu_email','password','nom','prenom','filiere_code','groupe_code'] as $h)
+                        @foreach(['edu_email','nom','prenom','filiere_code','groupe_code'] as $h)
                             <div class="fmt-cell">{{ $h }}</div>
                         @endforeach
                     </div>
                     <div class="fmt-row-a">
-                        @foreach(['m.alami@ofppt.ma','pass1234','Alami','Mohammed','DEVDIG','DD-G1A'] as $v)
+                        @foreach(['m.alami@ofppt.ma','Alami','Mohammed','DEVDIG','DD-G1A'] as $v)
                             <div class="fmt-cell">{{ $v }}</div>
                         @endforeach
                     </div>
                     <div class="fmt-row-b">
-                        @foreach(['s.idrissi@ofppt.ma','pass5678','Idrissi','Sara','GI','GI-G1C'] as $v)
+                        @foreach(['s.idrissi@ofppt.ma','Idrissi','Sara','GI','GI-G1C'] as $v)
                             <div class="fmt-cell">{{ $v }}</div>
                         @endforeach
                     </div>
                 </div>
+
+                {{-- ✅ Auto-password info notice --}}
+                <div class="info-notice blue" style="margin-bottom:18px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1
+                                 v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                    Le mot de passe est <strong style="margin:0 3px;">généré automatiquement</strong>
+                    (12 caractères sécurisés) et envoyé au stagiaire par e-mail à l'import.
+                </div>
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
                     <div>
-                        <p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Codes filières</p>
+                        <p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;
+                                  letter-spacing:.5px;margin-bottom:10px;">Codes filières</p>
                         <div style="display:flex;flex-direction:column;gap:5px;">
                             @foreach($filieres as $f)
                                 <div class="code-chip">
@@ -290,13 +340,16 @@
                         </div>
                     </div>
                     <div>
-                        <p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Codes groupes</p>
+                        <p style="font-size:9px;font-weight:800;color:var(--accent-tx);text-transform:uppercase;
+                                  letter-spacing:.5px;margin-bottom:10px;">Codes groupes</p>
                         <div style="display:flex;flex-direction:column;gap:5px;">
                             @foreach($groupes as $g)
                                 <div class="code-chip">
                                     <span class="code-chip-key" style="color:#059669;">{{ $g->code ?? '—' }}</span>
                                     <span style="color:#cbd5e1;">·</span>
-                                    <span class="code-chip-val">{{ $g->filiere->name ?? '' }}@if($g->name) — {{ $g->name }}@endif</span>
+                                    <span class="code-chip-val">
+                                        {{ $g->filiere->name ?? '' }}@if($g->name) — {{ $g->name }}@endif
+                                    </span>
                                 </div>
                             @endforeach
                         </div>
@@ -361,6 +414,7 @@
 </div>
 @endcan
 
+
 {{-- ══════════════════════════════════════════════════
      TAB : COMPTES EDU
 ══════════════════════════════════════════════════ --}}
@@ -371,7 +425,8 @@
         <div class="filter-bar-title">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894
+                         l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
             </svg>
             Filtrer les comptes EDU
             @if($hasFilters)
@@ -493,10 +548,12 @@
                 </p>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
+                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;
+                             background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
                     ✓ {{ $eduStats['used'] }} utilisés
                 </span>
-                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
+                <span style="padding:4px 12px;border-radius:99px;font-size:10px;font-weight:700;
+                             background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
                     ⏳ {{ $eduStats['pending'] }} en attente
                 </span>
             </div>
@@ -504,10 +561,13 @@
 
         @if($eduAccounts->isEmpty())
             <div class="edu-card-body" style="padding:48px;text-align:center;">
-                <div style="width:56px;height:56px;border-radius:16px;background:var(--accent-lt);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+                <div style="width:56px;height:56px;border-radius:16px;background:var(--accent-lt);
+                            display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
                     <svg width="26" height="26" fill="none" stroke="var(--accent)" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857
+                                 M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857
+                                 m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                 </div>
                 <p style="font-size:14px;font-weight:700;color:#1e293b;margin:0 0 4px;">
@@ -558,7 +618,8 @@
                             <td style="color:#1e40af;font-weight:600;">{{ $edu->edu_email }}</td>
                             <td>
                                 @if($edu->filiere_code)
-                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">
+                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;
+                                                 background:var(--accent-lt);color:var(--accent-tx);">
                                         {{ $edu->filiere_code }}
                                     </span>
                                 @else
@@ -567,7 +628,8 @@
                             </td>
                             <td>
                                 @if($edu->groupe_code)
-                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">
+                                    <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;
+                                                 background:#f1f5f9;color:#334155;">
                                         {{ $edu->groupe_code }}
                                     </span>
                                 @else
@@ -576,12 +638,16 @@
                             </td>
                             <td>
                                 @if($edu->used)
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+                                                 border-radius:99px;font-size:9px;font-weight:700;
+                                                 background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
                                         <span style="width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
                                         Compte créé
                                     </span>
                                 @else
-                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
+                                    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+                                                 border-radius:99px;font-size:9px;font-weight:700;
+                                                 background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
                                         <span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
                                         En attente
                                     </span>
@@ -598,9 +664,7 @@
                             @can('edu-import')
                             <td>
                                 <div style="display:flex;gap:6px;align-items:center;">
-                                    {{-- Bouton Modifier --}}
-                                    <a href="{{ route('edu-import.edit', $edu->id) }}"
-                                       class="btn-action-edit">
+                                    <a href="{{ route('edu-import.edit', $edu->id) }}" class="btn-action-edit">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5
@@ -608,8 +672,6 @@
                                         </svg>
                                         Modifier
                                     </a>
-
-                                    {{-- Bouton Supprimer --}}
                                     <form method="POST" action="{{ route('edu-import.destroy', $edu->id) }}"
                                           onsubmit="return confirm('Supprimer {{ $edu->prenom }} {{ $edu->nom }} ? Cette action est irréversible.')">
                                         @csrf
@@ -639,6 +701,7 @@
         @endif
     </div>
 </div>
+
 
 {{-- ══════════════════════════════════════════════════
      TAB : HISTORIQUE
@@ -674,11 +737,11 @@
                     <tbody>
                         @foreach($history as $log)
                         @php
-                            $importerRole    = $log->user?->role ?? 'admin';
-                            $avatarBg        = ['admin'=>'#0a6640','gestionnaire'=>'#1e293b','formateur'=>'#1a4f8a'][$importerRole] ?? '#475569';
-                            $name            = $log->user?->name ?? 'Inconnu';
-                            $importerInitials = strtoupper(substr($name,0,1))
-                                             . strtoupper(substr(explode(' ',$name.' ')[1] ?? '',0,1));
+                            $importerRole     = $log->user?->role ?? 'admin';
+                            $avatarBg         = ['admin'=>'#0a6640','gestionnaire'=>'#1e293b','formateur'=>'#1a4f8a'][$importerRole] ?? '#475569';
+                            $name             = $log->user?->name ?? 'Inconnu';
+                            $importerInitials = strtoupper(substr($name, 0, 1))
+                                             . strtoupper(substr(explode(' ', $name . ' ')[1] ?? '', 0, 1));
                         @endphp
                         <tr>
                             <td style="white-space:nowrap;">
@@ -703,7 +766,8 @@
                                     @else
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
+                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293
+                                                     l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z"/>
                                         </svg>
                                     @endif
                                     {{ $log->filename }}
@@ -714,11 +778,14 @@
                             <td><span style="font-size:14px;font-weight:800;color:#dc2626;">{{ $log->errors }}</span></td>
                             <td>
                                 @if($log->errors == 0 && $log->skipped == 0)
-                                    <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ Succès</span>
+                                    <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;
+                                                 background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ Succès</span>
                                 @elseif($log->errors == 0)
-                                    <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">! Partiel</span>
+                                    <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;
+                                                 background:#fffbeb;color:#92400e;border:1px solid #fde68a;">! Partiel</span>
                                 @else
-                                    <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fff1f2;color:#dc2626;border:1px solid #fecdd3;">✕ Erreurs</span>
+                                    <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;
+                                                 background:#fff1f2;color:#dc2626;border:1px solid #fecdd3;">✕ Erreurs</span>
                                 @endif
                             </td>
                         </tr>
@@ -729,6 +796,7 @@
         @endif
     </div>
 </div>
+
 
 {{-- ══════════════════════════════════════════════════
      TAB : AJOUT MANUEL
@@ -766,43 +834,73 @@
                            placeholder="m.alami@ofppt.ma" required class="edu-input">
                 </div>
 
-                <div>
-                    <label class="edu-label">Mot de passe</label>
-                    <input type="password" name="password" required
-                           placeholder="Min. 6 caractères" class="edu-input">
+                {{-- ✅ Password field removed — replaced by info notice --}}
+                <div class="info-notice blue">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1
+                                 v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                    <span>
+                        Mot de passe <strong>généré automatiquement</strong> (12 caractères sécurisés —
+                        chiffres, majuscules, symboles) et envoyé au stagiaire par e-mail.
+                    </span>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div>
-                        <label class="edu-label">Filière</label>
-                        <select name="filiere_code" id="manual-filiere" required
-                                onchange="filterGroups(this.value)"
-                                class="edu-input edu-select">
-                            <option value="">— Sélectionner —</option>
-                            @foreach($filieres as $f)
-                                <option value="{{ $f->code }}" {{ old('filiere_code')===$f->code ? 'selected':'' }}>
-                                    {{ $f->code }} — {{ $f->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="edu-label">Groupe</label>
-                        <select name="groupe_code" id="manual-groupe" required
-                                class="edu-input edu-select">
-                            <option value="">— Filière d'abord —</option>
-                        </select>
-                    </div>
-                </div>
+{{-- Filière + Année + Groupe --}}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+        <label class="edu-label">Filière</label>
+        <select name="filiere_code" id="manual-filiere" required
+                onchange="filterGroups(this.value)"
+                class="edu-input edu-select">
+            <option value="">— Sélectionner —</option>
+            @foreach($filieres as $f)
+                <option value="{{ $f->code }}"
+                        {{ old('filiere_code') === $f->code ? 'selected' : '' }}>
+                    {{ $f->code }} — {{ $f->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
 
-                <div style="padding:12px 14px;border-radius:10px;background:var(--accent-lt);
-                            border:1px solid var(--accent-bd);font-size:11px;color:var(--accent-tx);
-                            display:flex;align-items:center;gap:8px;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    {{-- ✅ NEW: Année selector --}}
+    <div>
+        <label class="edu-label">Année de formation</label>
+        <div style="display:flex;gap:6px;height:40px;align-items:center;">
+            @foreach([1 => '1ère', 2 => '2ème', 3 => '3ème'] as $val => $label)
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;
+                          gap:5px;padding:6px;border-radius:9px;cursor:pointer;
+                          border:1.5px solid #e2e8f0;background:#f8fafc;
+                          font-size:11px;font-weight:700;color:#64748b;
+                          transition:all .15s;" id="annee-lbl-{{ $val }}"
+                   onclick="selectAnnee({{ $val }})">
+                <input type="radio" name="_annee_filter" value="{{ $val }}"
+                       id="annee-radio-{{ $val }}"
+                       style="display:none;"
+                       {{ old('_annee_filter', 1) == $val ? 'checked' : '' }}>
+                {{ $label }}
+            </label>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<div>
+    <label class="edu-label">Groupe</label>
+    <select name="groupe_code" id="manual-groupe" required
+            class="edu-input edu-select">
+        <option value="">— Sélectionner filière et année —</option>
+    </select>
+</div>
+
+                <div class="info-notice green">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    Le stagiaire pourra utiliser ces identifiants pour créer son compte.
+                    Le stagiaire recevra ses identifiants (email + mot de passe généré) par e-mail
+                    et pourra les utiliser pour créer son compte.
                 </div>
 
                 <div style="display:flex;gap:10px;padding-top:4px;">
@@ -823,7 +921,7 @@
 </div>{{-- /.edu-wrap --}}
 
 <script>
-// ── Tab switching ──
+// ── Tab switching ──────────────────────────────────────────────────────────────
 const TABS = ['import','accounts','history','manual'];
 function showTab(name) {
     TABS.forEach(t => {
@@ -835,7 +933,7 @@ function showTab(name) {
 }
 document.addEventListener('DOMContentLoaded', () => showTab('{{ $activeTab }}'));
 
-// ── Steps ──
+// ── Steps ──────────────────────────────────────────────────────────────────────
 function goStep(n) {
     [1, 2].forEach(i => {
         const el = document.getElementById('step-' + i);
@@ -850,7 +948,7 @@ function goStep(n) {
     });
 }
 
-// ── File upload ──
+// ── File upload ────────────────────────────────────────────────────────────────
 function onFileSelected(input) {
     if (input.files && input.files[0]) {
         document.getElementById('upload-label').textContent = '📄 ' + input.files[0].name + ' — Validation…';
@@ -880,17 +978,17 @@ async function uploadAndValidate(file) {
     }
 }
 function renderValidation(data) {
-    document.getElementById('val-subtitle').textContent      = data.total + ' lignes analysées';
-    document.getElementById('stat-valid').textContent        = data.valid;
-    document.getElementById('stat-warn').textContent         = data.warn_count;
-    document.getElementById('stat-err').textContent          = data.error_count;
+    document.getElementById('val-subtitle').textContent       = data.total + ' lignes analysées';
+    document.getElementById('stat-valid').textContent         = data.valid;
+    document.getElementById('stat-warn').textContent          = data.warn_count;
+    document.getElementById('stat-err').textContent           = data.error_count;
     const pct = data.total > 0 ? Math.round((data.valid / data.total) * 100) : 0;
-    document.getElementById('val-progress').style.width      = pct + '%';
+    document.getElementById('val-progress').style.width       = pct + '%';
     document.getElementById('val-progress-label').textContent = pct + '% des lignes prêtes';
 
     const box = document.getElementById('val-messages');
     box.innerHTML = '';
-    if (data.valid > 0)      box.innerHTML += msgRow('ok',   data.valid + ' stagiaire(s) prêt(s) à importer.');
+    if (data.valid > 0) box.innerHTML += msgRow('ok', data.valid + ' stagiaire(s) prêt(s) à importer.');
     data.warnings.forEach(w => box.innerHTML += msgRow('warn', w));
     data.errors.forEach(e   => box.innerHTML += msgRow('err',  e));
 
@@ -899,8 +997,7 @@ function renderValidation(data) {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
          </svg> Confirmer l'import (${data.valid} lignes)`;
 
-    // Disable confirm button if nothing valid
-    document.getElementById('btn-confirm').disabled = data.valid === 0;
+    document.getElementById('btn-confirm').disabled     = data.valid === 0;
     document.getElementById('btn-confirm').style.opacity = data.valid === 0 ? '.5' : '1';
 }
 function msgRow(type, text) {
@@ -915,7 +1012,7 @@ function msgRow(type, text) {
             </div>`;
 }
 
-// ── Dynamic groupe filter (filter bar) ──
+// ── Dynamic groupe filter (filter bar) ────────────────────────────────────────
 @php
 $allEduGroupes = \App\Models\Edu::select('filiere_code','groupe_code')
     ->distinct()->orderBy('groupe_code')->get()->groupBy('filiere_code');
@@ -936,32 +1033,69 @@ function updateGroupeOptions(filiereCode) {
     });
 }
 
-// ── Manual form groupe filter ──
+// ── Manual form groupe filter (with annee) ─────────────────────────────────────────────────
 @php
 $groupesJs = $groupes->map(fn($g) => [
     'code'         => $g->code,
     'name'         => $g->name ?? 'G'.$g->id,
     'filiere_code' => $g->filiere?->code,
+    'annee'        => $g->annee ?? 1,
 ])->values();
 @endphp
 const allGroupes = @json($groupesJs);
 
+// Track selected année (default 1ère)
+let selectedAnnee = {{ old('_annee_filter', 1) }};
+
+function selectAnnee(val) {
+    selectedAnnee = val;
+
+    // Style the radio labels
+    [1, 2, 3].forEach(v => {
+        const lbl = document.getElementById('annee-lbl-' + v);
+        const radio = document.getElementById('annee-radio-' + v);
+        if (!lbl) return;
+        const isActive = v === val;
+        lbl.style.background    = isActive ? 'var(--accent-lt)' : '#f8fafc';
+        lbl.style.borderColor   = isActive ? 'var(--accent)'    : '#e2e8f0';
+        lbl.style.color         = isActive ? 'var(--accent-tx)' : '#64748b';
+        if (radio) radio.checked = isActive;
+    });
+
+    // Re-filter groupes
+    const fc = document.getElementById('manual-filiere')?.value;
+    filterGroups(fc);
+}
+
 function filterGroups(fc) {
     const sel = document.getElementById('manual-groupe');
     if (!sel) return;
+
+    const anneeLabels = { 1: 'An.1', 2: 'An.2', 3: 'An.3' };
     sel.innerHTML = '<option value="">— Sélectionner —</option>';
+
     allGroupes
-        .filter(g => g.filiere_code === fc)
+        .filter(g => (!fc || g.filiere_code === fc) && g.annee === selectedAnnee)
         .forEach(g => {
             const o = document.createElement('option');
-            o.value = g.code;
-            o.textContent = g.code + ' — ' + g.name;
+            o.value       = g.code;
+            o.textContent = g.code + ' — ' + g.name + ' (' + anneeLabels[g.annee] + ')';
             sel.appendChild(o);
         });
+
+    // Show "no groups" if none match
+    if (sel.options.length === 1) {
+        const o = document.createElement('option');
+        o.disabled     = true;
+        o.textContent  = '— Aucun groupe pour cette année —';
+        sel.appendChild(o);
+    }
 }
 
-// Initialiser le filtre groupe sur la page des comptes
-document.addEventListener('DOMContentLoaded', function() {
+// Init année labels on load
+document.addEventListener('DOMContentLoaded', function () {
+    selectAnnee(selectedAnnee);
+
     const filiereSelect = document.getElementById('filter-filiere');
     if (filiereSelect && filiereSelect.value) {
         updateGroupeOptions(filiereSelect.value);

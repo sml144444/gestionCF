@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\WelcomeEduMail;          // ← WelcomeMail spécifique au modèle Edu
 use App\Models\Edu;
 use App\Models\EduImportLog;
 use App\Models\Filiere;
@@ -9,6 +10,7 @@ use App\Models\Groupe;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -23,7 +25,7 @@ class EduImportController extends Controller
 
         $history = EduImportLog::with('user')->latest()->take(50)->get();
 
-        // ── Filters — use input() NOT string() to avoid truthy Stringable bug ──
+        // ── Filters ──
         $filterSearch   = trim($request->input('search',         ''));
         $filterFiliere  = trim($request->input('filiere_code',   ''));
         $filterGroupe   = trim($request->input('groupe_code',    ''));
@@ -32,7 +34,6 @@ class EduImportController extends Controller
         $filterDateFrom = trim($request->input('date_from',      ''));
         $filterDateTo   = trim($request->input('date_to',        ''));
 
-        // ── Build query — each condition only runs when value is non-empty string ──
         $query = Edu::latest();
 
         if ($filterSearch !== '') {
@@ -42,40 +43,23 @@ class EduImportController extends Controller
                   ->orWhere('prenom',  'like', "%{$filterSearch}%")
             );
         }
+        if ($filterFiliere !== '') $query->where('filiere_code', $filterFiliere);
+        if ($filterGroupe  !== '') $query->where('groupe_code',  $filterGroupe);
 
-        if ($filterFiliere !== '') {
-            $query->where('filiere_code', $filterFiliere);
-        }
+        if ($filterStatut === 'used')        $query->where('used', true);
+        elseif ($filterStatut === 'pending') $query->where('used', false);
 
-        if ($filterGroupe !== '') {
-            $query->where('groupe_code', $filterGroupe);
-        }
-
-        if ($filterStatut === 'used') {
-            $query->where('used', true);
-        } elseif ($filterStatut === 'pending') {
-            $query->where('used', false);
-        }
-
-        // Academic year: "2025/2026" → between 2025-09-01 and 2026-08-31
         if ($filterAnnee !== '' && preg_match('/^(\d{4})\/(\d{4})$/', $filterAnnee, $m)) {
             $query->whereBetween('created_at', [
                 $m[1] . '-09-01 00:00:00',
                 $m[2] . '-08-31 23:59:59',
             ]);
         }
-
-        if ($filterDateFrom !== '') {
-            $query->whereDate('created_at', '>=', $filterDateFrom);
-        }
-
-        if ($filterDateTo !== '') {
-            $query->whereDate('created_at', '<=', $filterDateTo);
-        }
+        if ($filterDateFrom !== '') $query->whereDate('created_at', '>=', $filterDateFrom);
+        if ($filterDateTo   !== '') $query->whereDate('created_at', '<=', $filterDateTo);
 
         $eduAccounts = $query->paginate(25, ['*'], 'edu_page')->withQueryString();
 
-        // ── Global stats (always unfiltered) ──
         $eduStats = [
             'total'   => Edu::count(),
             'used'    => Edu::where('used', true)->count(),
@@ -88,7 +72,6 @@ class EduImportController extends Controller
 
         $anneesScolaires = $this->getAnneesScolaires();
 
-        // Distinct codes in edu table for dropdown options
         $eduFiliereCodes = Edu::select('filiere_code')
             ->whereNotNull('filiere_code')
             ->distinct()->orderBy('filiere_code')->pluck('filiere_code');
@@ -119,10 +102,10 @@ class EduImportController extends Controller
     public function edit(Edu $edu): View
     {
         abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
-        
+
         $filieres = Filiere::orderBy('name')->get();
-        $groupes = Groupe::with('filiere')->orderBy('id_filiere')->orderBy('name')->get();
-        
+        $groupes  = Groupe::with('filiere')->orderBy('id_filiere')->orderBy('name')->get();
+
         return view('gestionnaire.edu-edit', compact('edu', 'filieres', 'groupes'));
     }
 
@@ -142,13 +125,12 @@ class EduImportController extends Controller
             'password'     => 'nullable|string|min:6',
         ]);
 
-        // Vérifier que le groupe appartient à la filière
         $groupeAppartient = Groupe::join('filieres', 'groupes.id_filiere', '=', 'filieres.id')
             ->where('groupes.code', $data['groupe_code'])
             ->where('filieres.code', $data['filiere_code'])
             ->exists();
 
-        if (!$groupeAppartient) {
+        if (! $groupeAppartient) {
             return back()
                 ->withErrors(['groupe_code' => "Le groupe «{$data['groupe_code']}» n'appartient pas à la filière «{$data['filiere_code']}»."])
                 ->withInput();
@@ -159,7 +141,7 @@ class EduImportController extends Controller
         $edu->edu_email    = $data['edu_email'];
         $edu->filiere_code = $data['filiere_code'];
         $edu->groupe_code  = $data['groupe_code'];
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $edu->password = Hash::make($data['password']);
         }
         $edu->save();
@@ -188,10 +170,14 @@ class EduImportController extends Controller
     public function preview(Request $request)
     {
         abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
+
         $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:5120']);
+
         $rows   = $this->parseFile($request->file('file'));
         $result = $this->validateRows($rows);
+
         session(['edu_preview' => $result]);
+
         return response()->json($result);
     }
 
@@ -201,25 +187,44 @@ class EduImportController extends Controller
     public function confirm(Request $request): RedirectResponse
     {
         abort_unless(auth()->user()->hasPermissionTo('edu-import'), 403);
+
         $preview = session('edu_preview');
         if (! $preview || empty($preview['valid_rows'])) {
             return redirect()->route('edu-import.index')
                 ->with('error', 'Aucune donnée à importer. Veuillez re-uploader le fichier.');
         }
-        $imported = 0; $skipped = 0;
+
+        $imported = 0;
+        $skipped  = 0;
+
         foreach ($preview['valid_rows'] as $row) {
-            if (Edu::where('edu_email', $row['edu_email'])->exists()) { $skipped++; continue; }
-            Edu::create([
+            if (Edu::where('edu_email', $row['edu_email'])->exists()) {
+                $skipped++;
+                continue;
+            }
+
+            $plainPassword = $row['plain_password'];
+
+            $edu = Edu::create([
                 'edu_email'    => $row['edu_email'],
-                'password'     => Hash::make($row['password']),
+                'password'     => Hash::make($plainPassword),
                 'nom'          => $row['nom'],
                 'prenom'       => $row['prenom'],
                 'filiere_code' => $row['filiere_code'],
                 'groupe_code'  => $row['groupe_code'],
                 'used'         => false,
             ]);
+
+            // ✅ Envoi de l'email de bienvenue avec les identifiants générés
+            try {
+                Mail::to($edu->edu_email)->send(new WelcomeEduMail($edu, $plainPassword));
+            } catch (\Exception $e) {
+                \Log::error("Échec envoi email EDU ({$edu->edu_email}): " . $e->getMessage());
+            }
+
             $imported++;
         }
+
         EduImportLog::create([
             'id_user'  => auth()->id(),
             'filename' => session('edu_import_filename', 'fichier.xlsx'),
@@ -227,9 +232,15 @@ class EduImportController extends Controller
             'skipped'  => $skipped,
             'errors'   => count($preview['errors'] ?? []),
         ]);
+
         session()->forget(['edu_preview', 'edu_import_filename']);
+
         return redirect()->route('edu-import.index', ['tab' => 'accounts'])
-            ->with('import_success', ['imported' => $imported, 'skipped' => $skipped, 'errors' => count($preview['errors'] ?? [])]);
+            ->with('import_success', [
+                'imported' => $imported,
+                'skipped'  => $skipped,
+                'errors'   => count($preview['errors'] ?? []),
+            ]);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -243,69 +254,101 @@ class EduImportController extends Controller
             'nom'          => 'required|string|max:100',
             'prenom'       => 'required|string|max:100',
             'edu_email'    => 'required|email|unique:edu,edu_email',
-            'password'     => 'required|string|min:6',
             'filiere_code' => 'required|exists:filieres,code',
             'groupe_code'  => 'required|exists:groupes,code',
         ]);
 
-        // Vérifier que le groupe appartient à la filière
-        $groupeAppartient = Groupe::join('filieres','groupes.id_filiere','=','filieres.id')
+        $groupeAppartient = Groupe::join('filieres', 'groupes.id_filiere', '=', 'filieres.id')
             ->where('groupes.code', $data['groupe_code'])
             ->where('filieres.code', $data['filiere_code'])
             ->exists();
 
-        if (!$groupeAppartient) {
+        if (! $groupeAppartient) {
             return back()
                 ->withErrors(['groupe_code' => "Le groupe «{$data['groupe_code']}» n'appartient pas à la filière «{$data['filiere_code']}»."])
                 ->withInput();
         }
-        
-        Edu::create([
+
+        $plainPassword = $this->generateSecurePassword();
+
+        $edu = Edu::create([
             'nom'          => $data['nom'],
             'prenom'       => $data['prenom'],
             'edu_email'    => $data['edu_email'],
-            'password'     => Hash::make($data['password']),
+            'password'     => Hash::make($plainPassword),
             'filiere_code' => $data['filiere_code'],
             'groupe_code'  => $data['groupe_code'],
             'used'         => false,
         ]);
-        
+
         EduImportLog::create([
             'id_user'  => auth()->id(),
             'filename' => 'Ajout manuel',
-            'imported' => 1, 'skipped' => 0, 'errors' => 0,
+            'imported' => 1,
+            'skipped'  => 0,
+            'errors'   => 0,
         ]);
-        
+
+        // ✅ Envoi de l'email de bienvenue avec les identifiants générés
+        try {
+            Mail::to($edu->edu_email)->send(new WelcomeEduMail($edu, $plainPassword));
+        } catch (\Exception $e) {
+            \Log::error("Échec envoi email EDU manuel ({$edu->edu_email}): " . $e->getMessage());
+        }
+
         return redirect()->route('edu-import.index', ['tab' => 'accounts'])
-            ->with('success', "Stagiaire {$data['prenom']} {$data['nom']} ajouté avec succès.");
+            ->with('success', "Stagiaire {$data['prenom']} {$data['nom']} ajouté avec succès. Les identifiants ont été envoyés par e-mail.");
     }
 
     // ─────────────────────────────────────────────────────────
-    // DOWNLOAD TEMPLATE
+    // DOWNLOAD TEMPLATE — 5 colonnes (sans mot de passe)
     // ─────────────────────────────────────────────────────────
     public function downloadTemplate()
     {
         abort_unless(auth()->user()->hasPermissionTo('edu-view'), 403);
+
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $headers = ['edu_email','password','nom','prenom','filiere_code','groupe_code'];
+        $sheet       = $spreadsheet->getActiveSheet();
+
+        $headers = ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code'];
+
         foreach ($headers as $col => $header) {
-            $cell = chr(65+$col).'1';
+            $cell = chr(65 + $col) . '1';
             $sheet->setCellValue($cell, $header);
-            $sheet->getStyle($cell)->applyFromArray(['font'=>['bold'=>true,'color'=>['argb'=>'FFFFFFFF']],'fill'=>['fillType'=>'solid','startColor'=>['argb'=>'FF1E293B']],'alignment'=>['horizontal'=>'center']]);
-            $sheet->getColumnDimensionByColumn($col+1)->setWidth(22);
+            $sheet->getStyle($cell)->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF1E293B']],
+                'alignment' => ['horizontal' => 'center'],
+            ]);
+            $sheet->getColumnDimensionByColumn($col + 1)->setWidth(22);
         }
-        foreach ([['ahmed.ali@ofppt.ma','pass1234','Ali','Ahmed','DEVDIG','DD-G1A'],['sara.idrissi@ofppt.ma','pass5678','Idrissi','Sara','GI','GI-G1C']] as $ri => $row) {
-            foreach ($row as $col => $val) $sheet->setCellValue(chr(65+$col).($ri+2), $val);
+
+        $examples = [
+            ['ahmed.alami@ofppt.ma',  'Alami',   'Ahmed', 'DEVDIG', 'DD-G1A'],
+            ['sara.idrissi@ofppt.ma', 'Idrissi', 'Sara',  'GI',     'GI-G1C'],
+        ];
+
+        foreach ($examples as $ri => $row) {
+            foreach ($row as $col => $val) {
+                $sheet->setCellValue(chr(65 + $col) . ($ri + 2), $val);
+            }
         }
+
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-        ob_start(); $writer->save('php://output'); $content = ob_get_clean();
-        return response($content, 200, ['Content-Type'=>'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition'=>'attachment; filename="modele_import_edu.xlsx"']);
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        return response($content, 200, [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="modele_import_edu.xlsx"',
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────
+
     private function getAnneesScolaires(): array
     {
         $years = [];
@@ -315,36 +358,68 @@ class EduImportController extends Controller
         return array_reverse($years);
     }
 
+    /**
+     * Parse uploaded file — 5 colonnes (sans mot de passe).
+     */
     private function parseFile($file): array
     {
         session(['edu_import_filename' => $file->getClientOriginalName()]);
+
         $rows = [];
+
         if (strtolower($file->getClientOriginalExtension()) === 'csv') {
-            $handle = fopen($file->getRealPath(), 'r'); $header = null;
+            $handle = fopen($file->getRealPath(), 'r');
+            $header = null;
             while (($line = fgetcsv($handle, 1000, ',')) !== false) {
-                if (!$header) { $header = array_map('trim',$line); continue; }
-                if (count($line) >= 6) $rows[] = array_combine(['edu_email','password','nom','prenom','filiere_code','groupe_code'], array_slice(array_map('trim',$line),0,6));
+                if (! $header) {
+                    $header = array_map('trim', $line);
+                    continue;
+                }
+                if (count($line) >= 5) {
+                    $rows[] = array_combine(
+                        ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code'],
+                        array_slice(array_map('trim', $line), 0, 5)
+                    );
+                }
             }
             fclose($handle);
         } else {
             $spreadsheet = IOFactory::load($file->getRealPath());
-            $sheet = $spreadsheet->getActiveSheet();
+            $sheet       = $spreadsheet->getActiveSheet();
+
             for ($row = 2; $row <= $sheet->getHighestDataRow(); $row++) {
                 $data = [];
-                for ($col = 1; $col <= 6; $col++) $data[] = trim((string)$sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$row)->getValue());
-                if (array_filter($data)) $rows[] = array_combine(['edu_email','password','nom','prenom','filiere_code','groupe_code'], $data);
+                for ($col = 1; $col <= 5; $col++) {
+                    $data[] = trim((string) $sheet
+                        ->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row)
+                        ->getValue());
+                }
+                if (array_filter($data)) {
+                    $rows[] = array_combine(
+                        ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code'],
+                        $data
+                    );
+                }
             }
         }
+
         return $rows;
     }
 
+    /**
+     * Validate rows — mot de passe auto-généré par ligne valide.
+     */
     private function validateRows(array $rows): array
     {
-        $validRows=[]; $warnings=[]; $errors=[]; $skippedLines=[];
-        $filiereCodes = Filiere::pluck('id','code')->toArray();
-        $groupeCodes  = Groupe::pluck('id','code')->toArray();
+        $validRows    = [];
+        $warnings     = [];
+        $errors       = [];
+        $skippedLines = [];
 
-        $groupeFiliereMap = Groupe::join('filieres','groupes.id_filiere','=','filieres.id')
+        $filiereCodes = Filiere::pluck('id', 'code')->toArray();
+        $groupeCodes  = Groupe::pluck('id', 'code')->toArray();
+
+        $groupeFiliereMap = Groupe::join('filieres', 'groupes.id_filiere', '=', 'filieres.id')
             ->select('groupes.code as groupe_code', 'filieres.code as filiere_code')
             ->get()
             ->pluck('filiere_code', 'groupe_code')
@@ -353,42 +428,89 @@ class EduImportController extends Controller
         $seenEmails = [];
 
         foreach ($rows as $lineNum => $row) {
-            $line=$lineNum+2; $email=$row['edu_email']??''; $pass=$row['password']??'';
-            $nom=$row['nom']??''; $prenom=$row['prenom']??'';
-            $fc=strtoupper(trim($row['filiere_code']??'')); $gc=trim($row['groupe_code']??'');
+            $line   = $lineNum + 2;
+            $email  = $row['edu_email']    ?? '';
+            $nom    = $row['nom']          ?? '';
+            $prenom = $row['prenom']       ?? '';
+            $fc     = strtoupper(trim($row['filiere_code'] ?? ''));
+            $gc     = trim($row['groupe_code'] ?? '');
 
-            if (empty($email)||!filter_var($email,FILTER_VALIDATE_EMAIL)) {
-                $errors[]="Ligne {$line} — Email invalide : «{$email}»"; continue;
+            if (empty($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Ligne {$line} — Email invalide : «{$email}»";
+                continue;
             }
-            if (!isset($filiereCodes[$fc])) {
-                $errors[]="Ligne {$line} — Code filière «{$fc}» introuvable"; continue;
+            if (! isset($filiereCodes[$fc])) {
+                $errors[] = "Ligne {$line} — Code filière «{$fc}» introuvable";
+                continue;
             }
-            if (!isset($groupeCodes[$gc])) {
-                $errors[]="Ligne {$line} — Code groupe «{$gc}» introuvable"; continue;
+            if (! isset($groupeCodes[$gc])) {
+                $errors[] = "Ligne {$line} — Code groupe «{$gc}» introuvable";
+                continue;
             }
-            if (!isset($groupeFiliereMap[$gc]) || $groupeFiliereMap[$gc] !== $fc) {
-                $errors[]="Ligne {$line} — Le groupe «{$gc}» n'appartient pas à la filière «{$fc}»"; continue;
+            if (! isset($groupeFiliereMap[$gc]) || $groupeFiliereMap[$gc] !== $fc) {
+                $errors[] = "Ligne {$line} — Le groupe «{$gc}» n'appartient pas à la filière «{$fc}»";
+                continue;
             }
-
             if (isset($seenEmails[$email])) {
-                $errors[]="Ligne {$line} — «{$email}» est en doublon dans le fichier (déjà à la ligne {$seenEmails[$email]})";
-                $skippedLines[]=$line; continue;
+                $errors[]       = "Ligne {$line} — «{$email}» est en doublon (déjà à la ligne {$seenEmails[$email]})";
+                $skippedLines[] = $line;
+                continue;
             }
             $seenEmails[$email] = $line;
 
-            if (Edu::where('edu_email',$email)->exists()) {
-                $errors[]="Ligne {$line} — «{$email}» est déjà présent dans la base";
-                $skippedLines[]=$line; continue;
+            if (Edu::where('edu_email', $email)->exists()) {
+                $errors[]       = "Ligne {$line} — «{$email}» est déjà présent dans la base";
+                $skippedLines[] = $line;
+                continue;
             }
-
             if (empty($nom) || empty($prenom)) {
-                $errors[]="Ligne {$line} — Nom/prénom manquant pour «{$email}»"; continue;
+                $errors[] = "Ligne {$line} — Nom/prénom manquant pour «{$email}»";
+                continue;
             }
-            if (strlen($pass)<6) $warnings[]="Ligne {$line} — Mot de passe court pour «{$email}»";
 
-            $validRows[]=['edu_email'=>$email,'password'=>$pass?:'ofppt2025','nom'=>$nom,'prenom'=>$prenom,'filiere_code'=>$fc,'groupe_code'=>$gc];
+            // ✅ Mot de passe généré ici — stocké temporairement en session pour l'envoi email
+            $plainPassword = $this->generateSecurePassword();
+
+            $validRows[] = [
+                'edu_email'      => $email,
+                'plain_password' => $plainPassword,
+                'nom'            => $nom,
+                'prenom'         => $prenom,
+                'filiere_code'   => $fc,
+                'groupe_code'    => $gc,
+            ];
         }
 
-        return ['total'=>count($rows),'valid'=>count($validRows),'warn_count'=>count($warnings),'error_count'=>count($errors),'valid_rows'=>$validRows,'warnings'=>$warnings,'errors'=>$errors,'skipped'=>$skippedLines];
+        return [
+            'total'       => count($rows),
+            'valid'       => count($validRows),
+            'warn_count'  => count($warnings),
+            'error_count' => count($errors),
+            'valid_rows'  => $validRows,
+            'warnings'    => $warnings,
+            'errors'      => $errors,
+            'skipped'     => $skippedLines,
+        ];
+    }
+
+    /**
+     * Mot de passe sécurisé aléatoire — même algorithme que UserManagementController.
+     */
+    private function generateSecurePassword(int $length = 12): string
+    {
+        $upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $lower   = 'abcdefghjkmnpqrstuvwxyz';
+        $digits  = '23456789';
+        $special = '@#$%!&*';
+
+        $password  = substr(str_shuffle($upper),   0, 2);
+        $password .= substr(str_shuffle($lower),   0, 3);
+        $password .= substr(str_shuffle($digits),  0, 3);
+        $password .= substr(str_shuffle($special), 0, 2);
+
+        $all       = $upper . $lower . $digits . $special;
+        $password .= substr(str_shuffle(str_repeat($all, 3)), 0, $length - 10);
+
+        return str_shuffle($password);
     }
 }
