@@ -1,11 +1,9 @@
-{{-- resources/views/emplois/index.blade.php --}}
-@extends('layouts.app')
-@section('title', 'Emploi du temps')
-@section('page-title', 'Emploi du temps')
+<?php $__env->startSection('title', 'Emploi du temps'); ?>
+<?php $__env->startSection('page-title', 'Emploi du temps'); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 
-@php
+<?php
     use App\Http\Controllers\EmploiDuTempsController;
 
     $canCreate       = Auth::user()->hasPermissionTo('emploi-create');
@@ -55,7 +53,7 @@
     }
 
     $today = \Carbon\Carbon::today();
-@endphp
+?>
 
 <style>
 .tt-wrap { font-family: 'Segoe UI', system-ui, sans-serif; }
@@ -64,12 +62,12 @@
     overflow-x: auto; overflow-y: visible;
     border-radius: 16px; border: 1px solid #e2e8f0;
     background: #f8fafc; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    scrollbar-width: thin; scrollbar-color: {{ $accentColor }}40 transparent;
+    scrollbar-width: thin; scrollbar-color: <?php echo e($accentColor); ?>40 transparent;
 }
 .tt-scroll::-webkit-scrollbar { height: 4px; }
 .tt-scroll::-webkit-scrollbar-track { background: transparent; }
-.tt-scroll::-webkit-scrollbar-thumb { background: {{ $accentColor }}40; border-radius: 99px; }
-.tt-scroll::-webkit-scrollbar-thumb:hover { background: {{ $accentColor }}80; }
+.tt-scroll::-webkit-scrollbar-thumb { background: <?php echo e($accentColor); ?>40; border-radius: 99px; }
+.tt-scroll::-webkit-scrollbar-thumb:hover { background: <?php echo e($accentColor); ?>80; }
 
 .tt-table { width: 100%; min-width: 860px; border-collapse: separate; border-spacing: 0; }
 
@@ -77,19 +75,19 @@
 .tt-sticky-cell { position: sticky; left: 0; z-index: 10; background: white; box-shadow: 3px 0 8px rgba(0,0,0,0.06); }
 tr:hover .tt-sticky-cell { background: #fafbfc; }
 
-.tt-filiere-row td { color: {{ $p['text'] }}; background: {{ $p['light'] }}; }
+.tt-filiere-row td { color: <?php echo e($p['text']); ?>; background: <?php echo e($p['light']); ?>; }
 .tt-filiere-sticky-cell {
     position: sticky; left: 0; z-index: 15;
-    background: {{ $p['light'] }};
-    border-left: 4px solid {{ $accentColor }};
+    background: <?php echo e($p['light']); ?>;
+    border-left: 4px solid <?php echo e($accentColor); ?>;
     padding: 8px 16px; white-space: nowrap;
     box-shadow: 3px 0 8px rgba(0,0,0,0.06);
-    border-top: 1px solid {{ $accentColor }}30;
-    border-bottom: 1px solid {{ $accentColor }}30;
+    border-top: 1px solid <?php echo e($accentColor); ?>30;
+    border-bottom: 1px solid <?php echo e($accentColor); ?>30;
 }
 
 .tt-day-head { padding: 10px 4px 8px; text-align: center; background: white; border-bottom: 2px solid #f1f5f9; }
-.tt-day-head.today { background: {{ $accentColor }}; border-bottom-color: {{ $accentColor }}; }
+.tt-day-head.today { background: <?php echo e($accentColor); ?>; border-bottom-color: <?php echo e($accentColor); ?>; }
 .tt-day-name { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #334155; text-transform: uppercase; }
 .tt-day-date { font-size: 18px; font-weight: 800; color: #1e293b; line-height: 1; margin-top: 2px; }
 .tt-day-head.today .tt-day-name,
@@ -118,7 +116,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     border-radius: 14px;
     background: white;
     border: 1px solid #e2e8f0;
-    border-top: 3px solid {{ $accentColor }};
+    border-top: 3px solid <?php echo e($accentColor); ?>;
     position: relative;
     transition: transform 0.15s, box-shadow 0.15s;
     overflow: hidden;
@@ -156,8 +154,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 8px;
-    background: {{ $p['light'] }};
-    color: {{ $p['text'] }};
+    background: <?php echo e($p['light']); ?>;
+    color: <?php echo e($p['text']); ?>;
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -166,7 +164,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-card-row  { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #475569; }
 .tt-card-icon {
     width: 15px; height: 15px; border-radius: 4px;
-    background: {{ $p['light'] }};
+    background: <?php echo e($p['light']); ?>;
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
 }
@@ -195,10 +193,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     margin-bottom: 5px;
 }
 
-.card-role-1 { border-top-color: {{ $cardPalette['medium'] }}; }
-.card-role-2 { border-top-color: {{ $cardPalette['text'] }}; }
-.card-role-3 { border-top-color: {{ $cardPalette['text'] }}80; }
-.card-role-4 { border-top-color: {{ $cardPalette['medium'] }}b0; }
+.card-role-1 { border-top-color: <?php echo e($cardPalette['medium']); ?>; }
+.card-role-2 { border-top-color: <?php echo e($cardPalette['text']); ?>; }
+.card-role-3 { border-top-color: <?php echo e($cardPalette['text']); ?>80; }
+.card-role-4 { border-top-color: <?php echo e($cardPalette['medium']); ?>b0; }
 
 .card-progress { margin-top: 6px; }
 .card-progress-track { height: 3px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
@@ -236,7 +234,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-foot-btn:not(:last-child) { border-right: 1px solid #f1f5f9; }
 .tt-foot-btn:hover             { background: #f8fafc; color: #1e293b; }
 .tt-foot-btn-pres:hover        { background: #f0fdf4; color: #16a34a; }
-.tt-foot-btn-cls:hover         { background: {{ $p['light'] }}; color: {{ $p['text'] }}; }
+.tt-foot-btn-cls:hover         { background: <?php echo e($p['light']); ?>; color: <?php echo e($p['text']); ?>; }
 .card-distance .tt-card-footer { background: #fef9ee; }
 
 .tt-actions { position: absolute; top: 7px; right: 7px; display: none; gap: 3px; }
@@ -255,7 +253,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     font-size: 16px; color: #e2e8f0;
     cursor: pointer; transition: all 0.15s;
 }
-.tt-add-btn:hover { border-color: {{ $accentColor }}; color: {{ $accentColor }}; background: {{ $p['light'] }}; }
+.tt-add-btn:hover { border-color: <?php echo e($accentColor); ?>; color: <?php echo e($accentColor); ?>; background: <?php echo e($p['light']); ?>; }
 
 /* ── Past day locked cell ── */
 .tt-past-cell {
@@ -275,9 +273,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 /* ── Navigation ── */
 .tt-nav-btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; color: #475569; text-decoration: none; transition: all 0.15s; cursor: pointer; }
 .tt-nav-btn:hover { border-color: #cbd5e1; background: #f8fafc; color: #1e293b; }
-.tt-nav-btn.primary { background: {{ $accentColor }}; border-color: {{ $accentColor }}; color: white; }
+.tt-nav-btn.primary { background: <?php echo e($accentColor); ?>; border-color: <?php echo e($accentColor); ?>; color: white; }
 .tt-nav-btn.primary:hover { opacity: 0.9; }
-.tt-nav-btn.today-btn { color: {{ $accentColor }}; border-color: {{ $accentColor }}30; background: {{ $p['light'] }}; }
+.tt-nav-btn.today-btn { color: <?php echo e($accentColor); ?>; border-color: <?php echo e($accentColor); ?>30; background: <?php echo e($p['light']); ?>; }
 
 /* ── Tabs ── */
 .tt-tab { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; transition: all 0.15s; text-decoration: none; }
@@ -289,7 +287,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 /* ── Modal / Form ── */
 .mode-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; }
 .mode-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; border: none; background: white; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-.mode-btn.active-pres { background: {{ $accentColor }}; color: white; }
+.mode-btn.active-pres { background: <?php echo e($accentColor); ?>; color: white; }
 .mode-btn.active-dist { background: #f59e0b; color: white; }
 .mode-btn:not(.active-pres):not(.active-dist) { color: #64748b; }
 
@@ -298,7 +296,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-modal-box { background: white; border-radius: 20px; width: 100%; max-width: 440px; margin: 16px; padding: 24px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.18); }
 .tt-modal-label { display: block; font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
 .tt-modal-input { width: 100%; height: 42px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 13px; color: #1e293b; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
-.tt-modal-input:focus { border-color: {{ $accentColor }}; background: white; }
+.tt-modal-input:focus { border-color: <?php echo e($accentColor); ?>; background: white; }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }
@@ -306,28 +304,29 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 }
 </style>
 
-{{-- ════ FLASH ════ --}}
-@if(session('success'))
+
+<?php if(session('success')): ?>
     <div class="mb-4 px-4 py-3 rounded-xl text-sm flex items-center gap-2"
          style="background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d;">
         <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
         </svg>
-        {{ session('success') }}
+        <?php echo e(session('success')); ?>
+
     </div>
-@endif
-@if($errors->any())
+<?php endif; ?>
+<?php if($errors->any()): ?>
     <div class="mb-4 px-4 py-3 rounded-xl text-sm"
          style="background:#fff1f2; border:1px solid #fecdd3; color:#be123c;">
         <ul class="list-disc list-inside space-y-0.5">
-            @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><li><?php echo e($error); ?></li><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </ul>
     </div>
-@endif
+<?php endif; ?>
 
-{{-- ════ STAGIAIRE : REPLACED BLOCK ════ --}}
-@if($isStagiaire)
-@php
+
+<?php if($isStagiaire): ?>
+<?php
     $joursAvance = 1;   // ← Sunday 00:00  (1 day before next Monday)
 
     $prochainLundi = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
@@ -344,18 +343,18 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
     $semaineAutorisee = $weekStart->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
                      || ($estSemaineProchaine && $peutVoirSemaineProchaine);
-@endphp
+?>
 
-{{-- ── Banner: week not yet available ── --}}
-@if(!$semaineAutorisee)
-    @php
+
+<?php if(!$semaineAutorisee): ?>
+    <?php
         // Figure out WHY it's blocked: no sessions vs. not Sunday yet
         $blockedBecauseNoSessions = \Carbon\Carbon::now()->gte($visibleDepuis)
                                  && !($nextWeekHasSessions ?? false);
-    @endphp
+    ?>
 
-    @if($blockedBecauseNoSessions)
-        {{-- Vacation week: sessions don't exist --}}
+    <?php if($blockedBecauseNoSessions): ?>
+        
         <div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
                     display:flex; align-items:center; gap:8px;
                     background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d;">
@@ -364,8 +363,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </svg>
             Aucune séance planifiée la semaine prochaine — profitez de vos vacances ! 🎉
         </div>
-    @else
-        {{-- Sessions exist but not Sunday yet --}}
+    <?php else: ?>
+        
         <div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
                     display:flex; align-items:center; gap:8px;
                     background:#fff7ed; border:1px solid #fed7aa; color:#9a3412;">
@@ -373,13 +372,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
             </svg>
             L'emploi du temps de cette semaine sera disponible
-            <strong>le {{ $visibleDepuis->translatedFormat('l d M') }}</strong>
+            <strong>le <?php echo e($visibleDepuis->translatedFormat('l d M')); ?></strong>
             — vous recevrez un email dès sa publication.
         </div>
-    @endif
+    <?php endif; ?>
 
-@elseif($estSemaineProchaine && $peutVoirSemaineProchaine)
-    {{-- Sessions exist AND it's Sunday → show preview banner --}}
+<?php elseif($estSemaineProchaine && $peutVoirSemaineProchaine): ?>
+    
     <div style="margin-bottom:16px; padding:12px 16px; border-radius:12px; font-size:13px;
                 display:flex; align-items:center; gap:8px;
                 background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af;">
@@ -388,92 +387,92 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </svg>
         Aperçu de la semaine prochaine — planning provisoire.
     </div>
-@endif
-@endif
+<?php endif; ?>
+<?php endif; ?>
 
 <div class="tt-wrap">
 
-{{-- ════ HEADER ════ --}}
+
 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
 
-{{-- Year tabs --}}
+
 <div style="display:inline-flex; border-radius:12px; overflow:hidden; border:1.5px solid #e2e8f0; background:white;">
-    @php
+    <?php
         $tab1Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 1;
         $tab2Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 2;
         $tab3Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 3;
-    @endphp
+    ?>
 
-    @if($tab1Disabled)
-        <span class="tt-tab disabled" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 1 &nbsp;🔒</span>
-    @else
-        <a href="{{ route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()]) }}"
-           class="tt-tab {{ $year === 1 ? 'active' : 'inactive' }}"
-           style="{{ $year === 1 ? 'background:'.$accentYear1.';' : '' }}">
+    <?php if($tab1Disabled): ?>
+        <span class="tt-tab disabled" title="Vous êtes inscrit en <?php echo e($stagiaireYear); ?>ème année">Année 1 &nbsp;🔒</span>
+    <?php else: ?>
+        <a href="<?php echo e(route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()])); ?>"
+           class="tt-tab <?php echo e($year === 1 ? 'active' : 'inactive'); ?>"
+           style="<?php echo e($year === 1 ? 'background:'.$accentYear1.';' : ''); ?>">
             Année 1
             <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
-                         {{ $year === 1 ? 'background:rgba(255,255,255,0.2); color:white;'
-                                       : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">1ère</span>
+                         <?php echo e($year === 1 ? 'background:rgba(255,255,255,0.2); color:white;'
+                                       : 'background:'.$p['light'].'; color:'.$p['text'].';'); ?>">1ère</span>
         </a>
-    @endif
+    <?php endif; ?>
 
-    @if($tab2Disabled)
-        <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 2 / 2.5 &nbsp;🔒</span>
-    @else
-        <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()]) }}"
-           class="tt-tab {{ $year === 2 ? 'active' : 'inactive' }}"
-           style="{{ $year === 2 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
+    <?php if($tab2Disabled): ?>
+        <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en <?php echo e($stagiaireYear); ?>ème année">Année 2 / 2.5 &nbsp;🔒</span>
+    <?php else: ?>
+        <a href="<?php echo e(route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()])); ?>"
+           class="tt-tab <?php echo e($year === 2 ? 'active' : 'inactive'); ?>"
+           style="<?php echo e($year === 2 ? 'background:'.$accentYear1.';' : ''); ?> border-left:1.5px solid #e2e8f0;">
             Année 2
             <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
-                         {{ $year === 2 ? 'background:rgba(255,255,255,0.2); color:white;'
-                                       : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">2ème</span>
+                         <?php echo e($year === 2 ? 'background:rgba(255,255,255,0.2); color:white;'
+                                       : 'background:'.$p['light'].'; color:'.$p['text'].';'); ?>">2ème</span>
         </a>
-    @endif
+    <?php endif; ?>
 
-    @if($tab3Disabled)
-        <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 3 &nbsp;🔒</span>
-    @else
-        <a href="{{ route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString()]) }}"
-           class="tt-tab {{ $year === 3 ? 'active' : 'inactive' }}"
-           style="{{ $year === 3 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
+    <?php if($tab3Disabled): ?>
+        <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en <?php echo e($stagiaireYear); ?>ème année">Année 3 &nbsp;🔒</span>
+    <?php else: ?>
+        <a href="<?php echo e(route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString()])); ?>"
+           class="tt-tab <?php echo e($year === 3 ? 'active' : 'inactive'); ?>"
+           style="<?php echo e($year === 3 ? 'background:'.$accentYear1.';' : ''); ?> border-left:1.5px solid #e2e8f0;">
             Année 3
             <span style="font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700;
-                         {{ $year === 3 ? 'background:rgba(255,255,255,0.2); color:white;'
-                                       : 'background:'.$p['light'].'; color:'.$p['text'].';' }}">3ème</span>
+                         <?php echo e($year === 3 ? 'background:rgba(255,255,255,0.2); color:white;'
+                                       : 'background:'.$p['light'].'; color:'.$p['text'].';'); ?>">3ème</span>
         </a>
-    @endif
+    <?php endif; ?>
 </div>
 
-    {{-- Week nav --}}
+    
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <div style="font-size:11px; color:#64748b;">
-            <strong style="color:#334155;">{{ $weekStart->translatedFormat('d M') }}</strong>
+            <strong style="color:#334155;"><?php echo e($weekStart->translatedFormat('d M')); ?></strong>
             &nbsp;–&nbsp;
-            <strong style="color:#334155;">{{ $weekEnd->translatedFormat('d M Y') }}</strong>
+            <strong style="color:#334155;"><?php echo e($weekEnd->translatedFormat('d M Y')); ?></strong>
         </div>
-        <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString()]) }}" class="tt-nav-btn">
+        <a href="<?php echo e(route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString()])); ?>" class="tt-nav-btn">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         </a>
-        <a href="{{ route('emplois.index', ['year' => $year]) }}" class="tt-nav-btn today-btn">Aujourd'hui</a>
+        <a href="<?php echo e(route('emplois.index', ['year' => $year])); ?>" class="tt-nav-btn today-btn">Aujourd'hui</a>
 
-        @php
+        <?php
             $semaineSuivante = $weekStart->copy()->addWeek();
             $prochainLundiNav = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
             $visibleDepuisNav = $prochainLundiNav->copy()->subDays(2);
             $peutNaviguerSuivante = !$isStagiaire || $semaineSuivante->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
                 || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
-        @endphp
-        @if($peutNaviguerSuivante)
-            <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()]) }}" class="tt-nav-btn">
+        ?>
+        <?php if($peutNaviguerSuivante): ?>
+            <a href="<?php echo e(route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()])); ?>" class="tt-nav-btn">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </a>
-        @else
+        <?php else: ?>
             <span class="tt-nav-btn" style="opacity:0.35; cursor:not-allowed;">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </span>
-        @endif
+        <?php endif; ?>
 
-        <a href="{{ route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
+        <a href="<?php echo e(route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()])); ?>"
            class="tt-nav-btn" title="Télécharger PDF"
            style="color:#dc2626; border-color:#fecdd3; background:#fff1f2;">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,32 +481,33 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             PDF
         </a>
 
-        @if($canSeeDraft && $canCreate)
+        <?php if($canSeeDraft && $canCreate): ?>
         <form method="POST"
-              action="{{ route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
+              action="<?php echo e(route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()])); ?>"
               style="display:inline;"
               onsubmit="return confirm('Publier toutes les séances en brouillon de cette semaine ?')">
-            @csrf
+            <?php echo csrf_field(); ?>
             <button type="submit"
-                    class="tt-nav-btn {{ $draftCount > 0 ? 'primary' : '' }}"
-                    {{ $draftCount === 0 ? 'disabled' : '' }}
-                    style="{{ $draftCount > 0
+                    class="tt-nav-btn <?php echo e($draftCount > 0 ? 'primary' : ''); ?>"
+                    <?php echo e($draftCount === 0 ? 'disabled' : ''); ?>
+
+                    style="<?php echo e($draftCount > 0
                         ? 'background:#16a34a; border-color:#16a34a; color:white; box-shadow:0 4px 12px rgba(22,163,74,0.3);'
-                        : 'opacity:.45; cursor:not-allowed;' }}">
+                        : 'opacity:.45; cursor:not-allowed;'); ?>">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                 </svg>
                 Publier
-                @if($draftCount > 0)
-                    <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800; padding:1px 6px; border-radius:99px;">{{ $draftCount }}</span>
-                @endif
+                <?php if($draftCount > 0): ?>
+                    <span style="background:rgba(255,255,255,0.25); font-size:9px; font-weight:800; padding:1px 6px; border-radius:99px;"><?php echo e($draftCount); ?></span>
+                <?php endif; ?>
             </button>
         </form>
-        @endif
+        <?php endif; ?>
     </div>
 </div>
 
-{{-- ════ GRID ════ --}}
+
 <div class="tt-scroll">
 <table class="tt-table">
     <thead>
@@ -517,77 +517,78 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                    text-align:left; min-width:120px; background:#f8fafc;">
             <span style="font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:2px; text-transform:uppercase;">Groupe</span>
         </th>
-        @foreach($dayDates as $dayNum => $date)
-            @php $isToday = $date->isToday(); $isLastDay = $dayNum === 6; @endphp
-            <th colspan="4" class="tt-day-head {{ $isToday ? 'today' : '' }}"
-                style="border-right:{{ $isLastDay ? 'none' : '3px solid #cbd5e1' }};
-                       border-bottom:{{ $isToday ? '2px solid '.$accentColor : '1px solid #e9edf2' }};">
-                <div class="tt-day-name">{{ $date->translatedFormat('D') }}</div>
-                <div class="tt-day-date">{{ $date->format('d') }}</div>
-                <div style="font-size:9px; {{ $isToday ? 'color:rgba(255,255,255,0.85)' : 'color:#64748b' }};">{{ $date->translatedFormat('M') }}</div>
-                @if($isToday)<div class="tt-today-pill">AUJOURD'HUI</div>@endif
+        <?php $__currentLoopData = $dayDates; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dayNum => $date): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php $isToday = $date->isToday(); $isLastDay = $dayNum === 6; ?>
+            <th colspan="4" class="tt-day-head <?php echo e($isToday ? 'today' : ''); ?>"
+                style="border-right:<?php echo e($isLastDay ? 'none' : '3px solid #cbd5e1'); ?>;
+                       border-bottom:<?php echo e($isToday ? '2px solid '.$accentColor : '1px solid #e9edf2'); ?>;">
+                <div class="tt-day-name"><?php echo e($date->translatedFormat('D')); ?></div>
+                <div class="tt-day-date"><?php echo e($date->format('d')); ?></div>
+                <div style="font-size:9px; <?php echo e($isToday ? 'color:rgba(255,255,255,0.85)' : 'color:#64748b'); ?>;"><?php echo e($date->translatedFormat('M')); ?></div>
+                <?php if($isToday): ?><div class="tt-today-pill">AUJOURD'HUI</div><?php endif; ?>
             </th>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </tr>
     <tr>
         <th class="tt-sticky-head" style="border-right:1px solid #cbd5e1; border-bottom:2px solid #e2e8f0; background:#f8fafc;"></th>
-        @foreach($dayDates as $dayNum => $date)
-            @php $isLastDay = $dayNum === 6; @endphp
-            @foreach(EmploiDuTempsController::SEANCES as $sNum => $seance)
-                @php $isLastS = $sNum === 4; @endphp
+        <?php $__currentLoopData = $dayDates; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dayNum => $date): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php $isLastDay = $dayNum === 6; ?>
+            <?php $__currentLoopData = EmploiDuTempsController::SEANCES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sNum => $seance): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php $isLastS = $sNum === 4; ?>
                 <th class="tt-seance-head"
-                    style="border-right:{{ $isLastS ? ($isLastDay ? 'none' : '3px solid #cbd5e1') : '1px solid #e9edf2' }}; border-bottom:2px solid #e2e8f0;"
-                    title="{{ $seance['start'] }}–{{ $seance['end'] }}">
-                    <div class="tt-seance-label" style="color:{{ $accentColor }};">{{ $seance['label'] }}</div>
-                    <div class="tt-seance-time">{{ $seance['start'] }}</div>
+                    style="border-right:<?php echo e($isLastS ? ($isLastDay ? 'none' : '3px solid #cbd5e1') : '1px solid #e9edf2'); ?>; border-bottom:2px solid #e2e8f0;"
+                    title="<?php echo e($seance['start']); ?>–<?php echo e($seance['end']); ?>">
+                    <div class="tt-seance-label" style="color:<?php echo e($accentColor); ?>;"><?php echo e($seance['label']); ?></div>
+                    <div class="tt-seance-time"><?php echo e($seance['start']); ?></div>
                 </th>
-            @endforeach
-        @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </tr>
     </thead>
 
     <tbody>
-    @forelse($groupesByFiliere as $filiereId => $groupes)
-        @php $filiere = $groupes->first()->filiere; @endphp
+    <?php $__empty_1 = true; $__currentLoopData = $groupesByFiliere; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $filiereId => $groupes): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+        <?php $filiere = $groupes->first()->filiere; ?>
 
         <tr class="tt-filiere-row">
             <td class="tt-filiere-sticky-cell">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="width:6px; height:6px; border-radius:50%; background:{{ $accentColor }}; flex-shrink:0;"></div>
-                    <span style="font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:{{ $p['text'] }};">
-                        {{ $filiere->name ?? 'Filière' }}
+                    <div style="width:6px; height:6px; border-radius:50%; background:<?php echo e($accentColor); ?>; flex-shrink:0;"></div>
+                    <span style="font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:<?php echo e($p['text']); ?>;">
+                        <?php echo e($filiere->name ?? 'Filière'); ?>
+
                     </span>
                 </div>
             </td>
-            <td colspan="24" style="background:{{ $p['light'] }}; padding:0; border-top:1px solid {{ $accentColor }}30; border-bottom:1px solid {{ $accentColor }}30;"></td>
+            <td colspan="24" style="background:<?php echo e($p['light']); ?>; padding:0; border-top:1px solid <?php echo e($accentColor); ?>30; border-bottom:1px solid <?php echo e($accentColor); ?>30;"></td>
         </tr>
 
-        @foreach($groupes as $groupe)
+        <?php $__currentLoopData = $groupes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $groupe): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <tr class="tt-body-row">
             <td class="tt-sticky-cell tt-group-cell" style="border-right:1px solid #e2e8f0;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="width:3px; height:32px; border-radius:99px; background:{{ $accentColor }}; flex-shrink:0; opacity:0.6;"></div>
+                    <div style="width:3px; height:32px; border-radius:99px; background:<?php echo e($accentColor); ?>; flex-shrink:0; opacity:0.6;"></div>
                     <div>
-                        <div class="tt-group-name">{{ $groupe->name ?? 'G'.$groupe->id }}</div>
-                        <div class="tt-group-sub">{{ $groupe->option->titre ?? $filiere->name ?? '' }}</div>
+                        <div class="tt-group-name"><?php echo e($groupe->name ?? 'G'.$groupe->id); ?></div>
+                        <div class="tt-group-sub"><?php echo e($groupe->option->titre ?? $filiere->name ?? ''); ?></div>
                     </div>
                 </div>
             </td>
 
-            @foreach($dayDates as $dayNum => $date)
-                @php $isPastDay = $date->copy()->startOfDay()->lt($today); @endphp
-                @foreach(EmploiDuTempsController::SEANCES as $sNum => $seance)
-                    @php
+            <?php $__currentLoopData = $dayDates; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dayNum => $date): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php $isPastDay = $date->copy()->startOfDay()->lt($today); ?>
+                <?php $__currentLoopData = EmploiDuTempsController::SEANCES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sNum => $seance): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <?php
                         $cell      = $grid[$groupe->id][$dayNum][$sNum] ?? ['type' => 'empty'];
                         $isLastS   = $sNum === 4;
                         $isLastDay = $dayNum === 6;
                         $cellBorder = $isLastS ? ($isLastDay ? '' : 'border-right:3px solid #cbd5e1;') : 'border-right:1px solid #e2e8f0;';
-                    @endphp
+                    ?>
 
-                    @if($cell['type'] === 'skip')
-                        {{-- merged --}}
-                    @elseif($cell['type'] === 'session')
-                        @php
+                    <?php if($cell['type'] === 'skip'): ?>
+                        
+                    <?php elseif($cell['type'] === 'session'): ?>
+                        <?php
                             $emploi   = $cell['emploi'];
                             $colspan  = $cell['colspan'];
                             $spanLbl  = EmploiDuTempsController::spanLabel($sNum, $colspan);
@@ -631,137 +632,139 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                 $progTotal = $emploi->module->nbr_heure;
                                 $progPct   = min(100, round(($progDone / $progTotal) * 100));
                             }
-                        @endphp
-                        <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
+                        ?>
+                        <td class="tt-session-td" colspan="<?php echo e($colspan); ?>" style="<?php echo e($spanBorder); ?>">
 
-                            <div class="tt-card {{ $cardClass }}">
+                            <div class="tt-card <?php echo e($cardClass); ?>">
 
-                                @if($canEdit || $canDelete || $canLien || $canChangeModule || $isGestionnaire || $canReport)
+                                <?php if($canEdit || $canDelete || $canLien || $canChangeModule || $isGestionnaire || $canReport): ?>
                                 <div class="tt-actions">
-                                    @if($canEdit)
+                                    <?php if($canEdit): ?>
                                         <button class="tt-btn-edit"
-                                                style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
-                                                onclick="openEditModal({{ $emploi->id }})">✎</button>
-                                    @endif
+                                                style="background:<?php echo e($isRemote ? '#fef3c7' : $p['light']); ?>; color:<?php echo e($isRemote ? '#92400e' : $p['text']); ?>;"
+                                                onclick="openEditModal(<?php echo e($emploi->id); ?>)">✎</button>
+                                    <?php endif; ?>
 
-                                    @if($isGestionnaire && !$isDraft)
+                                    <?php if($isGestionnaire && !$isDraft): ?>
                                         <button class="tt-btn-edit"
                                                 style="background:#f5f3ff; color:#6d28d9;"
                                                 onclick="openRemplacantModal(
-                                                    {{ $emploi->id }},
-                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
-                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                                    {{ $emploi->id_user_remplacant ?? 'null' }}
-                                                )"
-                                                title="{{ $hasRemplacant ? 'Modifier le remplaçant' : 'Assigner un remplaçant' }}">
-                                            {{ $hasRemplacant ? '🔄' : '👤' }}
-                                        </button>
-                                    @endif
+                                                    <?php echo e($emploi->id); ?>,
+                                                    '<?php echo e(addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module'))); ?>',
+                                                    '<?php echo e($emploi->date_debut->translatedFormat('l d M')); ?> · <?php echo e(EmploiDuTempsController::spanLabel($sNum, $colspan)); ?>',
+                                                    <?php echo e($emploi->id_user_remplacant ?? 'null'); ?>
 
-                                    @if($canReport && $emploi->id_user === Auth::user()->id)
-                                        @php $alreadyPending = in_array($emploi->id, $pendingReportIds); @endphp
-                                        @if($alreadyPending)
+                                                )"
+                                                title="<?php echo e($hasRemplacant ? 'Modifier le remplaçant' : 'Assigner un remplaçant'); ?>">
+                                            <?php echo e($hasRemplacant ? '🔄' : '👤'); ?>
+
+                                        </button>
+                                    <?php endif; ?>
+
+                                    <?php if($canReport && $emploi->id_user === Auth::user()->id): ?>
+                                        <?php $alreadyPending = in_array($emploi->id, $pendingReportIds); ?>
+                                        <?php if($alreadyPending): ?>
                                             <span class="tt-btn-edit" style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;" title="Demande déjà en attente">⏳</span>
-                                        @else
+                                        <?php else: ?>
                                             <button class="tt-btn-edit"
                                                     style="background:#f5f3ff; color:#6d28d9;"
                                                     onclick="openReportModal(
-                                                        {{ $emploi->id }},
-                                                        '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
-                                                        '{{ $emploi->date_debut->translatedFormat('l d M Y') }}',
-                                                        '{{ $emploi->date_debut->format('Y-m-d') }}',
-                                                        '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                                        '{{ $emploi->date_debut->format('H:i') }}',
-                                                        '{{ $emploi->date_fin->format('H:i') }}'
+                                                        <?php echo e($emploi->id); ?>,
+                                                        '<?php echo e(addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module'))); ?>',
+                                                        '<?php echo e($emploi->date_debut->translatedFormat('l d M Y')); ?>',
+                                                        '<?php echo e($emploi->date_debut->format('Y-m-d')); ?>',
+                                                        '<?php echo e(EmploiDuTempsController::spanLabel($sNum, $colspan)); ?>',
+                                                        '<?php echo e($emploi->date_debut->format('H:i')); ?>',
+                                                        '<?php echo e($emploi->date_fin->format('H:i')); ?>'
                                                     )"
                                                     title="Demander un report">📋</button>
-                                        @endif
-                                    @endif
+                                        <?php endif; ?>
+                                    <?php endif; ?>
 
-                                    @if($canDelete)
+                                    <?php if($canDelete): ?>
                                         <button type="button" class="tt-btn-del"
                                                 onclick="openDeleteModal(
-                                                    '{{ route('emplois.destroy', $emploi) }}',
-                                                    '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
-                                                    '{{ addslashes($emploi->module->name ?? 'Module') }}',
-                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }}',
-                                                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                                    '{{ $emploi->date_debut->format('H:i') }}',
-                                                    '{{ $emploi->date_fin->format('H:i') }}',
-                                                    '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
+                                                    '<?php echo e(route('emplois.destroy', $emploi)); ?>',
+                                                    '<?php echo e(addslashes($emploi->groupe->name ?? 'Groupe')); ?>',
+                                                    '<?php echo e(addslashes($emploi->module->name ?? 'Module')); ?>',
+                                                    '<?php echo e($emploi->date_debut->translatedFormat('l d M')); ?>',
+                                                    '<?php echo e(EmploiDuTempsController::spanLabel($sNum, $colspan)); ?>',
+                                                    '<?php echo e($emploi->date_debut->format('H:i')); ?>',
+                                                    '<?php echo e($emploi->date_fin->format('H:i')); ?>',
+                                                    '<?php echo e(addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—'))); ?>'
                                                 )">✕</button>
-                                    @endif
+                                    <?php endif; ?>
 
-                                    @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
+                                    <?php if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true)): ?>
                                         <button class="tt-btn-edit"
                                                 style="background:#fef3c7; color:#92400e;"
                                                 onclick="openLienModal(
-                                                    {{ $emploi->id }},
-                                                    '{{ addslashes($emploi->lien_distance ?? '') }}',
-                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
-                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
+                                                    <?php echo e($emploi->id); ?>,
+                                                    '<?php echo e(addslashes($emploi->lien_distance ?? '')); ?>',
+                                                    '<?php echo e(addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module'))); ?>',
+                                                    '<?php echo e($emploi->date_debut->translatedFormat('l d M')); ?> · <?php echo e(EmploiDuTempsController::spanLabel($sNum, $colspan)); ?> · <?php echo e($emploi->date_debut->format('H:i')); ?> → <?php echo e($emploi->date_fin->format('H:i')); ?>'
                                                 )">🔗</button>
-                                    @endif
+                                    <?php endif; ?>
 
-                                    @if($canChangeModule && !$canEdit && $emploi->id_user === Auth::user()->id)
+                                    <?php if($canChangeModule && !$canEdit && $emploi->id_user === Auth::user()->id): ?>
                                         <button class="tt-btn-edit"
-                                                style="background:{{ $p['light'] }}; color:{{ $p['text'] }};"
-                                                onclick="openEditModal({{ $emploi->id }})">📚</button>
-                                    @endif
+                                                style="background:<?php echo e($p['light']); ?>; color:<?php echo e($p['text']); ?>;"
+                                                onclick="openEditModal(<?php echo e($emploi->id); ?>)">📚</button>
+                                    <?php endif; ?>
                                 </div>
-                                @endif
+                                <?php endif; ?>
 
                                 <div class="tt-card-body">
 
-                                    @if($isDraft)<div class="draft-badge">Brouillon</div>@endif
+                                    <?php if($isDraft): ?><div class="draft-badge">Brouillon</div><?php endif; ?>
 
                                     <div class="tt-card-header">
-                                        <div class="tt-card-module">{{ $emploi->module->name ?? 'Module' }}</div>
-                                        <div class="tt-card-time">{{ $spanLbl }} · {{ $totalH }}h</div>
+                                        <div class="tt-card-module"><?php echo e($emploi->module->name ?? 'Module'); ?></div>
+                                        <div class="tt-card-time"><?php echo e($spanLbl); ?> · <?php echo e($totalH); ?>h</div>
                                     </div>
 
                                     <div class="tt-card-meta">
-                                        @if($hasRemplacant)
+                                        <?php if($hasRemplacant): ?>
                                             <div class="tt-card-row" style="flex-direction:column; align-items:flex-start; gap:2px;">
                                                 <div style="display:flex;align-items:center;gap:5px;">
                                                     <div class="tt-card-dot" style="background:#94a3b8;"></div>
-                                                    <span style="font-size:9px; color:#94a3b8; text-decoration:line-through;">{{ $emploi->gestionnaire->name ?? '—' }}</span>
+                                                    <span style="font-size:9px; color:#94a3b8; text-decoration:line-through;"><?php echo e($emploi->gestionnaire->name ?? '—'); ?></span>
                                                 </div>
                                                 <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
                                                     <div class="tt-card-dot" style="background:#7c3aed;"></div>
-                                                    <span style="font-size:10px; color:#5b21b6; font-weight:700;">{{ $activeRemplacant->name }}</span>
-                                                    @if($moduleRemplacant && !$sessionRemplacant)
+                                                    <span style="font-size:10px; color:#5b21b6; font-weight:700;"><?php echo e($activeRemplacant->name); ?></span>
+                                                    <?php if($moduleRemplacant && !$sessionRemplacant): ?>
                                                         <span class="remplacant-badge-module">Module</span>
-                                                    @else
+                                                    <?php else: ?>
                                                         <span class="remplacant-badge">Remplaçant</span>
-                                                    @endif
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
-                                        @else
+                                        <?php else: ?>
                                             <div class="tt-card-row">
-                                                <div class="tt-card-icon" style="{{ $isRemote ? 'background:#fef3c7;' : '' }}">
-                                                    <svg fill="none" stroke="{{ $isRemote ? '#b45309' : $accentColor }}" viewBox="0 0 24 24">
+                                                <div class="tt-card-icon" style="<?php echo e($isRemote ? 'background:#fef3c7;' : ''); ?>">
+                                                    <svg fill="none" stroke="<?php echo e($isRemote ? '#b45309' : $accentColor); ?>" viewBox="0 0 24 24">
                                                         <circle cx="12" cy="7" r="4" stroke-width="2"/>
                                                         <path stroke-width="2" d="M4 21v-1a8 8 0 0116 0v1"/>
                                                     </svg>
                                                 </div>
-                                                <span style="color:{{ $isRemote ? '#92400e' : '' }}">{{ $emploi->gestionnaire->name ?? '—' }}</span>
+                                                <span style="color:<?php echo e($isRemote ? '#92400e' : ''); ?>"><?php echo e($emploi->gestionnaire->name ?? '—'); ?></span>
                                             </div>
-                                        @endif
+                                        <?php endif; ?>
 
-                                        @if($isRemote && $emploi->lien_distance)
+                                        <?php if($isRemote && $emploi->lien_distance): ?>
                                             <div class="tt-card-row">
                                                 <div class="tt-card-icon" style="background:#fef3c7;">
                                                     <svg fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
                                                         <path stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                                                     </svg>
                                                 </div>
-                                                <a href="{{ $emploi->lien_distance }}" target="_blank"
+                                                <a href="<?php echo e($emploi->lien_distance); ?>" target="_blank"
                                                    style="font-size:9px; color:#b45309; text-decoration:underline; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">
                                                     Rejoindre la réunion
                                                 </a>
                                             </div>
-                                        @elseif(!$isRemote)
+                                        <?php elseif(!$isRemote): ?>
                                             <div class="tt-card-row">
                                                 <div class="tt-card-icon">
                                                     <svg fill="none" stroke="#64748b" viewBox="0 0 24 24">
@@ -769,37 +772,40 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                                         <path d="M3 9h18M9 21V9" stroke-width="2"/>
                                                     </svg>
                                                 </div>
-                                                {{ $emploi->salle->name ?? '—' }}
+                                                <?php echo e($emploi->salle->name ?? '—'); ?>
+
                                             </div>
-                                        @endif
+                                        <?php endif; ?>
 
                                         <div class="tt-card-row" style="color:#94a3b8; font-size:9px;">
-                                            {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
+                                            <?php echo e($emploi->date_debut->format('H:i')); ?> → <?php echo e($emploi->date_fin->format('H:i')); ?>
+
                                         </div>
 
-                                        @if($progTotal > 0 && $emploi->date_debut->isPast())
-                                            @php $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture(); @endphp
+                                        <?php if($progTotal > 0 && $emploi->date_debut->isPast()): ?>
+                                            <?php $isOngoing = $emploi->date_debut->isPast() && $emploi->date_fin->isFuture(); ?>
                                             <div class="card-progress">
                                                 <div class="card-progress-track">
                                                     <div class="card-progress-fill"
-                                                         style="width:{{ $progPct }}%;
-                                                                background:{{ $progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor) }};
-                                                                {{ $isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : '' }}">
+                                                         style="width:<?php echo e($progPct); ?>%;
+                                                                background:<?php echo e($progPct >= 100 ? '#22c55e' : ($isRemote ? '#f59e0b' : $accentColor)); ?>;
+                                                                <?php echo e($isOngoing ? 'animation: pulse 1.5s ease-in-out infinite;' : ''); ?>">
                                                     </div>
                                                 </div>
                                                 <div class="card-progress-meta">
-                                                    <span style="{{ $isOngoing ? 'color:#f59e0b; font-weight:700;' : '' }}">
-                                                        {{ $isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h' }}
+                                                    <span style="<?php echo e($isOngoing ? 'color:#f59e0b; font-weight:700;' : ''); ?>">
+                                                        <?php echo e($isOngoing ? '⏳ En cours' : number_format($progDone, 1).'h / '.$progTotal.'h'); ?>
+
                                                     </span>
-                                                    <span style="{{ $progPct >= 100 ? 'color:#22c55e; font-weight:700;' : '' }}">{{ $progPct }}%</span>
+                                                    <span style="<?php echo e($progPct >= 100 ? 'color:#22c55e; font-weight:700;' : ''); ?>"><?php echo e($progPct); ?>%</span>
                                                 </div>
                                             </div>
-                                        @endif
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 
                                 <div class="tt-card-footer">
-                                    <a href="{{ route('seances.show', $emploi) }}"
+                                    <a href="<?php echo e(route('seances.show', $emploi)); ?>"
                                        class="tt-foot-btn"
                                        title="Voir le détail">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -809,9 +815,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                         Voir
                                     </a>
 
-                                    @if(in_array(Auth::user()->role, ['admin','gestionnaire','formateur']))
-                                        @if(!$isDraft)
-                                            <a href="{{ route('seances.show', $emploi) }}#presence"
+                                    <?php if(in_array(Auth::user()->role, ['admin','gestionnaire','formateur'])): ?>
+                                        <?php if(!$isDraft): ?>
+                                            <a href="<?php echo e(route('seances.show', $emploi)); ?>#presence"
                                                class="tt-foot-btn tt-foot-btn-pres"
                                                title="Saisir la présence">
                                                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -820,16 +826,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                                                 </svg>
                                                 Présence
                                             </a>
-                                        @else
+                                        <?php else: ?>
                                             <span class="tt-foot-btn" style="opacity:.35; cursor:not-allowed;" title="Disponible après publication">
                                                 Présence
                                             </span>
-                                        @endif
-                                    @else
+                                        <?php endif; ?>
+                                    <?php else: ?>
                                         <span></span>
-                                    @endif
+                                    <?php endif; ?>
 
-                                    <a href="{{ route('seances.show', $emploi) }}#classroom"
+                                    <a href="<?php echo e(route('seances.show', $emploi)); ?>#classroom"
                                        class="tt-foot-btn tt-foot-btn-cls"
                                        title="Ressources du cours">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -843,60 +849,61 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                             </div>
                         </td>
 
-                    @else
-                        {{-- ── EMPTY CELL ── --}}
-                        <td class="tt-empty-td" style="{{ $cellBorder }}">
-                            @if($canCreate && !$isPastDay)
-                                {{-- Future or today: show + button --}}
+                    <?php else: ?>
+                        
+                        <td class="tt-empty-td" style="<?php echo e($cellBorder); ?>">
+                            <?php if($canCreate && !$isPastDay): ?>
+                                
                                 <button class="tt-add-btn"
-                                        onclick="openModalWithSlot({{ $dayNum }}, {{ $sNum }}, '{{ $date->toDateString() }}', {{ $groupe->id }})">
+                                        onclick="openModalWithSlot(<?php echo e($dayNum); ?>, <?php echo e($sNum); ?>, '<?php echo e($date->toDateString()); ?>', <?php echo e($groupe->id); ?>)">
                                     +
                                 </button>
-                            @elseif($canCreate && $isPastDay)
-                                {{-- Past day: locked cell --}}
+                            <?php elseif($canCreate && $isPastDay): ?>
+                                
                                 <div class="tt-past-cell" title="Impossible de créer une séance sur une date passée">
                                     <svg width="14" height="14" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24">
                                         <rect x="3" y="11" width="18" height="11" rx="2" stroke-width="2"/>
                                         <path stroke-width="2" d="M7 11V7a5 5 0 0110 0v4"/>
                                     </svg>
                                 </div>
-                            @else
+                            <?php else: ?>
                                 <div style="min-height:72px;"></div>
-                            @endif
+                            <?php endif; ?>
                         </td>
-                    @endif
+                    <?php endif; ?>
 
-                @endforeach
-            @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tr>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-    @empty
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
         <tr>
             <td colspan="25" style="padding:48px; text-align:center; font-size:13px; color:#64748b;">
                 Aucun groupe pour cette année.
             </td>
         </tr>
-    @endforelse
+    <?php endif; ?>
     </tbody>
 </table>
 </div>
 
-{{-- ════ LEGEND ════ --}}
+
 <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:12px;
             padding:10px 14px; background:white; border-radius:12px; border:1px solid #e2e8f0;">
-    <span style="font-size:9px; font-weight:800; color:{{ $accentColor }}; letter-spacing:2px; text-transform:uppercase;">Créneaux</span>
-    @foreach(EmploiDuTempsController::SEANCES as $sNum => $s)
+    <span style="font-size:9px; font-weight:800; color:<?php echo e($accentColor); ?>; letter-spacing:2px; text-transform:uppercase;">Créneaux</span>
+    <?php $__currentLoopData = EmploiDuTempsController::SEANCES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sNum => $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <span style="display:flex; align-items:center; gap:5px; font-size:10px; color:#475569;">
             <span style="font-size:9px; font-weight:800; padding:2px 8px; border-radius:6px;
-                         background:{{ $p['light'] }}; color:{{ $p['text'] }};">{{ $s['label'] }}</span>
-            {{ $s['start'] }}–{{ $s['end'] }}
-            <span style="color:#94a3b8;">({{ $s['hours'] }}h)</span>
+                         background:<?php echo e($p['light']); ?>; color:<?php echo e($p['text']); ?>;"><?php echo e($s['label']); ?></span>
+            <?php echo e($s['start']); ?>–<?php echo e($s['end']); ?>
+
+            <span style="color:#94a3b8;">(<?php echo e($s['hours']); ?>h)</span>
         </span>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     <span style="margin-left:auto; display:flex; align-items:center; gap:10px; font-size:9px;">
         <span style="display:flex; align-items:center; gap:4px; color:#475569;">
-            <span style="width:10px; height:10px; border-radius:2px; background:{{ $p['light'] }}; border:1.5px solid {{ $p['medium'] }}; display:inline-block;"></span>
+            <span style="width:10px; height:10px; border-radius:2px; background:<?php echo e($p['light']); ?>; border:1.5px solid <?php echo e($p['medium']); ?>; display:inline-block;"></span>
             Présentiel
         </span>
         <span style="display:flex; align-items:center; gap:4px; color:#92400e;">
@@ -914,13 +921,11 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </span>
 </div>
 
-</div>{{-- .tt-wrap --}}
+</div>
 
-{{-- ════════════════════════════════════════════════════════════
-     MODALS
-     ════════════════════════════════════════════════════════════ --}}
 
-{{-- ── DELETE ──────────────────────────────────────────────── --}}
+
+
 <div id="delete-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
@@ -954,7 +959,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         <div style="display:flex; gap:10px;">
             <button onclick="closeDeleteModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">Annuler</button>
             <form id="delete-form" method="POST" style="flex:1;">
-                @csrf @method('DELETE')
+                <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
                 <button type="submit" style="width:100%; height:44px; border-radius:12px; border:none; background:#dc2626; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3);">
                     Supprimer
                 </button>
@@ -963,7 +968,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 </div>
 
-{{-- ── LIEN DISTANCE ───────────────────────────────────────── --}}
+
 <div id="lien-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
@@ -996,7 +1001,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                    onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';">
         </div>
         <form id="lien-form" method="POST" style="display:contents;">
-            @csrf @method('PATCH')
+            <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
             <input type="hidden" name="lien_distance" id="lien-hidden">
             <div style="display:flex; gap:10px;">
                 <button type="button" onclick="closeLienModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">Annuler</button>
@@ -1008,8 +1013,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     </div>
 </div>
 
-{{-- ── REMPLACEMENT ─────────────────────────────────────────── --}}
-@if($isGestionnaire)
+
+<?php if($isGestionnaire): ?>
 <div id="remplacant-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
@@ -1041,7 +1046,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </div>
 
         <form id="remplacant-form" method="POST" style="display:flex; flex-direction:column; gap:14px;">
-            @csrf
+            <?php echo csrf_field(); ?>
             <div>
                 <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
                               letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">
@@ -1054,9 +1059,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                         onfocus="this.style.borderColor='#7c3aed';this.style.background='white';"
                         onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc';">
                     <option value="">— Aucun (annuler le remplacement) —</option>
-                    @foreach($formateurs as $f)
-                        <option value="{{ $f->id }}">{{ $f->name }}</option>
-                    @endforeach
+                    <?php $__currentLoopData = $formateurs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($f->id); ?>"><?php echo e($f->name); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
@@ -1089,10 +1094,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </form>
     </div>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- ── REPORT ───────────────────────────────────────────────── --}}
-@if($canReport)
+
+<?php if($canReport): ?>
 <div id="report-modal" style="display:none; position:fixed; inset:0; z-index:60;
      background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
      align-items:center; justify-content:center;"
@@ -1123,9 +1128,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     display:flex; align-items:center; gap:8px; font-size:11px; color:#92400e;">
             📅 <span>Séance actuelle : <strong id="report-current-date"></strong> · <span id="report-current-time"></span></span>
         </div>
-        <form id="report-form" method="POST" action="{{ route('reportations.store') }}"
+        <form id="report-form" method="POST" action="<?php echo e(route('reportations.store')); ?>"
               style="display:flex; flex-direction:column; gap:14px;">
-            @csrf
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="id_emplois_du_temps" id="report-emploi-id">
             <div>
                 <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
@@ -1171,13 +1176,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         </form>
     </div>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- ── CREATE / EDIT ────────────────────────────────────────── --}}
-@if($canCreate || $canEdit || $canChangeModule)
+
+<?php if($canCreate || $canEdit || $canChangeModule): ?>
 <div id="emploi-modal" class="tt-modal-overlay" onclick="if(event.target===this)closeModal()">
     <div class="tt-modal-box">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid {{ $accentColor }};">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid <?php echo e($accentColor); ?>;">
             <div>
                 <h3 id="modal-title" style="font-size:14px; font-weight:800; color:#1e293b; margin:0;">Nouvelle séance</h3>
                 <div id="modal-slot-info" style="font-size:10px; color:#64748b; margin-top:2px;"></div>
@@ -1185,9 +1190,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             <button onclick="closeModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
 
-        <form id="emploi-form" method="POST" action="{{ route('emplois.store') }}"
+        <form id="emploi-form" method="POST" action="<?php echo e(route('emplois.store')); ?>"
               style="display:flex; flex-direction:column; gap:14px;">
-            @csrf
+            <?php echo csrf_field(); ?>
             <input type="hidden" name="_method"    id="form-method"   value="POST">
             <input type="hidden" name="id_groupe"  id="m-groupe-hidden">
             <input type="hidden" name="date_debut" id="m-debut">
@@ -1198,13 +1203,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <select id="m-groupe-select" class="tt-modal-input"
                         onchange="document.getElementById('m-groupe-hidden').value=this.value; loadAvailable();">
                     <option value="">— Sélectionner —</option>
-                    @foreach($allGroupes as $g)
-                        <option value="{{ $g->id }}" data-filiere="{{ $g->id_filiere }}">{{ $g->name ?? 'G'.$g->id }} – {{ $g->filiere->name ?? '' }}</option>
-                    @endforeach
+                    <?php $__currentLoopData = $allGroupes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $g): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($g->id); ?>" data-filiere="<?php echo e($g->id_filiere); ?>"><?php echo e($g->name ?? 'G'.$g->id); ?> – <?php echo e($g->filiere->name ?? ''); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
-            @if($canCreate || $canEdit)
+            <?php if($canCreate || $canEdit): ?>
             <div>
                 <label class="tt-modal-label">Mode de séance</label>
                 <div class="mode-toggle">
@@ -1230,39 +1235,40 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 </select>
             </div>
 
-            <div style="border-radius:12px; padding:12px; background:{{ $p['light'] }}; border:1px solid {{ $accentColor }}20;">
+            <div style="border-radius:12px; padding:12px; background:<?php echo e($p['light']); ?>; border:1px solid <?php echo e($accentColor); ?>20;">
                 <div style="display:flex; justify-content:space-between; font-size:9px; color:#475569; margin-bottom:8px;">
                     <span id="prev-start" style="font-weight:700;">08:30</span>
-                    <span id="prev-label" style="font-weight:800; color:{{ $accentColor }};">2.5h · 1 séance</span>
+                    <span id="prev-label" style="font-weight:800; color:<?php echo e($accentColor); ?>;">2.5h · 1 séance</span>
                     <span id="prev-end" style="font-weight:700;">11:00</span>
                 </div>
                 <div style="display:flex; gap:4px;">
-                    @foreach(EmploiDuTempsController::SEANCES as $sNum => $s)
-                        <div id="prev-bar-{{ $sNum }}" style="flex:1; height:8px; border-radius:4px; background:#e2e8f0; transition:background 0.2s;"></div>
-                    @endforeach
+                    <?php $__currentLoopData = EmploiDuTempsController::SEANCES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sNum => $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <div id="prev-bar-<?php echo e($sNum); ?>" style="flex:1; height:8px; border-radius:4px; background:#e2e8f0; transition:background 0.2s;"></div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
                 <div style="display:flex; gap:4px; margin-top:4px;">
-                    @foreach(EmploiDuTempsController::SEANCES as $sNum => $s)
-                        <div style="flex:1; text-align:center; font-size:8px; color:#64748b; font-weight:700;">{{ $s['label'] }}</div>
-                    @endforeach
+                    <?php $__currentLoopData = EmploiDuTempsController::SEANCES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sNum => $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <div style="flex:1; text-align:center; font-size:8px; color:#64748b; font-weight:700;"><?php echo e($s['label']); ?></div>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
             </div>
 
-            @if($canSelectModule)
+            <?php if($canSelectModule): ?>
             <div id="module-row">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">
                         Module
-                        @if($isGestionnaire)
+                        <?php if($isGestionnaire): ?>
                             <span style="color:#ef4444; font-size:10px;">*</span>
-                        @else
+                        <?php else: ?>
                             <span style="font-size:8px; color:#94a3b8; font-weight:400; text-transform:none; letter-spacing:0;">(optionnel)</span>
-                        @endif
+                        <?php endif; ?>
                     </label>
                     <span id="avail-loading-module" style="font-size:9px; color:#64748b; display:none;">chargement…</span>
                 </div>
                 <select name="id_module" id="m-module"
-                        {{ $isGestionnaire ? 'required' : '' }}
+                        <?php echo e($isGestionnaire ? 'required' : ''); ?>
+
                         onchange="onModuleChange()"
                         class="tt-modal-input">
                     <option value="">— Sélectionner un module —</option>
@@ -1271,10 +1277,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <div id="module-progress-wrap" style="display:none; margin-top:8px; padding:8px 10px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
                     <div style="display:flex; justify-content:space-between; font-size:9px; color:#475569; margin-bottom:5px;">
                         <span style="font-weight:700;">Progression du module</span>
-                        <span id="module-progress-pct" style="font-weight:800; color:{{ $accentColor }};">0%</span>
+                        <span id="module-progress-pct" style="font-weight:800; color:<?php echo e($accentColor); ?>;">0%</span>
                     </div>
                     <div style="height:5px; background:#e2e8f0; border-radius:99px; overflow:hidden;">
-                        <div id="module-progress-bar" style="height:100%; width:0%; background:{{ $accentColor }}; border-radius:99px; transition:width 0.4s;"></div>
+                        <div id="module-progress-bar" style="height:100%; width:0%; background:<?php echo e($accentColor); ?>; border-radius:99px; transition:width 0.4s;"></div>
                     </div>
                     <div style="font-size:8px; color:#64748b; margin-top:4px; display:flex; justify-content:space-between;">
                         <span id="module-progress-label">0h planifiées</span>
@@ -1282,19 +1288,19 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                     </div>
                 </div>
             </div>
-            @endif
+            <?php endif; ?>
 
             <div>
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">Formateur</label>
                     <span id="avail-loading-user"  style="font-size:9px; color:#64748b; display:none;">chargement…</span>
-                    <span id="avail-count-user"    style="font-size:9px; color:{{ $accentColor }}; font-weight:700; display:none;"></span>
+                    <span id="avail-count-user"    style="font-size:9px; color:<?php echo e($accentColor); ?>; font-weight:700; display:none;"></span>
                 </div>
                 <select name="id_user" id="m-user" required class="tt-modal-input">
                     <option value="">— Sélectionner —</option>
-                    @foreach($formateurs as $f)
-                        <option value="{{ $f->id }}">{{ $f->name }}</option>
-                    @endforeach
+                    <?php $__currentLoopData = $formateurs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($f->id); ?>"><?php echo e($f->name); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
@@ -1302,13 +1308,13 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                     <label class="tt-modal-label" style="margin:0;">Salle</label>
                     <span id="avail-loading-salle" style="font-size:9px; color:#64748b; display:none;">chargement…</span>
-                    <span id="avail-count-salle"   style="font-size:9px; color:{{ $accentColor }}; font-weight:700; display:none;"></span>
+                    <span id="avail-count-salle"   style="font-size:9px; color:<?php echo e($accentColor); ?>; font-weight:700; display:none;"></span>
                 </div>
                 <select name="id_salle" id="m-salle" class="tt-modal-input">
                     <option value="">— Sélectionner —</option>
-                    @foreach($salles as $s)
-                        <option value="{{ $s->id }}">{{ $s->name }} (cap. {{ $s->capacity }})</option>
-                    @endforeach
+                    <?php $__currentLoopData = $salles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($s->id); ?>"><?php echo e($s->name); ?> (cap. <?php echo e($s->capacity); ?>)</option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
@@ -1316,7 +1322,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 <label class="tt-modal-label">Lien de réunion (Teams / Zoom…)</label>
                 <input type="text" name="lien_distance" id="m-lien" placeholder="https://teams.microsoft.com/..." class="tt-modal-input" style="height:42px;">
             </div>
-            @endif
+            <?php endif; ?>
 
             <div style="font-size:9px; color:#64748b; background:#f8fafc; border-radius:8px; padding:8px 12px; line-height:1.8;">
                 S1 08:30→11:00 &nbsp;·&nbsp; S2 11:00→13:30 &nbsp;·&nbsp; S3 13:30→16:00 &nbsp;·&nbsp; S4 16:00→18:30
@@ -1324,36 +1330,36 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
             <div style="display:flex; gap:10px; margin-top:4px;">
                 <button type="button" onclick="closeModal()" style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">Annuler</button>
-                <button type="submit" id="btn-submit" style="flex:1; height:44px; border-radius:12px; border:none; background:{{ $accentColor }}; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px {{ $accentColor }}40; transition:background 0.2s;">
+                <button type="submit" id="btn-submit" style="flex:1; height:44px; border-radius:12px; border:none; background:<?php echo e($accentColor); ?>; font-size:13px; font-weight:700; color:white; cursor:pointer; box-shadow:0 4px 12px <?php echo e($accentColor); ?>40; transition:background 0.2s;">
                     Enregistrer
                 </button>
             </div>
         </form>
     </div>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- ════ JAVASCRIPT ════ --}}
+
 <script>
 const SEANCE_STARTS = ['08:30','11:00','13:30','16:00'];
 const SEANCE_ENDS   = ['11:00','13:30','16:00','18:30'];
 const SEANCE_HOURS  = [2.5, 2.5, 2.5, 2.5];
 const SEANCE_LABELS = ['S1','S2','S3','S4'];
-const ACCENT        = '{{ $accentColor }}';
-const AVAILABLE_URL = '{{ route('emplois.available') }}';
-const emploisData   = @json($emploisJson);
-const CAN_SELECT_MODULE = {{ $canSelectModule ? 'true' : 'false' }};
-const IS_GESTIONNAIRE   = {{ $isGestionnaire ? 'true' : 'false' }};
+const ACCENT        = '<?php echo e($accentColor); ?>';
+const AVAILABLE_URL = '<?php echo e(route('emplois.available')); ?>';
+const emploisData   = <?php echo json_encode($emploisJson, 15, 512) ?>;
+const CAN_SELECT_MODULE = <?php echo e($canSelectModule ? 'true' : 'false'); ?>;
+const IS_GESTIONNAIRE   = <?php echo e($isGestionnaire ? 'true' : 'false'); ?>;
 
-@php
+<?php
     $progressFlat2 = [];
     foreach ($moduleProgress as $gId => $mods) {
         foreach ($mods as $mId => $h) {
             $progressFlat2[$gId.'_'.$mId] = round($h, 2);
         }
     }
-@endphp
-const moduleProgressData = @json($progressFlat2);
+?>
+const moduleProgressData = <?php echo json_encode($progressFlat2, 15, 512) ?>;
 
 let _slotGroupeId  = null;
 let _slotDate      = null;
@@ -1362,8 +1368,8 @@ let _editExcludeId = null;
 let _fetchTimer    = null;
 let _currentMode   = 'presentiel';
 
-let _allFormateurs = @json($formateurs->map(fn($f) => ['id'=>$f->id,'name'=>$f->name]));
-let _allSalles     = @json($salles->map(fn($s) => ['id'=>$s->id,'name'=>$s->name,'capacity'=>$s->capacity]));
+let _allFormateurs = <?php echo json_encode($formateurs->map(fn($f) => ['id'=>$f->id, 'name'=>$f->name]), 512) ?>;
+let _allSalles     = <?php echo json_encode($salles->map(fn($s) => ['id'=>$s->id, 'name'=>$s->name, 'capacity'=>$s->capacity])) ?>;
 
 function setMode(mode) {
     _currentMode = mode;
@@ -1542,7 +1548,7 @@ function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
     _editExcludeId = null;
 
     document.getElementById('modal-title').textContent    = 'Nouvelle séance';
-    document.getElementById('emploi-form').action         = '{{ route('emplois.store') }}';
+    document.getElementById('emploi-form').action         = '<?php echo e(route('emplois.store')); ?>';
     document.getElementById('form-method').value          = 'POST';
     document.getElementById('m-groupe-hidden').value      = groupeId;
     document.getElementById('m-groupe-row').style.display = 'none';
@@ -1668,4 +1674,5 @@ if (reportRaison) {
 }
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/emplois/index.blade.php ENDPATH**/ ?>

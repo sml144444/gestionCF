@@ -377,22 +377,56 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 // ABSENCES
 // ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// ABSENCES  — replace this entire block in routes/web.php
+// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
+
+    // ── LIST ──────────────────────────────────────────────────
     Route::get('/absences', [AbsenceController::class, 'index'])
         ->name('absences.index')
         ->middleware('can:absence-view');
 
+    // ── ADMIN / GESTIONNAIRE ACTIONS ──────────────────────────
+
+    // Toggle justified / unjustified directly (click on badge)
     Route::patch('/absences/{absence}/justification', [AbsenceController::class, 'toggleJustification'])
         ->name('absences.justify')
         ->middleware('can:absence-justify');
 
+    // Accept a stagiaire's pending file → justifie = true
+    Route::patch('/absences/{absence}/accept', [AbsenceController::class, 'acceptJustification'])
+        ->name('absences.accept')
+        ->middleware('can:absence-justify');
+
+    // Reject a stagiaire's pending file → file deleted, justifie stays false
+    Route::patch('/absences/{absence}/reject', [AbsenceController::class, 'rejectJustification'])
+        ->name('absences.reject')
+        ->middleware('can:absence-justify');
+
+    // Admin uploads a file directly (immediately validated)
     Route::post('/absences/{absence}/fichier', [AbsenceController::class, 'uploadFichier'])
         ->name('absences.fichier')
         ->middleware('can:absence-justify');
 
+    // Admin deletes a file
     Route::delete('/absences/{absence}/fichier', [AbsenceController::class, 'deleteFichier'])
         ->name('absences.fichier.delete')
         ->middleware('can:absence-justify');
+
+    // ── STAGIAIRE SELF-SERVICE ────────────────────────────────
+
+    // Stagiaire uploads their own justification file (pending admin validation)
+    // Auth check is in the controller (must be the absence owner)
+    Route::post('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireUploadFichier'])
+        ->name('absences.stagiaire.fichier')
+        ->middleware('can:absence-view');
+
+    // Stagiaire removes their own pending file (to replace or retract)
+    Route::delete('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireDeleteFichier'])
+        ->name('absences.stagiaire.fichier.delete')
+        ->middleware('can:absence-view');
 });
 
 // ─────────────────────────────────────────────

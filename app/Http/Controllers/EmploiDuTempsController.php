@@ -27,86 +27,67 @@ class EmploiDuTempsController extends Controller
     ];
 
     // ── INDEX ──────────────────────────────────────────────
-    public function index(Request $request)
-    {
-        $user = auth()->user();
+public function index(Request $request)
+{
+    $user = auth()->user();
 
-        $defaultYear = 1;
-        if ($user->role === 'stagiaire' && $user->id_groupe) {
-            $defaultYear = $user->groupe?->annee ?? 1;
-        }
-        $year = (int) $request->get('year', $defaultYear);
+    $defaultYear = 1;
+    if ($user->role === 'stagiaire' && $user->id_groupe) {
+        $defaultYear = $user->groupe?->annee ?? 1;
+    }
+    $year = (int) $request->get('year', $defaultYear);
 
-        if (! $user->hasPermissionTo('emploi-view')) {
-            abort(403, 'Accès refusé à l\'emploi du temps.');
-        }
+    if (! $user->hasPermissionTo('emploi-view')) {
+        abort(403, 'Accès refusé à l\'emploi du temps.');
+    }
 
-        $weekStart = $request->has('week')
-            ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
-            : Carbon::now()->startOfWeek(Carbon::MONDAY);
+    $weekStart = $request->has('week')
+        ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
+        : Carbon::now()->startOfWeek(Carbon::MONDAY);
 
-        $weekEnd = $weekStart->copy()->addDays(5)->endOfDay();
+    $weekEnd = $weekStart->copy()->addDays(5)->endOfDay();
 
-        $dayDates = [];
-        for ($i = 0; $i < 6; $i++) {
-            $dayDates[$i + 1] = $weekStart->copy()->addDays($i);
-        }
+    $dayDates = [];
+    for ($i = 0; $i < 6; $i++) {
+        $dayDates[$i + 1] = $weekStart->copy()->addDays($i);
+    }
 
-        $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
+    $canSeeDraft = $user->hasPermissionTo('emploi-view-all-groups');
 
-        if ($canSeeDraft) {
+    if ($canSeeDraft) {
+        $groupes = Groupe::with('filiere', 'option')
+            ->where('annee', $year)
+            ->orderBy('id_filiere')->orderBy('id')
+            ->get();
+
+        $emplois = EmploiDuTemps::with([
+                'module.remplacant',
+                'groupe.filiere',
+                'salle',
+                'gestionnaire',
+                'remplacant',
+            ])
+            ->whereBetween('date_debut', [$weekStart, $weekEnd])
+            ->whereIn('statut', ['actif', 'brouillon'])
+            ->whereIn('id_groupe', $groupes->pluck('id'))
+            ->get();
+
+    } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
+        $joursAvance   = 2;
+        $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
+        $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
+
+        $semaineActuelle            = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $estSemainePasseeOuActuelle = $weekStart->lte($semaineActuelle);
+        $estSemaineProchaine        = $weekStart->eq($prochainLundi);
+        $peutVoirSemaineProchaine   = Carbon::now()->gte($visibleDepuis);
+
+        if (! $estSemainePasseeOuActuelle && ! ($estSemaineProchaine && $peutVoirSemaineProchaine)) {
+            $emplois = collect();
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
-                ->orderBy('id_filiere')->orderBy('id')
+                ->where('id', $user->id_groupe)
                 ->get();
-
-            $emplois = EmploiDuTemps::with([
-                    'module.remplacant',
-                    'groupe.filiere',
-                    'salle',
-                    'gestionnaire',
-                    'remplacant',
-                ])
-                ->whereBetween('date_debut', [$weekStart, $weekEnd])
-                ->whereIn('statut', ['actif', 'brouillon'])
-                ->whereIn('id_groupe', $groupes->pluck('id'))
-                ->get();
-
-        } elseif ($user->role === 'stagiaire' && $user->id_groupe) {
-            $joursAvance   = 2;
-            $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
-            $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance);
-
-            $semaineActuelle            = Carbon::now()->startOfWeek(Carbon::MONDAY);
-            $estSemainePasseeOuActuelle = $weekStart->lte($semaineActuelle);
-            $estSemaineProchaine        = $weekStart->eq($prochainLundi);
-            $peutVoirSemaineProchaine   = Carbon::now()->gte($visibleDepuis);
-
-            if (! $estSemainePasseeOuActuelle && ! ($estSemaineProchaine && $peutVoirSemaineProchaine)) {
-                $emplois = collect();
-                $groupes = Groupe::with('filiere', 'option')
-                    ->where('annee', $year)
-                    ->where('id', $user->id_groupe)
-                    ->get();
-            } else {
-                $emplois = EmploiDuTemps::with([
-                        'module.remplacant',
-                        'groupe.filiere',
-                        'salle',
-                        'gestionnaire',
-                        'remplacant',
-                    ])
-                    ->whereBetween('date_debut', [$weekStart, $weekEnd])
-                    ->where('statut', 'actif')
-                    ->where('id_groupe', $user->id_groupe)
-                    ->get();
-
-                $groupes = Groupe::with('filiere', 'option')
-                    ->where('annee', $year)
-                    ->where('id', $user->id_groupe)
-                    ->get();
-            }
-
         } else {
             $emplois = EmploiDuTemps::with([
                     'module.remplacant',
@@ -117,87 +98,135 @@ class EmploiDuTempsController extends Controller
                 ])
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
-                ->where(function ($q) use ($user) {
-                    $q->where('id_user', $user->id)
-                      ->orWhere('id_user_remplacant', $user->id)
-                      ->orWhere(function ($q2) use ($user) {
-                          $q2->whereNull('id_user_remplacant')
-                             ->where('date_debut', '>', now())
-                             ->whereHas('module', function ($mq) use ($user) {
-                                 $mq->where('id_user_remplacant', $user->id);
-                             });
-                      });
-                })
+                ->where('id_groupe', $user->id_groupe)
                 ->get();
 
-            $groupeIds = $emplois->pluck('id_groupe')->unique();
-            $groupes   = Groupe::with('filiere', 'option')
+            $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
-                ->whereIn('id', $groupeIds)
-                ->orderBy('id_filiere')->orderBy('id')
+                ->where('id', $user->id_groupe)
                 ->get();
         }
 
-        $moduleProgress = [];
-        if ($groupes->isNotEmpty()) {
-            $allScheduled = EmploiDuTemps::whereIn('id_groupe', $groupes->pluck('id'))
-                ->whereIn('statut', ['actif', 'brouillon'])
-                ->whereNotNull('id_module')
-                ->where('date_fin', '<=', Carbon::now())
-                ->get(['id_groupe', 'id_module', 'date_debut', 'date_fin']);
+    } else {
+        $emplois = EmploiDuTemps::with([
+                'module.remplacant',
+                'groupe.filiere',
+                'salle',
+                'gestionnaire',
+                'remplacant',
+            ])
+            ->whereBetween('date_debut', [$weekStart, $weekEnd])
+            ->where('statut', 'actif')
+            ->where(function ($q) use ($user) {
+                $q->where('id_user', $user->id)
+                  ->orWhere('id_user_remplacant', $user->id)
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->whereNull('id_user_remplacant')
+                         ->where('date_debut', '>', now())
+                         ->whereHas('module', function ($mq) use ($user) {
+                             $mq->where('id_user_remplacant', $user->id);
+                         });
+                  });
+            })
+            ->get();
 
-            foreach ($allScheduled as $e) {
-                $gId = $e->id_groupe;
-                $mId = $e->id_module;
-                if (! isset($moduleProgress[$gId][$mId])) {
-                    $moduleProgress[$gId][$mId] = 0.0;
-                }
-                $moduleProgress[$gId][$mId] += $e->date_debut->diffInMinutes($e->date_fin) / 60;
-            }
-        }
-
-        $groupesByFiliere = $groupes->groupBy('id_filiere');
-        $allGroupes       = Groupe::with('filiere')->where('annee', $year)->get();
-        $salles           = Salle::orderBy('name')->get();
-        $formateurs       = User::where('role', 'formateur')->orderBy('name')->get();
-        $grid             = $this->buildGrid($groupes, $emplois);
-
-        $draftCount = $canSeeDraft
-            ? EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
-                ->where('statut', 'brouillon')
-                ->whereIn('id_groupe', $groupes->pluck('id'))
-                ->count()
-            : 0;
-
-        $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
-            ->groupBy(fn($m) => $m->id_filiere . '_' . ($m->annee ?? 1))
-            ->map(fn($mods) => $mods->map(fn($m) => [
-                'id'        => $m->id,
-                'name'      => $m->name,
-                'nbr_heure' => $m->nbr_heure,
-            ])->values());
-
-        $emploisJson = $emplois->map(fn($e) => [
-            'id'                 => $e->id,
-            'id_groupe'          => $e->id_groupe,
-            'id_salle'           => $e->id_salle,
-            'id_user'            => $e->id_user,
-            'id_user_remplacant' => $e->id_user_remplacant,
-            'id_module'          => $e->id_module,
-            'date_debut'         => $e->date_debut->format('Y-m-d\TH:i'),
-            'date_fin'           => $e->date_fin->format('Y-m-d\TH:i'),
-            'mode'               => $e->mode ?? 'presentiel',
-            'lien_distance'      => $e->lien_distance ?? '',
-            'statut'             => $e->statut,
-        ])->values();
-
-        return view('emplois.index', compact(
-            'grid', 'year', 'weekStart', 'weekEnd', 'dayDates',
-            'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
-            'emplois', 'emploisJson', 'draftCount', 'canSeeDraft',
-            'moduleProgress', 'modulesByFiliereAndAnnee'
-        ));
+        $groupeIds = $emplois->pluck('id_groupe')->unique();
+        $groupes   = Groupe::with('filiere', 'option')
+            ->where('annee', $year)
+            ->whereIn('id', $groupeIds)
+            ->orderBy('id_filiere')->orderBy('id')
+            ->get();
     }
+
+    $moduleProgress = [];
+    if ($groupes->isNotEmpty()) {
+        $allScheduled = EmploiDuTemps::whereIn('id_groupe', $groupes->pluck('id'))
+            ->whereIn('statut', ['actif', 'brouillon'])
+            ->whereNotNull('id_module')
+            ->where('date_fin', '<=', Carbon::now())
+            ->get(['id_groupe', 'id_module', 'date_debut', 'date_fin']);
+
+        foreach ($allScheduled as $e) {
+            $gId = $e->id_groupe;
+            $mId = $e->id_module;
+            if (! isset($moduleProgress[$gId][$mId])) {
+                $moduleProgress[$gId][$mId] = 0.0;
+            }
+            $moduleProgress[$gId][$mId] += $e->date_debut->diffInMinutes($e->date_fin) / 60;
+        }
+    }
+
+    $groupesByFiliere = $groupes->groupBy('id_filiere');
+    $allGroupes       = Groupe::with('filiere')->where('annee', $year)->get();
+    $salles           = Salle::orderBy('name')->get();
+    $formateurs       = User::where('role', 'formateur')->orderBy('name')->get();
+    $grid             = $this->buildGrid($groupes, $emplois);
+
+    $draftCount = $canSeeDraft
+        ? EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
+            ->where('statut', 'brouillon')
+            ->whereIn('id_groupe', $groupes->pluck('id'))
+            ->count()
+        : 0;
+
+    $modulesByFiliereAndAnnee = Module::orderBy('name')->get()
+        ->groupBy(fn($m) => $m->id_filiere . '_' . ($m->annee ?? 1))
+        ->map(fn($mods) => $mods->map(fn($m) => [
+            'id'        => $m->id,
+            'name'      => $m->name,
+            'nbr_heure' => $m->nbr_heure,
+        ])->values());
+
+    $emploisJson = $emplois->map(fn($e) => [
+        'id'                 => $e->id,
+        'id_groupe'          => $e->id_groupe,
+        'id_salle'           => $e->id_salle,
+        'id_user'            => $e->id_user,
+        'id_user_remplacant' => $e->id_user_remplacant,
+        'id_module'          => $e->id_module,
+        'date_debut'         => $e->date_debut->format('Y-m-d\TH:i'),
+        'date_fin'           => $e->date_fin->format('Y-m-d\TH:i'),
+        'mode'               => $e->mode ?? 'presentiel',
+        'lien_distance'      => $e->lien_distance ?? '',
+        'statut'             => $e->statut,
+    ])->values();
+
+    // ── Does next week have published sessions for this stagiaire's group? ──
+    $nextWeekHasSessions = false;
+    if ($user->role === 'stagiaire' && $user->id_groupe) {
+        $nxtStart            = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
+        $nxtEnd              = $nxtStart->copy()->addDays(5)->endOfDay();
+        $nextWeekHasSessions = EmploiDuTemps::whereBetween('date_debut', [$nxtStart, $nxtEnd])
+            ->where('statut', 'actif')
+            ->where('id_groupe', $user->id_groupe)
+            ->exists();
+    } else {
+        // Non-stagiaires: always allow (they use different access logic)
+        $nextWeekHasSessions = true;
+    }
+
+    // ── Does next week have sessions for this stagiaire? ──
+    $nextWeekHasSessions = false;
+    if ($user->role === 'stagiaire' && $user->id_groupe) {
+        $nxtStart            = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
+        $nxtEnd              = $nxtStart->copy()->addDays(5)->endOfDay();
+        $nextWeekHasSessions = EmploiDuTemps::whereBetween('date_debut', [$nxtStart, $nxtEnd])
+            ->where('statut', 'actif')
+            ->where('id_groupe', $user->id_groupe)
+            ->exists();
+    } else {
+        $nextWeekHasSessions = true; // admins/formateurs always have access
+    }
+    return view('emplois.index', compact(
+        'grid', 'year', 'weekStart', 'weekEnd', 'dayDates',
+        'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
+        'emplois', 'emploisJson', 'draftCount', 'canSeeDraft',
+        'moduleProgress', 'modulesByFiliereAndAnnee',
+        'nextWeekHasSessions'   // ← added this
+    ));
+
+    
+}
 
     // ── STORE ──────────────────────────────────────────────
     public function store(Request $request): RedirectResponse

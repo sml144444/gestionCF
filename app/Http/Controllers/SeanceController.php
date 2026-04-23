@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\Mail;
 
 class SeanceController extends Controller
 {
+    // Each half-session is exactly 2.5 hours
+    const HALF_DUREE    = 2.5;
+    const SESSION_PARTS = ['s1', 's2', 's3', 's4'];
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -27,48 +31,65 @@ class SeanceController extends Controller
         });
     }
 
-    // ── SHOW ──────────────────────────────────────────────────
-    public function show(EmploiDuTemps $emploi)
+    // ── HELPER : derive active session parts from real duration ──
+    private function getActiveParts(EmploiDuTemps $emploi): array
     {
-        $emploi->load(['module', 'groupe', 'salle', 'gestionnaire', 'remplacant']);
+        $minutes  = $emploi->date_debut->diffInMinutes($emploi->date_fin);
+        $numParts = min(4, max(1, (int) floor($minutes / (self::HALF_DUREE * 60))));
+        return array_slice(self::SESSION_PARTS, 0, $numParts);
+    }
 
-        // Stagiaires of this groupe (no assumption about Groupe->stagiaires())
+    
+
+    // ── SHOW ──────────────────────────────────────────────────
+public function show(EmploiDuTemps $emploi)
+{
+    $emploi->load(['module', 'groupe', 'salle', 'gestionnaire', 'remplacant']);
+
+    $user = Auth::user();
+
+    // Stagiaire sees only themselves
+    if ($user->role === 'stagiaire') {
+        $stagiaires = User::where('id', $user->id)
+            ->where('id_groupe', $emploi->id_groupe)
+            ->get();
+    } else {
         $stagiaires = User::where('id_groupe', $emploi->id_groupe)
             ->where('role', 'stagiaire')
             ->orderBy('name')
             ->get();
-
-        // Find the hidden "presence" cours entry for this séance
-        $presenceCours = Cours::where('id_emplois_du_temps', $emploi->id)
-            ->where('titre', '__presence__')
-            ->first();
-
-        // Keyed by id_user for easy lookup in the blade
-        $presences = $presenceCours
-            ? AbsenceRetard::where('id_cours', $presenceCours->id)
-                ->get()
-                ->keyBy('id_user')
-            : collect();
-
-        // Classroom resources (all cours except the hidden presence entry)
-        $coursItems = Cours::where('id_emplois_du_temps', $emploi->id)
-            ->where('titre', '!=', '__presence__')
-            ->with('formateur')
-            ->latest()
-            ->get();
-
-        // Permission flags
-        $canPresence = Auth::user()->can('emploi-view-all-groups')
-                    || in_array(Auth::user()->role, ['admin', 'gestionnaire', 'formateur']);
-
-        $canEditClassroom = Auth::user()->can('emploi-view-all-groups')
-                         || in_array(Auth::user()->role, ['admin', 'formateur']);
-
-        return view('seances.show', compact(
-            'emploi', 'stagiaires', 'presences', 'coursItems',
-            'canPresence', 'canEditClassroom'
-        ));
     }
+
+    $presenceCours = Cours::where('id_emplois_du_temps', $emploi->id)
+        ->where('titre', '__presence__')
+        ->first();
+
+    $presences = $presenceCours
+        ? AbsenceRetard::where('id_cours', $presenceCours->id)
+            ->get()
+            ->keyBy(fn($a) => $a->id_user . '_' . $a->session_part)
+        : collect();
+
+    $coursItems = Cours::where('id_emplois_du_temps', $emploi->id)
+        ->where('titre', '!=', '__presence__')
+        ->with('formateur')
+        ->latest()
+        ->get();
+
+    $canPresence = Auth::user()->can('emploi-view-all-groups')
+                || in_array(Auth::user()->role, ['admin', 'gestionnaire', 'formateur']);
+
+    $canEditClassroom = Auth::user()->can('emploi-view-all-groups')
+                     || in_array(Auth::user()->role, ['admin', 'formateur']);
+
+    $activeParts = $this->getActiveParts($emploi);
+
+    return view('seances.show', compact(
+        'emploi', 'stagiaires', 'presences', 'coursItems',
+        'canPresence', 'canEditClassroom',
+        'activeParts'
+    ));
+}
 
     // ── SAVE PRESENCE ─────────────────────────────────────────
     public function savePresence(Request $request, EmploiDuTemps $emploi): RedirectResponse
@@ -83,92 +104,100 @@ class SeanceController extends Controller
         }
 
         $request->validate([
-            'presences'                    => 'nullable|array',
-            'presences.*.stagiaire_id'     => 'required|exists:users,id',
-            'presences.*.status'           => 'required|in:present,retard,absence',
+            'presences'                => 'nullable|array',
+            'presences.*.stagiaire_id' => 'required|exists:users,id',
         ]);
 
-        // Get or create the hidden "presence" cours entry
         $presenceCours = Cours::firstOrCreate(
-            [
-                'id_emplois_du_temps' => $emploi->id,
-                'titre'               => '__presence__',
-            ],
-            [
-                'statut'     => 'faite',
-                'created_by' => Auth::id(),
-            ]
+            ['id_emplois_du_temps' => $emploi->id, 'titre' => '__presence__'],
+            ['statut' => 'faite', 'created_by' => Auth::id()]
         );
 
-        foreach ($request->input('presences', []) as $entry) {
-            $stagiaireId = $entry['stagiaire_id'];
-            $status      = $entry['status'];
+        // Only iterate parts that are actually active for this session's duration
+        $activeParts   = $this->getActiveParts($emploi);
+        $inactiveParts = array_diff(self::SESSION_PARTS, $activeParts);
 
-            if ($status === 'present') {
-                // Present = remove any existing absence/retard record
-                AbsenceRetard::where('id_cours', $presenceCours->id)
-                    ->where('id_user', $stagiaireId)
-                    ->delete();
-            } else {
-                AbsenceRetard::updateOrCreate(
-                    [
-                        'id_cours' => $presenceCours->id,
-                        'id_user'  => $stagiaireId,
-                    ],
-                    [
-                        'type'       => $status,
-                        'date_event' => $emploi->date_debut,
-                        'duree'      => round($emploi->date_debut->diffInMinutes($emploi->date_fin) / 60, 1), // ← was null
-                        'justifie'   => false,
-                    ]
-                );
-            }
-        }
-
-        // ── Envoyer les emails d'absence ───────────────────────────
-        $enregistreePar = Auth::user();
-        $sentCount = 0;
-        $failedEmails = [];
+        $absentStagiaireIds = [];
 
         foreach ($request->input('presences', []) as $entry) {
-            if ($entry['status'] === 'absence') {
-                $stagiaire = User::find($entry['stagiaire_id']);
-                if ($stagiaire && $stagiaire->email) {
-                    // Vérifier si l'email est valide
-                    if (!filter_var($stagiaire->email, FILTER_VALIDATE_EMAIL)) {
-                        $failedEmails[] = $stagiaire->email;
-                        continue;
-                    }
-                    
-                    try {
-                        Mail::to($stagiaire->email)->queue(
-                            new AbsenceMail(
-                                stagiaire:    $stagiaire,
-                                emploi:       $emploi,
-                                enregistreePar: $enregistreePar,
-                                justified:    false,
-                                justification: null,
-                            )
-                        );
-                        $sentCount++;
-                    } catch (\Exception $e) {
-                        $failedEmails[] = $stagiaire->email;
-                        \Log::error("Erreur envoi email d'absence à {$stagiaire->email}: " . $e->getMessage());
-                    }
+            $stagiaireId   = $entry['stagiaire_id'];
+            $hasAnyAbsence = false;
+
+            foreach ($activeParts as $part) {
+                // Checkbox sends '1' when checked (absent)
+                $isAbsent = !empty($entry[$part]);
+
+                if (!$isAbsent) {
+                    // Present → remove any existing absence record for this half
+                    AbsenceRetard::where('id_cours', $presenceCours->id)
+                        ->where('id_user', $stagiaireId)
+                        ->where('session_part', $part)
+                        ->delete();
+                } else {
+                    // Absent → upsert
+                    AbsenceRetard::updateOrCreate(
+                        [
+                            'id_cours'     => $presenceCours->id,
+                            'id_user'      => $stagiaireId,
+                            'session_part' => $part,
+                        ],
+                        [
+                            'type'       => 'absence',
+                            'date_event' => $emploi->date_debut,
+                            'duree'      => self::HALF_DUREE,
+                            'justifie'   => false,
+                        ]
+                    );
+                    $hasAnyAbsence = true;
                 }
             }
+
+            // Clean up stale records for parts no longer active
+            // (protects against session duration being shortened after data was saved)
+            foreach ($inactiveParts as $part) {
+                AbsenceRetard::where('id_cours', $presenceCours->id)
+                    ->where('id_user', $stagiaireId)
+                    ->where('session_part', $part)
+                    ->delete();
+            }
+
+            if ($hasAnyAbsence) {
+                $absentStagiaireIds[$stagiaireId] = true;
+            }
         }
 
-        $successMessage = 'Liste de présence enregistrée.';
-        if ($sentCount > 0) {
-            $successMessage .= " Notification d'absence envoyée à {$sentCount} stagiaire(s).";
-        }
-        if (!empty($failedEmails)) {
-            $successMessage .= " (" . count($failedEmails) . " email(s) invalide(s) ignoré(s))";
+        // ── Send one email per absent stagiaire ────────────────
+        $enregistreePar = Auth::user();
+        $sentCount      = 0;
+        $failedEmails   = [];
+
+        foreach (array_keys($absentStagiaireIds) as $stagiaireId) {
+            $stagiaire = User::find($stagiaireId);
+            if (!$stagiaire || !$stagiaire->email) continue;
+            if (!filter_var($stagiaire->email, FILTER_VALIDATE_EMAIL)) {
+                $failedEmails[] = $stagiaire->email;
+                continue;
+            }
+            try {
+                Mail::to($stagiaire->email)->queue(new AbsenceMail(
+                    stagiaire:      $stagiaire,
+                    emploi:         $emploi,
+                    enregistreePar: $enregistreePar,
+                    justified:      false,
+                    justification:  null,
+                ));
+                $sentCount++;
+            } catch (\Exception $e) {
+                $failedEmails[] = $stagiaire->email;
+                \Log::error("Erreur email absence {$stagiaire->email}: " . $e->getMessage());
+            }
         }
 
-        return redirect()->route('seances.show', $emploi)
-            ->with('success', $successMessage);
+        $msg = 'Liste de présence enregistrée.';
+        if ($sentCount > 0)        $msg .= " Notification d'absence envoyée à {$sentCount} stagiaire(s).";
+        if (!empty($failedEmails)) $msg .= ' (' . count($failedEmails) . ' email(s) invalide(s) ignoré(s))';
+
+        return redirect()->route('seances.show', $emploi)->with('success', $msg);
     }
 
     // ── ADD CLASSROOM RESOURCE ────────────────────────────────
@@ -202,60 +231,47 @@ class SeanceController extends Controller
             'created_by'          => Auth::id(),
         ]);
 
-        // ── Notifier les stagiaires du groupe ───────────────────────
         $emploi->load(['module', 'groupe', 'gestionnaire']);
 
         $otherDocs = Cours::where('id_emplois_du_temps', $emploi->id)
             ->where('titre', '!=', '__presence__')
             ->where('id', '!=', $cours->id)
-            ->latest()
-            ->take(3)
-            ->get();
+            ->latest()->take(3)->get();
 
         $stagiaires = User::where('id_groupe', $emploi->id_groupe)
             ->where('role', 'stagiaire')
             ->whereNotNull('email')
             ->get();
 
-        $sharedBy = Auth::user();
-
-        $sentCount = 0;
+        $sharedBy     = Auth::user();
+        $sentCount    = 0;
         $failedEmails = [];
 
         foreach ($stagiaires as $stagiaire) {
-            // Vérifier si l'email est valide
             if (!filter_var($stagiaire->email, FILTER_VALIDATE_EMAIL)) {
                 $failedEmails[] = $stagiaire->email;
                 continue;
             }
-            
             try {
-                Mail::to($stagiaire->email)->queue(
-                    new NouveauDocumentMail(
-                        recipient: $stagiaire,
-                        document:  $cours,
-                        emploi:    $emploi,
-                        sharedBy:  $sharedBy,
-                        otherDocs: $otherDocs,
-                    )
-                );
+                Mail::to($stagiaire->email)->queue(new NouveauDocumentMail(
+                    recipient: $stagiaire,
+                    document:  $cours,
+                    emploi:    $emploi,
+                    sharedBy:  $sharedBy,
+                    otherDocs: $otherDocs,
+                ));
                 $sentCount++;
             } catch (\Exception $e) {
                 $failedEmails[] = $stagiaire->email;
-                \Log::error("Erreur envoi email à {$stagiaire->email}: " . $e->getMessage());
+                \Log::error("Erreur email ressource {$stagiaire->email}: " . $e->getMessage());
             }
         }
 
-        $message = "Ressource « {$request->titre} » ajoutée.";
-        if ($sentCount > 0) {
-            $message .= " Notification envoyée à {$sentCount} stagiaire(s).";
-        }
-        if (!empty($failedEmails)) {
-            $message .= " (" . count($failedEmails) . " email(s) invalide(s) ignoré(s))";
-        }
+        $msg = "Ressource « {$request->titre} » ajoutée.";
+        if ($sentCount > 0)        $msg .= " Notification envoyée à {$sentCount} stagiaire(s).";
+        if (!empty($failedEmails)) $msg .= ' (' . count($failedEmails) . ' email(s) invalide(s) ignoré(s))';
 
-        return redirect()->route('seances.show', $emploi)
-            ->with('success', $message);
+        return redirect()->route('seances.show', $emploi)->with('success', $msg);
     }
 
     // ── DELETE CLASSROOM RESOURCE ─────────────────────────────
@@ -266,12 +282,10 @@ class SeanceController extends Controller
             abort(403);
         }
 
-        // Ensure the cours belongs to this emploi and is not the hidden presence entry
         if ($cours->id_emplois_du_temps !== $emploi->id || $cours->titre === '__presence__') {
             abort(404);
         }
 
-        // Delete stored files
         if ($cours->fichier) {
             foreach ($cours->fichier as $path) {
                 Storage::disk('public')->delete($path);
@@ -282,6 +296,6 @@ class SeanceController extends Controller
         $cours->delete();
 
         return redirect()->route('seances.show', $emploi)
-            ->with('success', 'Ressource « ' . $titre . ' » supprimée.');
+            ->with('success', "Ressource « {$titre} » supprimée.");
     }
 }

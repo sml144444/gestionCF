@@ -9,7 +9,7 @@ class AbsenceRetard extends Model
     protected $table = 'absence_retard';
 
     protected $fillable = [
-        'id_user', 'id_cours', 'type',
+        'id_user', 'id_cours', 'type','session_part',
         'duree', 'justifie', 'file_justification', 'date_event',
     ];
 

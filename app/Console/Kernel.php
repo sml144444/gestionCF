@@ -12,7 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Weekly schedule notification to stagiaires
+        // Runs every Sunday at 00:00 (midnight → start of Sunday)
+        // Only sends if published sessions exist for the group next week
+        $schedule->command('schedule:notify-stagiaires')
+                 ->weeklyOn(0, '00:00')   // 0 = Sunday
+                 ->appendOutputTo(storage_path('logs/schedule-notify.log'));
     }
 
     /**

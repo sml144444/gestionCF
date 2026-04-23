@@ -1,9 +1,9 @@
-@extends('layouts.app')
-@section('title', 'Mes absences')
-@section('page-title', 'Absences')
 
-@section('content')
-@php
+<?php $__env->startSection('title', 'Mes absences'); ?>
+<?php $__env->startSection('page-title', 'Absences'); ?>
+
+<?php $__env->startSection('content'); ?>
+<?php
     $user     = Auth::user();
     $userRole = $user->role;
 
@@ -27,18 +27,18 @@
         's3' => ['color'=>'#0369a1','bg'=>'#f0f9ff','border'=>'#bae6fd','label'=>'S3'],
         's4' => ['color'=>'#0f766e','bg'=>'#f0fdfa','border'=>'#99f6e4','label'=>'S4'],
     ];
-@endphp
+?>
 
 <style>
 :root {
-    --accent:    {{ $p['primary'] }};
-    --accent-md: {{ $p['medium'] }};
-    --accent-lt: {{ $p['light'] }};
-    --accent-ltr:{{ $p['lighter'] }};
-    --accent-tx: {{ $p['text'] }};
-    --accent-bd: {{ $p['border'] }};
-    --accent-sh: {{ $p['shadow'] }};
-    --accent-gr: {{ $p['gradient'] }};
+    --accent:    <?php echo e($p['primary']); ?>;
+    --accent-md: <?php echo e($p['medium']); ?>;
+    --accent-lt: <?php echo e($p['light']); ?>;
+    --accent-ltr:<?php echo e($p['lighter']); ?>;
+    --accent-tx: <?php echo e($p['text']); ?>;
+    --accent-bd: <?php echo e($p['border']); ?>;
+    --accent-sh: <?php echo e($p['shadow']); ?>;
+    --accent-gr: <?php echo e($p['gradient']); ?>;
 }
 * { box-sizing:border-box; }
 .abs-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:1280px; margin:0 auto; }
@@ -154,25 +154,25 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 
 <div class="abs-wrap">
 
-{{-- Flash --}}
-@if(session('success'))
+
+<?php if(session('success')): ?>
 <div class="flash-ok">
     <div class="flash-ok-icon">
         <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
         </svg>
     </div>
-    <p style="font-size:13px;font-weight:600;color:var(--accent-tx);margin:0;">{{ session('success') }}</p>
+    <p style="font-size:13px;font-weight:600;color:var(--accent-tx);margin:0;"><?php echo e(session('success')); ?></p>
 </div>
-@endif
-@if(session('error'))
+<?php endif; ?>
+<?php if(session('error')): ?>
 <div style="padding:14px 18px;background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;margin-bottom:16px;">
-    <p style="font-size:12px;color:#be123c;margin:0;">✕ {{ session('error') }}</p>
+    <p style="font-size:12px;color:#be123c;margin:0;">✕ <?php echo e(session('error')); ?></p>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- Info box for stagiaire --}}
-@if($userRole === 'stagiaire')
+
+<?php if($userRole === 'stagiaire'): ?>
 <div class="info-box">
     <svg width="18" height="18" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -185,9 +185,9 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         </p>
     </div>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- ─── HERO ─── --}}
+
 <div class="abs-hero">
     <div style="display:flex;align-items:center;gap:16px;">
         <div class="abs-hero-icon">
@@ -197,72 +197,75 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
             </svg>
         </div>
         <div>
-            <h1 class="abs-hero-title">{{ $heroTitle }}</h1>
+            <h1 class="abs-hero-title"><?php echo e($heroTitle); ?></h1>
             <p class="abs-hero-sub">
-                <strong style="color:white;">{{ $stats['total'] }}</strong> absence(s) ·
-                <strong style="color:white;">{{ $stats['total_heures_abs'] }}h</strong> cumulées
-                @if($stats['en_attente'] > 0)
-                    · <strong style="color:#fef08a;">{{ $stats['en_attente'] }} en attente</strong>
-                @endif
+                <strong style="color:white;"><?php echo e($stats['total']); ?></strong> absence(s) ·
+                <strong style="color:white;"><?php echo e($stats['total_heures_abs']); ?>h</strong> cumulées
+                <?php if($stats['en_attente'] > 0): ?>
+                    · <strong style="color:#fef08a;"><?php echo e($stats['en_attente']); ?> en attente</strong>
+                <?php endif; ?>
             </p>
         </div>
     </div>
     <span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);
                  color:white;font-size:11px;font-weight:700;padding:6px 14px;border-radius:99px;">
-        {{ ucfirst($userRole) }}
+        <?php echo e(ucfirst($userRole)); ?>
+
     </span>
 </div>
 
-{{-- ─── STATS ─── --}}
+
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon" style="background:#fee2e2;">❌</div>
-        <div><div class="stat-val" style="color:#dc2626;">{{ $stats['total'] }}</div><div class="stat-lbl">Total</div></div>
+        <div><div class="stat-val" style="color:#dc2626;"><?php echo e($stats['total']); ?></div><div class="stat-lbl">Total</div></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:#fff7ed;">🕐</div>
-        <div><div class="stat-val" style="color:#c2410c;">{{ $stats['total_heures_abs'] }}h</div><div class="stat-lbl">Heures abs.</div></div>
+        <div><div class="stat-val" style="color:#c2410c;"><?php echo e($stats['total_heures_abs']); ?>h</div><div class="stat-lbl">Heures abs.</div></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:#d1fae5;">✅</div>
-        <div><div class="stat-val" style="color:#059669;">{{ $stats['justifies'] }}</div><div class="stat-lbl">Justifiées</div></div>
+        <div><div class="stat-val" style="color:#059669;"><?php echo e($stats['justifies']); ?></div><div class="stat-lbl">Justifiées</div></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:#fef3c7;">🕐</div>
-        <div><div class="stat-val" style="color:#92400e;">{{ $stats['en_attente'] }}</div><div class="stat-lbl">En attente</div></div>
+        <div><div class="stat-val" style="color:#92400e;"><?php echo e($stats['en_attente']); ?></div><div class="stat-lbl">En attente</div></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:#fce7f3;">⚠️</div>
-        <div><div class="stat-val" style="color:#be185d;">{{ $stats['injustifies'] }}</div><div class="stat-lbl">Non justifiées</div></div>
+        <div><div class="stat-val" style="color:#be185d;"><?php echo e($stats['injustifies']); ?></div><div class="stat-lbl">Non justifiées</div></div>
     </div>
-    @foreach(['s1','s2','s3','s4'] as $sp)
+    <?php $__currentLoopData = ['s1','s2','s3','s4']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
     <div class="stat-card">
         <div class="stat-icon"
-             style="background:{{ ['s1'=>'#f5f3ff','s2'=>'#eff6ff','s3'=>'#f0f9ff','s4'=>'#f0fdfa'][$sp] }};">
-            {{ strtoupper($sp) }}
+             style="background:<?php echo e(['s1'=>'#f5f3ff','s2'=>'#eff6ff','s3'=>'#f0f9ff','s4'=>'#f0fdfa'][$sp]); ?>;">
+            <?php echo e(strtoupper($sp)); ?>
+
         </div>
         <div>
             <div class="stat-val"
-                 style="color:{{ ['s1'=>'#6d28d9','s2'=>'#1d4ed8','s3'=>'#0369a1','s4'=>'#0f766e'][$sp] }};">
-                {{ $stats[$sp] }}
+                 style="color:<?php echo e(['s1'=>'#6d28d9','s2'=>'#1d4ed8','s3'=>'#0369a1','s4'=>'#0f766e'][$sp]); ?>;">
+                <?php echo e($stats[$sp]); ?>
+
             </div>
-            <div class="stat-lbl">Abs. {{ strtoupper($sp) }}</div>
+            <div class="stat-lbl">Abs. <?php echo e(strtoupper($sp)); ?></div>
         </div>
     </div>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 </div>
 
-{{-- ─── FILTER BAR ─── --}}
-<form method="GET" action="{{ route('absences.index') }}" class="filter-bar">
+
+<form method="GET" action="<?php echo e(route('absences.index')); ?>" class="filter-bar">
 
     <div class="filter-group">
         <label class="filter-label">Demi-séance</label>
         <select name="session_part" class="filter-select">
             <option value="">Toutes (S1–S4)</option>
-            <option value="s1" @selected(request('session_part') === 's1')>S1</option>
-            <option value="s2" @selected(request('session_part') === 's2')>S2</option>
-            <option value="s3" @selected(request('session_part') === 's3')>S3</option>
-            <option value="s4" @selected(request('session_part') === 's4')>S4</option>
+            <option value="s1" <?php if(request('session_part') === 's1'): echo 'selected'; endif; ?>>S1</option>
+            <option value="s2" <?php if(request('session_part') === 's2'): echo 'selected'; endif; ?>>S2</option>
+            <option value="s3" <?php if(request('session_part') === 's3'): echo 'selected'; endif; ?>>S3</option>
+            <option value="s4" <?php if(request('session_part') === 's4'): echo 'selected'; endif; ?>>S4</option>
         </select>
     </div>
 
@@ -270,22 +273,23 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         <label class="filter-label">Statut</label>
         <select name="justifie" class="filter-select">
             <option value="">Tous les statuts</option>
-            <option value="1"       @selected(request('justifie') === '1')>✅ Justifiée</option>
-            <option value="pending" @selected(request('justifie') === 'pending')>🕐 En attente</option>
-            <option value="0"       @selected(request('justifie') === '0')>⚠️ Non justifiée</option>
+            <option value="1"       <?php if(request('justifie') === '1'): echo 'selected'; endif; ?>>✅ Justifiée</option>
+            <option value="pending" <?php if(request('justifie') === 'pending'): echo 'selected'; endif; ?>>🕐 En attente</option>
+            <option value="0"       <?php if(request('justifie') === '0'): echo 'selected'; endif; ?>>⚠️ Non justifiée</option>
         </select>
     </div>
 
-    @if($canViewAll)
+    <?php if($canViewAll): ?>
     <div class="filter-group">
         <label class="filter-label">Groupe</label>
         <select name="groupe_id" class="filter-select" onchange="this.form.submit()">
             <option value="">Tous les groupes</option>
-            @foreach($groupes as $groupe)
-                <option value="{{ $groupe->id }}" @selected(request('groupe_id') == $groupe->id)>
-                    {{ $groupe->name }}
+            <?php $__currentLoopData = $groupes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $groupe): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <option value="<?php echo e($groupe->id); ?>" <?php if(request('groupe_id') == $groupe->id): echo 'selected'; endif; ?>>
+                    <?php echo e($groupe->name); ?>
+
                 </option>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </select>
     </div>
 
@@ -293,28 +297,29 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         <label class="filter-label">Stagiaire</label>
         <select name="stagiaire_id" class="filter-select">
             <option value="">Tous</option>
-            @foreach($stagiaires as $s)
-                <option value="{{ $s->id }}" @selected(request('stagiaire_id') == $s->id)>
-                    {{ $s->name }}
+            <?php $__currentLoopData = $stagiaires; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <option value="<?php echo e($s->id); ?>" <?php if(request('stagiaire_id') == $s->id): echo 'selected'; endif; ?>>
+                    <?php echo e($s->name); ?>
+
                 </option>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </select>
     </div>
-    @endif
+    <?php endif; ?>
 
     <button type="submit" class="btn-filter">🔍 Filtrer</button>
 
-    @if(request()->hasAny(['justifie','groupe_id','stagiaire_id','session_part']))
-        <a href="{{ route('absences.index') }}" class="btn-reset">
+    <?php if(request()->hasAny(['justifie','groupe_id','stagiaire_id','session_part'])): ?>
+        <a href="<?php echo e(route('absences.index')); ?>" class="btn-reset">
             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
             </svg>
             Réinitialiser
         </a>
-    @endif
+    <?php endif; ?>
 </form>
 
-{{-- ─── TABLE ─── --}}
+
 <div class="abs-table-wrap">
     <div class="abs-table-head">
         <div>
@@ -322,38 +327,40 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                 📋 Historique des absences
             </div>
             <div style="font-size:12px;color:#64748b;margin-top:2px;">
-                {{ $absences->total() }} résultat(s) — page {{ $absences->currentPage() }}/{{ $absences->lastPage() }}
+                <?php echo e($absences->total()); ?> résultat(s) — page <?php echo e($absences->currentPage()); ?>/<?php echo e($absences->lastPage()); ?>
+
             </div>
         </div>
-        {{-- Legend for admin --}}
-        @if($canJustify && $stats['en_attente'] > 0)
+        
+        <?php if($canJustify && $stats['en_attente'] > 0): ?>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#92400e;
                     background:#fef3c7;border:1px solid #fde68a;padding:6px 12px;border-radius:10px;">
-            🕐 <strong>{{ $stats['en_attente'] }}</strong> justificatif(s) en attente de validation
+            🕐 <strong><?php echo e($stats['en_attente']); ?></strong> justificatif(s) en attente de validation
         </div>
-        @endif
+        <?php endif; ?>
     </div>
 
-    @if($absences->isEmpty())
+    <?php if($absences->isEmpty()): ?>
         <div class="empty-state">
             <div class="empty-state-icon">🎉</div>
             <p style="font-size:15px;font-weight:700;color:#1e293b;margin:0 0 6px;">Aucune absence enregistrée</p>
             <p style="font-size:12px;color:#94a3b8;margin:0;">
-                {{ request()->hasAny(['justifie','groupe_id','stagiaire_id','session_part'])
+                <?php echo e(request()->hasAny(['justifie','groupe_id','stagiaire_id','session_part'])
                     ? 'Aucun résultat pour ces filtres.'
-                    : 'Parfait ! Aucune absence pour le moment.' }}
+                    : 'Parfait ! Aucune absence pour le moment.'); ?>
+
             </p>
         </div>
-    @else
+    <?php else: ?>
         <div style="overflow-x:auto;">
         <table class="abs-table">
             <thead>
                 <tr>
                     <th>Date & Horaire</th>
-                    @if($canViewAll)
+                    <?php if($canViewAll): ?>
                         <th>Stagiaire</th>
                         <th>Groupe</th>
-                    @endif
+                    <?php endif; ?>
                     <th>Module</th>
                     <th>Formateur</th>
                     <th>Demi-séance</th>
@@ -363,8 +370,8 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                 </tr>
             </thead>
             <tbody>
-            @foreach($absences as $abs)
-                @php
+            <?php $__currentLoopData = $absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
                     $emploi   = $abs->cours?->emploiDuTemps;
                     $module   = $emploi?->module;
                     $groupe   = $emploi?->groupe;
@@ -382,83 +389,91 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                     // isRejected / plain unjustified = !$abs->justifie && empty($abs->file_justification)
 
                     $isOwner = Auth::id() === $abs->id_user;
-                @endphp
-                <tr class="{{ $isPending ? 'row-pending' : '' }}">
+                ?>
+                <tr class="<?php echo e($isPending ? 'row-pending' : ''); ?>">
 
-                    {{-- Date --}}
+                    
                     <td>
                         <div style="font-weight:700;color:#1e293b;">
-                            {{ $abs->date_event ? $abs->date_event->format('d/m/Y') : '—' }}
+                            <?php echo e($abs->date_event ? $abs->date_event->format('d/m/Y') : '—'); ?>
+
                         </div>
                         <div style="font-size:10px;color:#94a3b8;">
-                            {{ $abs->date_event ? $abs->date_event->translatedFormat('l') : '' }}
+                            <?php echo e($abs->date_event ? $abs->date_event->translatedFormat('l') : ''); ?>
+
                         </div>
-                        @if($emploi)
+                        <?php if($emploi): ?>
                             <div style="font-size:10px;color:#94a3b8;">
-                                {{ \Carbon\Carbon::parse($emploi->heure_debut ?? $emploi->date_debut)->format('H:i') }}
-                                – {{ \Carbon\Carbon::parse($emploi->heure_fin ?? $emploi->date_fin)->format('H:i') }}
+                                <?php echo e(\Carbon\Carbon::parse($emploi->heure_debut ?? $emploi->date_debut)->format('H:i')); ?>
+
+                                – <?php echo e(\Carbon\Carbon::parse($emploi->heure_fin ?? $emploi->date_fin)->format('H:i')); ?>
+
                             </div>
-                        @endif
+                        <?php endif; ?>
                     </td>
 
-                    {{-- Stagiaire (staff only) --}}
-                    @if($canViewAll)
+                    
+                    <?php if($canViewAll): ?>
                     <td>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <div class="avatar">{{ $initials }}</div>
+                            <div class="avatar"><?php echo e($initials); ?></div>
                             <div>
-                                <div style="font-weight:600;color:#1e293b;">{{ $abs->stagiaire?->name ?? '—' }}</div>
-                                <div style="font-size:10px;color:#94a3b8;">{{ $abs->stagiaire?->email ?? '' }}</div>
+                                <div style="font-weight:600;color:#1e293b;"><?php echo e($abs->stagiaire?->name ?? '—'); ?></div>
+                                <div style="font-size:10px;color:#94a3b8;"><?php echo e($abs->stagiaire?->email ?? ''); ?></div>
                             </div>
                         </div>
                     </td>
                     <td>
                         <span style="font-size:11px;font-weight:600;color:#475569;">
-                            {{ $groupe?->name ?? '—' }}
+                            <?php echo e($groupe?->name ?? '—'); ?>
+
                         </span>
                     </td>
-                    @endif
+                    <?php endif; ?>
 
-                    {{-- Module --}}
+                    
                     <td>
-                        <div style="font-weight:600;color:#1e293b;">{{ $module?->name ?? '—' }}</div>
-                        @if($emploi?->salle)
-                            <div style="font-size:10px;color:#94a3b8;">🏫 {{ $emploi->salle->name }}</div>
-                        @endif
+                        <div style="font-weight:600;color:#1e293b;"><?php echo e($module?->name ?? '—'); ?></div>
+                        <?php if($emploi?->salle): ?>
+                            <div style="font-size:10px;color:#94a3b8;">🏫 <?php echo e($emploi->salle->name); ?></div>
+                        <?php endif; ?>
                     </td>
 
-                    {{-- Formateur --}}
+                    
                     <td>
                         <span style="font-size:11px;color:#475569;font-weight:500;">
-                            {{ $form?->name ?? '—' }}
+                            <?php echo e($form?->name ?? '—'); ?>
+
                         </span>
                     </td>
 
-                    {{-- Demi-séance --}}
+                    
                     <td>
                         <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
                                      border-radius:8px;font-size:11px;font-weight:800;
-                                     background:{{ $pc['bg'] }};color:{{ $pc['color'] }};
-                                     border:1px solid {{ $pc['border'] }};">
-                            {{ strtoupper($part) }}
+                                     background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
+                                     border:1px solid <?php echo e($pc['border']); ?>;">
+                            <?php echo e(strtoupper($part)); ?>
+
                         </span>
                         <div style="font-size:9px;color:#94a3b8;margin-top:3px;">2.5h</div>
                     </td>
 
-                    {{-- Durée --}}
+                    
                     <td>
                         <span style="font-size:12px;font-weight:700;color:#dc2626;">
-                            {{ $abs->duree ? $abs->duree . ' h' : '2.5 h' }}
+                            <?php echo e($abs->duree ? $abs->duree . ' h' : '2.5 h'); ?>
+
                         </span>
                     </td>
 
-                    {{-- ─── STATUT ─── --}}
+                    
                     <td>
-                        @if($isJustifie)
-                            {{-- ✅ Justified --}}
-                            @if($canJustify)
-                                <form method="POST" action="{{ route('absences.justify', $abs) }}" style="display:inline;">
-                                    @csrf @method('PATCH')
+                        <?php if($isJustifie): ?>
+                            
+                            <?php if($canJustify): ?>
+                                <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
+                                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
                                     <button type="submit" title="Cliquer pour marquer non justifiée"
                                             style="background:none;border:none;cursor:pointer;padding:0;">
                                         <span class="badge badge-justifie" style="cursor:pointer;">
@@ -469,19 +484,19 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                         </span>
                                     </button>
                                 </form>
-                            @else
+                            <?php else: ?>
                                 <span class="badge badge-justifie">✅ Justifiée</span>
-                            @endif
+                            <?php endif; ?>
 
-                        @elseif($isPending)
-                            {{-- 🕐 Pending validation --}}
+                        <?php elseif($isPending): ?>
+                            
                             <div>
                                 <span class="badge badge-pending">🕐 En attente</span>
-                                @if($canJustify)
+                                <?php if($canJustify): ?>
                                     <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
-                                        {{-- Accept --}}
-                                        <form method="POST" action="{{ route('absences.accept', $abs) }}">
-                                            @csrf @method('PATCH')
+                                        
+                                        <form method="POST" action="<?php echo e(route('absences.accept', $abs)); ?>">
+                                            <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
                                             <button type="submit" class="btn-accept">
                                                 <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
@@ -489,10 +504,10 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                                 Accepter
                                             </button>
                                         </form>
-                                        {{-- Reject --}}
-                                        <form method="POST" action="{{ route('absences.reject', $abs) }}"
+                                        
+                                        <form method="POST" action="<?php echo e(route('absences.reject', $abs)); ?>"
                                               onsubmit="return confirm('Rejeter ce justificatif ? Le stagiaire pourra en soumettre un nouveau.')">
-                                            @csrf @method('PATCH')
+                                            <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
                                             <button type="submit" class="btn-reject">
                                                 <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
@@ -501,18 +516,18 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                             </button>
                                         </form>
                                     </div>
-                                @else
+                                <?php else: ?>
                                     <div style="font-size:10px;color:#92400e;margin-top:4px;">
                                         En cours d'examen par l'administration
                                     </div>
-                                @endif
+                                <?php endif; ?>
                             </div>
 
-                        @else
-                            {{-- ⚠️ Not justified, no file --}}
-                            @if($canJustify)
-                                <form method="POST" action="{{ route('absences.justify', $abs) }}" style="display:inline;">
-                                    @csrf @method('PATCH')
+                        <?php else: ?>
+                            
+                            <?php if($canJustify): ?>
+                                <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
+                                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
                                     <button type="submit" title="Marquer comme justifiée directement"
                                             style="background:none;border:none;cursor:pointer;padding:0;">
                                         <span class="badge badge-injustifie" style="cursor:pointer;">
@@ -523,64 +538,64 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                         </span>
                                     </button>
                                 </form>
-                            @else
+                            <?php else: ?>
                                 <span class="badge badge-injustifie">⚠️ Non justifiée</span>
-                            @endif
-                        @endif
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </td>
 
-                    {{-- ─── JUSTIFICATIF (file column) ─── --}}
+                    
                     <td>
-                        @if($isJustifie && $abs->file_justification)
-                            {{-- Validated file: everyone can view --}}
+                        <?php if($isJustifie && $abs->file_justification): ?>
+                            
                             <div style="display:flex;flex-direction:column;gap:5px;">
-                                <a href="{{ Storage::url($abs->file_justification) }}"
+                                <a href="<?php echo e(Storage::url($abs->file_justification)); ?>"
                                    target="_blank"
                                    style="font-size:11px;font-weight:600;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
                                     📎 Voir fichier
                                 </a>
-                                @if($canJustify)
-                                    <form method="POST" action="{{ route('absences.fichier.delete', $abs) }}"
+                                <?php if($canJustify): ?>
+                                    <form method="POST" action="<?php echo e(route('absences.fichier.delete', $abs)); ?>"
                                           onsubmit="return confirm('Supprimer ce fichier ?')">
-                                        @csrf @method('DELETE')
+                                        <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
                                         <button type="submit"
                                                 style="font-size:10px;font-weight:600;color:#dc2626;background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px;">
                                             🗑 Supprimer
                                         </button>
                                     </form>
-                                @endif
+                                <?php endif; ?>
                             </div>
 
-                        @elseif($isPending && $abs->file_justification)
-                            {{-- Pending file --}}
+                        <?php elseif($isPending && $abs->file_justification): ?>
+                            
                             <div style="display:flex;flex-direction:column;gap:5px;">
-                                <a href="{{ Storage::url($abs->file_justification) }}"
+                                <a href="<?php echo e(Storage::url($abs->file_justification)); ?>"
                                    target="_blank"
                                    style="font-size:11px;font-weight:600;color:#92400e;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
                                     📎 Voir fichier
                                     <span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;border:1px solid #fde68a;">en attente</span>
                                 </a>
-                                @if($isOwner && !$canJustify)
-                                    {{-- Stagiaire can replace/retract while pending --}}
-                                    <form method="POST" action="{{ route('absences.stagiaire.fichier.delete', $abs) }}"
+                                <?php if($isOwner && !$canJustify): ?>
+                                    
+                                    <form method="POST" action="<?php echo e(route('absences.stagiaire.fichier.delete', $abs)); ?>"
                                           onsubmit="return confirm('Retirer ce justificatif ?')">
-                                        @csrf @method('DELETE')
+                                        <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
                                         <button type="submit"
                                                 style="font-size:10px;color:#64748b;background:none;border:none;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px;">
                                             ✕ Retirer
                                         </button>
                                     </form>
-                                @endif
+                                <?php endif; ?>
                             </div>
 
-                        @elseif(!$abs->file_justification && !$isJustifie)
-                            {{-- No file yet --}}
-                            @if($isOwner && !$canJustify)
-                                {{-- Stagiaire uploads their own justification --}}
+                        <?php elseif(!$abs->file_justification && !$isJustifie): ?>
+                            
+                            <?php if($isOwner && !$canJustify): ?>
+                                
                                 <form method="POST"
-                                      action="{{ route('absences.stagiaire.fichier', $abs) }}"
+                                      action="<?php echo e(route('absences.stagiaire.fichier', $abs)); ?>"
                                       enctype="multipart/form-data">
-                                    @csrf
+                                    <?php echo csrf_field(); ?>
                                     <label class="btn-upload-label">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -594,12 +609,12 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                                onchange="this.closest('form').submit()">
                                     </label>
                                 </form>
-                            @elseif($canJustify)
-                                {{-- Admin can also upload directly --}}
+                            <?php elseif($canJustify): ?>
+                                
                                 <form method="POST"
-                                      action="{{ route('absences.fichier', $abs) }}"
+                                      action="<?php echo e(route('absences.fichier', $abs)); ?>"
                                       enctype="multipart/form-data">
-                                    @csrf
+                                    <?php echo csrf_field(); ?>
                                     <label class="btn-upload-label">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -613,53 +628,55 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                                onchange="this.closest('form').submit()">
                                     </label>
                                 </form>
-                            @else
+                            <?php else: ?>
                                 <span style="font-size:11px;color:#cbd5e1;">—</span>
-                            @endif
-                        @else
+                            <?php endif; ?>
+                        <?php else: ?>
                             <span style="font-size:11px;color:#cbd5e1;">—</span>
-                        @endif
+                        <?php endif; ?>
                     </td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </tbody>
         </table>
         </div>
 
-        {{-- Pagination --}}
-        @if($absences->hasPages())
+        
+        <?php if($absences->hasPages()): ?>
         <div class="pagination-wrap">
             <span style="font-size:11px;color:#94a3b8;">
-                {{ $absences->firstItem() }}–{{ $absences->lastItem() }} sur {{ $absences->total() }}
+                <?php echo e($absences->firstItem()); ?>–<?php echo e($absences->lastItem()); ?> sur <?php echo e($absences->total()); ?>
+
             </span>
             <div style="display:flex;gap:6px;">
-                @if($absences->onFirstPage())
+                <?php if($absences->onFirstPage()): ?>
                     <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;color:#cbd5e1;font-size:12px;font-weight:600;">←</span>
-                @else
-                    <a href="{{ $absences->previousPageUrl() }}"
+                <?php else: ?>
+                    <a href="<?php echo e($absences->previousPageUrl()); ?>"
                        style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;">←</a>
-                @endif
+                <?php endif; ?>
 
-                @foreach($absences->getUrlRange(max(1,$absences->currentPage()-2), min($absences->lastPage(),$absences->currentPage()+2)) as $page => $url)
-                    @if($page == $absences->currentPage())
-                        <span style="padding:6px 12px;border-radius:8px;background:var(--accent-gr);color:white;font-size:12px;font-weight:700;">{{ $page }}</span>
-                    @else
-                        <a href="{{ $url }}"
-                           style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;">{{ $page }}</a>
-                    @endif
-                @endforeach
+                <?php $__currentLoopData = $absences->getUrlRange(max(1,$absences->currentPage()-2), min($absences->lastPage(),$absences->currentPage()+2)); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $page => $url): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <?php if($page == $absences->currentPage()): ?>
+                        <span style="padding:6px 12px;border-radius:8px;background:var(--accent-gr);color:white;font-size:12px;font-weight:700;"><?php echo e($page); ?></span>
+                    <?php else: ?>
+                        <a href="<?php echo e($url); ?>"
+                           style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;"><?php echo e($page); ?></a>
+                    <?php endif; ?>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-                @if($absences->hasMorePages())
-                    <a href="{{ $absences->nextPageUrl() }}"
+                <?php if($absences->hasMorePages()): ?>
+                    <a href="<?php echo e($absences->nextPageUrl()); ?>"
                        style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;">→</a>
-                @else
+                <?php else: ?>
                     <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;color:#cbd5e1;font-size:12px;font-weight:600;">→</span>
-                @endif
+                <?php endif; ?>
             </div>
         </div>
-        @endif
-    @endif
+        <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/absences/index.blade.php ENDPATH**/ ?>

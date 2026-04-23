@@ -36,18 +36,19 @@ class AbsenceController extends Controller
             'cours.emploiDuTemps.salle',
             'cours.emploiDuTemps.gestionnaire',
         ])
-        ->whereNotNull('type');
+        ->where('type', 'absence');
 
         if (!$canViewAll) {
             $query->where('id_user', $user->id);
         }
 
-        if ($request->filled('type') && in_array($request->type, ['absence', 'retard'])) {
-            $query->where('type', $request->type);
-        }
-
-        if ($request->filled('justifie') && in_array($request->justifie, ['0', '1'])) {
-            $query->where('justifie', (bool) $request->justifie);
+        if ($request->filled('justifie') && in_array($request->justifie, ['0', '1', 'pending'])) {
+            if ($request->justifie === 'pending') {
+                // File uploaded but not yet validated
+                $query->where('justifie', false)->whereNotNull('file_justification');
+            } else {
+                $query->where('justifie', (bool) $request->justifie);
+            }
         }
 
         if ($canViewAll) {
@@ -61,11 +62,16 @@ class AbsenceController extends Controller
             }
         }
 
+        if ($request->filled('session_part')
+            && in_array($request->session_part, ['s1', 's2', 's3', 's4'])) {
+            $query->where('session_part', $request->session_part);
+        }
+
         $query->orderByDesc('date_event');
         $absences = $query->paginate(20)->withQueryString();
 
         // ── Stats ──────────────────────────────────────────────
-        $statsQuery = AbsenceRetard::whereNotNull('type');
+        $statsQuery = AbsenceRetard::where('type', 'absence');
         if (!$canViewAll) {
             $statsQuery->where('id_user', $user->id);
         }
@@ -79,11 +85,15 @@ class AbsenceController extends Controller
         }
 
         $stats = [
-            'total'       => (clone $statsQuery)->count(),
-            'absences'    => (clone $statsQuery)->where('type', 'absence')->count(),
-            'retards'     => (clone $statsQuery)->where('type', 'retard')->count(),
-            'justifies'   => (clone $statsQuery)->where('justifie', true)->count(),
-            'injustifies' => (clone $statsQuery)->where('justifie', false)->count(),
+            'total'            => (clone $statsQuery)->count(),
+            'justifies'        => (clone $statsQuery)->where('justifie', true)->count(),
+            'injustifies'      => (clone $statsQuery)->where('justifie', false)->whereNull('file_justification')->count(),
+            'en_attente'       => (clone $statsQuery)->where('justifie', false)->whereNotNull('file_justification')->count(),
+            'total_heures_abs' => round((clone $statsQuery)->sum('duree'), 1),
+            's1' => (clone $statsQuery)->where('session_part', 's1')->count(),
+            's2' => (clone $statsQuery)->where('session_part', 's2')->count(),
+            's3' => (clone $statsQuery)->where('session_part', 's3')->count(),
+            's4' => (clone $statsQuery)->where('session_part', 's4')->count(),
         ];
 
         // ── Dropdowns ─────────────────────────────────────────
@@ -107,7 +117,7 @@ class AbsenceController extends Controller
         ));
     }
 
-    // ── TOGGLE JUSTIFICATION ──────────────────────────────────
+    // ── TOGGLE JUSTIFICATION (admin/gestionnaire) ─────────────
     public function toggleJustification(Request $request, AbsenceRetard $absence)
     {
         if (!Auth::user()->can('absence-justify')) {
@@ -122,7 +132,94 @@ class AbsenceController extends Controller
         );
     }
 
-    // ── UPLOAD FICHIER JUSTIFICATION ──────────────────────────
+    // ── ACCEPT JUSTIFICATION (admin/gestionnaire) ─────────────
+    // Validates the file the stagiaire uploaded → justifie = true
+    public function acceptJustification(AbsenceRetard $absence)
+    {
+        if (!Auth::user()->can('absence-justify')) {
+            abort(403);
+        }
+
+        $absence->update(['justifie' => true]);
+
+        return back()->with('success', 'Justificatif accepté — absence marquée comme justifiée.');
+    }
+
+    // ── REJECT JUSTIFICATION (admin/gestionnaire) ─────────────
+    // Deletes the file and keeps justifie = false so stagiaire can re-upload
+    public function rejectJustification(AbsenceRetard $absence)
+    {
+        if (!Auth::user()->can('absence-justify')) {
+            abort(403);
+        }
+
+        if ($absence->file_justification) {
+            Storage::disk('public')->delete($absence->file_justification);
+            $absence->update([
+                'file_justification' => null,
+                'justifie'           => false,
+            ]);
+        }
+
+        return back()->with('success', 'Justificatif rejeté. Le stagiaire peut en soumettre un nouveau.');
+    }
+
+    // ── STAGIAIRE UPLOAD (self-service, pending validation) ───
+    // The stagiaire uploads their own justification file.
+    // It is NOT automatically validated — admin must accept/reject.
+    public function stagiaireUploadFichier(Request $request, AbsenceRetard $absence)
+    {
+        // Only the owner of this absence record may upload
+        if (Auth::id() !== $absence->id_user) {
+            abort(403);
+        }
+
+        // Must not already be validated
+        if ($absence->justifie) {
+            return back()->with('error', 'Cette absence est déjà justifiée.');
+        }
+
+        $request->validate([
+            'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+        ]);
+
+        // Replace any existing (previously rejected) file
+        if ($absence->file_justification) {
+            Storage::disk('public')->delete($absence->file_justification);
+        }
+
+        $path = $request->file('file_justification')->store('justifications', 'public');
+
+        $absence->update([
+            'file_justification' => $path,
+            'justifie'           => false, // stays false until admin validates
+        ]);
+
+        return back()->with('success', 'Justificatif envoyé avec succès. En attente de validation par l\'administration.');
+    }
+
+    // ── STAGIAIRE DELETE OWN FILE (only while still pending) ──
+    public function stagiaireDeleteFichier(AbsenceRetard $absence)
+    {
+        if (Auth::id() !== $absence->id_user) {
+            abort(403);
+        }
+
+        // Cannot delete if already validated
+        if ($absence->justifie) {
+            return back()->with('error', 'Vous ne pouvez pas supprimer un justificatif déjà accepté.');
+        }
+
+        if ($absence->file_justification) {
+            Storage::disk('public')->delete($absence->file_justification);
+            $absence->update(['file_justification' => null]);
+        }
+
+        return back()->with('success', 'Fichier supprimé.');
+    }
+
+    // ── ADMIN UPLOAD FICHIER (direct validation) ──────────────
+    // Admin/gestionnaire uploads a file AND directly validates.
     public function uploadFichier(Request $request, AbsenceRetard $absence)
     {
         if (!Auth::user()->can('absence-justify')) {
@@ -133,7 +230,6 @@ class AbsenceController extends Controller
             'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
 
-        // Delete old file if exists
         if ($absence->file_justification) {
             Storage::disk('public')->delete($absence->file_justification);
         }
@@ -142,13 +238,13 @@ class AbsenceController extends Controller
 
         $absence->update([
             'file_justification' => $path,
-            'justifie'           => true,
+            'justifie'           => true, // admin upload is immediately validated
         ]);
 
-        return back()->with('success', 'Fichier de justification uploadé avec succès.');
+        return back()->with('success', 'Fichier de justification uploadé et validé.');
     }
 
-    // ── DELETE FICHIER JUSTIFICATION ──────────────────────────
+    // ── ADMIN DELETE FICHIER ───────────────────────────────────
     public function deleteFichier(AbsenceRetard $absence)
     {
         if (!Auth::user()->can('absence-justify')) {
