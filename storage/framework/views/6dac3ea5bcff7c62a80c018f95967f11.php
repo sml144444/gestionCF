@@ -1,4 +1,3 @@
-
 <?php $__env->startSection('title', 'Séance — ' . ($emploi->module?->name ?? 'Module')); ?>
 <?php $__env->startSection('page-title', 'Détail de la séance'); ?>
 
@@ -106,6 +105,19 @@ table.ptbl tbody td.td-bilan { text-align:center; }
 
 /* Row highlight when any session is absent */
 .row-has-absence { background:rgba(220,38,38,0.02); }
+
+/* ─── LAST-ABSENCE WARNING ─── */
+.warn-last-absence {
+    display:inline-flex; align-items:center; gap:4px;
+    margin-top:3px;
+    font-size:9px; font-weight:700;
+    color:#dc2626;
+    background:#fff1f2;
+    border:1px solid #fecdd3;
+    border-radius:6px;
+    padding:1px 7px;
+    white-space:nowrap;
+}
 
 /* ─── STATUS BADGES ─── */
 .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:7px; font-size:10px; font-weight:800; }
@@ -370,6 +382,7 @@ table.ptbl tbody td.td-bilan { text-align:center; }
                         if ($isAbsent) $absCount++;
                     }
                     $totalAbs = $absCount * $halfDuree;
+                    $hasLastAbsenceWarning = isset($lastAbsenceWarnings[$stagiaire->id]);
                 ?>
                 <tr class="<?php echo e($absCount > 0 ? 'row-has-absence' : ''); ?>">
                     <td class="td-name">
@@ -387,6 +400,12 @@ table.ptbl tbody td.td-bilan { text-align:center; }
                                     <?php endif; ?>
                                 </div>
                                 <div style="font-size:10px;color:#94a3b8;"><?php echo e($stagiaire->email); ?></div>
+                                
+                                <?php if($hasLastAbsenceWarning): ?>
+                                    <div class="warn-last-absence">
+                                        🔴 Dernière séance : absence non justifiée
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </td>
@@ -482,9 +501,7 @@ table.ptbl tbody td.td-bilan { text-align:center; }
                         mb_substr($stagiaire->name, 0, 1) .
                         mb_substr(explode(' ', $stagiaire->name)[1] ?? '', 0, 1)
                     );
-                    $totalHistorical = \App\Models\AbsenceRetard::where('id_user', $stagiaire->id)
-                        ->where('type', 'absence')
-                        ->sum('duree');
+                    $hasLastAbsenceWarning = isset($lastAbsenceWarnings[$stagiaire->id]);
                 ?>
                 <tr id="row-<?php echo e($i); ?>" class="<?php echo e($absCount > 0 ? 'row-has-absence' : ''); ?>">
 
@@ -499,11 +516,11 @@ table.ptbl tbody td.td-bilan { text-align:center; }
                             <div>
                                 <div style="font-weight:700;color:#1e293b;font-size:12px;"><?php echo e($stagiaire->name); ?></div>
                                 <div style="font-size:10px;color:#94a3b8;"><?php echo e($stagiaire->email); ?></div>
-                                <?php if($totalHistorical > 0): ?>
-                                    <span style="display:inline-block;margin-top:2px;font-size:9px;font-weight:700;
-                                                 padding:1px 7px;border-radius:99px;background:#fee2e2;color:#dc2626;">
-                                        <?php echo e($totalHistorical); ?>h cumulées
-                                    </span>
+                                
+                                <?php if($hasLastAbsenceWarning): ?>
+                                    <div class="warn-last-absence">
+                                        🔴 Dernière séance : absence non justifiée
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>

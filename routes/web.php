@@ -32,7 +32,6 @@ Route::middleware('guest')->group(function () {
     Route::get('register',  [RegisteredStagiaireController::class, 'create'])->name('register');
     Route::post('register', [RegisteredStagiaireController::class, 'store'])->name('register.post');
 
-    // Password reset
     Route::get('forgot-password',        [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('forgot-password',       [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
@@ -83,7 +82,6 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', fn() => view('admin.dashboard'))
         ->name('admin.dashboard');
 
-    // Roles management — admin only
     Route::resource('roles', RoleController::class);
 });
 
@@ -104,16 +102,13 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
 
 // ─────────────────────────────────────────────
 // EMPLOI DU TEMPS
-// Static sub-routes MUST be declared BEFORE {emploi} wildcard routes.
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->group(function () {
 
-    // ── READ ────────────────────────────────────────────────
     Route::get('/emplois', [EmploiDuTempsController::class, 'index'])
         ->name('emplois.index')
         ->middleware('can:emploi-view');
 
-    // ── Static sub-routes FIRST ──────────────────────────────
     Route::get('/emplois/available', [EmploiDuTempsController::class, 'available'])
         ->name('emplois.available')
         ->middleware('can:emploi-view');
@@ -126,12 +121,10 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->grou
         ->name('emplois.publish')
         ->middleware('can:emploi-edit');
 
-    // ── CREATE ──────────────────────────────────────────────
     Route::post('/emplois', [EmploiDuTempsController::class, 'store'])
         ->name('emplois.store')
         ->middleware('can:emploi-create');
 
-    // ── UPDATE / DELETE (wildcard routes last) ───────────────
     Route::put('/emplois/{emploi}', [EmploiDuTempsController::class, 'update'])
         ->name('emplois.update')
         ->middleware('can:emploi-edit');
@@ -144,7 +137,6 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->grou
         ->name('emplois.updateLien')
         ->middleware('can:emploi-lien');
 
-    // ── REPLACEMENT ─────────────────────────────────────────
     Route::post('/emplois/{emploi}/remplacant', [EmploiDuTempsController::class, 'assignRemplacant'])
         ->name('emplois.remplacant')
         ->middleware('can:emploi-edit');
@@ -197,8 +189,8 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('can:edu-import');
 
     Route::get('/edu-import/log/{log}', [EduImportController::class, 'showLog'])
-    ->name('edu-import.log')
-    ->middleware('can:edu-view');
+        ->name('edu-import.log')
+        ->middleware('can:edu-view');
 });
 
 // ─────────────────────────────────────────────
@@ -283,15 +275,11 @@ Route::middleware(['auth'])->group(function () {
 
 // ─────────────────────────────────────────────
 // STAGIAIRES
-// ✅ FIX: added can:stagiaire-list to enforce permission check,
-//    not just the role column. A formateur with 0 permissions
-//    now gets a proper 403 instead of passing through.
-// WRITE operations stay admin + gestionnaire only.
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
     Route::get('/stagiaire', [StagiaireController::class, 'index'])
         ->name('stagiaire.index')
-        ->middleware('can:stagiaire-list'); // ← THE FIX
+        ->middleware('can:stagiaire-list');
 });
 
 Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
@@ -359,7 +347,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('news.destroy')
         ->middleware('can:news-delete');
 
-    // Commentaires
     Route::post('/news/{news}/comments', [NewsEventController::class, 'storeComment'])
         ->name('news.comments.store')
         ->middleware('can:news-comment');
@@ -368,7 +355,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('news.comments.destroy')
         ->middleware('can:news-list');
 
-    // Likes (AJAX POST, retourne JSON)
     Route::post('/news/{news}/like', [NewsEventController::class, 'toggleLike'])
         ->name('news.like')
         ->middleware('can:news-like');
@@ -377,55 +363,55 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 // ABSENCES
 // ─────────────────────────────────────────────
-
-// ─────────────────────────────────────────────
-// ABSENCES  — replace this entire block in routes/web.php
-// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
 
-    // ── LIST ──────────────────────────────────────────────────
+    // ── LIST ─────────────────────────────────────────────────
     Route::get('/absences', [AbsenceController::class, 'index'])
         ->name('absences.index')
         ->middleware('can:absence-view');
 
     // ── ADMIN / GESTIONNAIRE ACTIONS ──────────────────────────
-
-    // Toggle justified / unjustified directly (click on badge)
     Route::patch('/absences/{absence}/justification', [AbsenceController::class, 'toggleJustification'])
         ->name('absences.justify')
         ->middleware('can:absence-justify');
 
-    // Accept a stagiaire's pending file → justifie = true
     Route::patch('/absences/{absence}/accept', [AbsenceController::class, 'acceptJustification'])
         ->name('absences.accept')
         ->middleware('can:absence-justify');
 
-    // Reject a stagiaire's pending file → file deleted, justifie stays false
     Route::patch('/absences/{absence}/reject', [AbsenceController::class, 'rejectJustification'])
         ->name('absences.reject')
         ->middleware('can:absence-justify');
 
-    // Admin uploads a file directly (immediately validated)
     Route::post('/absences/{absence}/fichier', [AbsenceController::class, 'uploadFichier'])
         ->name('absences.fichier')
         ->middleware('can:absence-justify');
 
-    // Admin deletes a file
     Route::delete('/absences/{absence}/fichier', [AbsenceController::class, 'deleteFichier'])
         ->name('absences.fichier.delete')
         ->middleware('can:absence-justify');
 
-    // ── STAGIAIRE SELF-SERVICE ────────────────────────────────
+    // ── ADMIN upload one file for ALL absences of a stagiaire's day ──────────
+    Route::post('/absences/admin/upload-jour', [AbsenceController::class, 'adminUploadFichierJour'])
+        ->name('absences.admin.fichier.jour')
+        ->middleware('can:absence-justify');
 
-    // Stagiaire uploads their own justification file (pending admin validation)
-    // Auth check is in the controller (must be the absence owner)
+    // ── STAGIAIRE SELF-SERVICE (single absence) ───────────────
     Route::post('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireUploadFichier'])
         ->name('absences.stagiaire.fichier')
         ->middleware('can:absence-view');
 
-    // Stagiaire removes their own pending file (to replace or retract)
     Route::delete('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireDeleteFichier'])
         ->name('absences.stagiaire.fichier.delete')
+        ->middleware('can:absence-view');
+
+    // ── STAGIAIRE SELF-SERVICE (whole day) ────────────────────
+    Route::post('/absences/stagiaire/upload-jour', [AbsenceController::class, 'stagiaireUploadFichierJour'])
+        ->name('absences.stagiaire.fichier.jour')
+        ->middleware('can:absence-view');
+
+    Route::delete('/absences/stagiaire/delete-jour', [AbsenceController::class, 'stagiaireDeleteFichierJour'])
+        ->name('absences.stagiaire.fichier.jour.delete')
         ->middleware('can:absence-view');
 });
 

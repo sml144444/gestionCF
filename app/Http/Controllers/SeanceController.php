@@ -31,65 +31,107 @@ class SeanceController extends Controller
         });
     }
 
-    // ── HELPER : derive active session parts from real duration ──
+    // ── HELPER : determine start index based on session start time ──
+    // S1 : 08:30 – 11:00  (before 11:00)
+    // S2 : 11:00 – 13:30  (11:00 to 13:29)
+    // S3 : 13:30 – 16:00  (13:30 to 15:59)
+    // S4 : 16:00 – 18:30  (16:00 and after)
+    private function getStartPartIndex(EmploiDuTemps $emploi): int
+    {
+        $time = (int)$emploi->date_debut->format('H') * 60
+              + (int)$emploi->date_debut->format('i');
+
+        if ($time < 11 * 60)           return 0; // s1
+        if ($time < 13 * 60 + 30)      return 1; // s2
+        if ($time < 16 * 60)           return 2; // s3
+        return 3;                                 // s4
+    }
+
+    // ── HELPER : derive active session parts from real start time + duration ──
     private function getActiveParts(EmploiDuTemps $emploi): array
     {
-        $minutes  = $emploi->date_debut->diffInMinutes($emploi->date_fin);
-        $numParts = min(4, max(1, (int) floor($minutes / (self::HALF_DUREE * 60))));
-        return array_slice(self::SESSION_PARTS, 0, $numParts);
-    }
+        $minutes    = $emploi->date_debut->diffInMinutes($emploi->date_fin);
+        $numParts   = min(4, max(1, (int) floor($minutes / (self::HALF_DUREE * 60))));
+        $startIndex = $this->getStartPartIndex($emploi);
 
-    
+        // Make sure we don't go past s4
+        $numParts = min($numParts, 4 - $startIndex);
+
+        return array_slice(self::SESSION_PARTS, $startIndex, $numParts);
+    }
 
     // ── SHOW ──────────────────────────────────────────────────
-public function show(EmploiDuTemps $emploi)
-{
-    $emploi->load(['module', 'groupe', 'salle', 'gestionnaire', 'remplacant']);
+    public function show(EmploiDuTemps $emploi)
+    {
+        $emploi->load(['module', 'groupe', 'salle', 'gestionnaire', 'remplacant']);
 
-    $user = Auth::user();
+        $user = Auth::user();
 
-    // Stagiaire sees only themselves
-    if ($user->role === 'stagiaire') {
-        $stagiaires = User::where('id', $user->id)
-            ->where('id_groupe', $emploi->id_groupe)
+        // Stagiaire sees only themselves
+        if ($user->role === 'stagiaire') {
+            $stagiaires = User::where('id', $user->id)
+                ->where('id_groupe', $emploi->id_groupe)
+                ->get();
+        } else {
+            $stagiaires = User::where('id_groupe', $emploi->id_groupe)
+                ->where('role', 'stagiaire')
+                ->orderBy('name')
+                ->get();
+        }
+
+        $presenceCours = Cours::where('id_emplois_du_temps', $emploi->id)
+            ->where('titre', '__presence__')
+            ->first();
+
+        $presences = $presenceCours
+            ? AbsenceRetard::where('id_cours', $presenceCours->id)
+                ->get()
+                ->keyBy(fn($a) => $a->id_user . '_' . $a->session_part)
+            : collect();
+
+        $coursItems = Cours::where('id_emplois_du_temps', $emploi->id)
+            ->where('titre', '!=', '__presence__')
+            ->with('formateur')
+            ->latest()
             ->get();
-    } else {
-        $stagiaires = User::where('id_groupe', $emploi->id_groupe)
-            ->where('role', 'stagiaire')
-            ->orderBy('name')
-            ->get();
+
+        $canPresence = Auth::user()->can('emploi-view-all-groups')
+                    || in_array(Auth::user()->role, ['admin', 'gestionnaire', 'formateur']);
+
+        $canEditClassroom = Auth::user()->can('emploi-view-all-groups')
+                         || in_array(Auth::user()->role, ['admin', 'formateur']);
+
+        $activeParts = $this->getActiveParts($emploi);
+
+        // ── Last absence warning ──────────────────────────────
+        // For each stagiaire, get their single most recent retard_absences record.
+        // If it is an unjustified absence, flag them so the view can show a warning.
+        $stagiaireIds = $stagiaires->pluck('id');
+
+        // ✅ FIXED: removed the empty whereIn subquery that caused SQLSTATE[HY000] 1096
+$lastAbsences = AbsenceRetard::whereIn('id_user', $stagiaireIds)
+    ->where('date_event', '<', $emploi->date_debut)  // ← uniquement AVANT cette séance
+    ->orderBy('date_event', 'desc')
+    ->get()
+    ->groupBy('id_user')
+    ->map(fn($records) => $records->first());
+
+        // Build a set of stagiaire IDs whose last record is an unjustified absence
+        $lastAbsenceWarnings = $lastAbsences
+            ->filter(fn($rec) =>
+                $rec->type    === 'absence' &&
+                $rec->justifie == false      // justifie = 0 / false = non justifié
+            )
+            ->keys()                         // collection of id_user values
+            ->flip()                         // key by id for O(1) lookup in Blade
+            ->map(fn() => true);
+
+        return view('seances.show', compact(
+            'emploi', 'stagiaires', 'presences', 'coursItems',
+            'canPresence', 'canEditClassroom',
+            'activeParts', 'lastAbsenceWarnings'
+        ));
     }
-
-    $presenceCours = Cours::where('id_emplois_du_temps', $emploi->id)
-        ->where('titre', '__presence__')
-        ->first();
-
-    $presences = $presenceCours
-        ? AbsenceRetard::where('id_cours', $presenceCours->id)
-            ->get()
-            ->keyBy(fn($a) => $a->id_user . '_' . $a->session_part)
-        : collect();
-
-    $coursItems = Cours::where('id_emplois_du_temps', $emploi->id)
-        ->where('titre', '!=', '__presence__')
-        ->with('formateur')
-        ->latest()
-        ->get();
-
-    $canPresence = Auth::user()->can('emploi-view-all-groups')
-                || in_array(Auth::user()->role, ['admin', 'gestionnaire', 'formateur']);
-
-    $canEditClassroom = Auth::user()->can('emploi-view-all-groups')
-                     || in_array(Auth::user()->role, ['admin', 'formateur']);
-
-    $activeParts = $this->getActiveParts($emploi);
-
-    return view('seances.show', compact(
-        'emploi', 'stagiaires', 'presences', 'coursItems',
-        'canPresence', 'canEditClassroom',
-        'activeParts'
-    ));
-}
 
     // ── SAVE PRESENCE ─────────────────────────────────────────
     public function savePresence(Request $request, EmploiDuTemps $emploi): RedirectResponse
@@ -113,7 +155,7 @@ public function show(EmploiDuTemps $emploi)
             ['statut' => 'faite', 'created_by' => Auth::id()]
         );
 
-        // Only iterate parts that are actually active for this session's duration
+        // Only iterate parts that are actually active for this session's duration + start time
         $activeParts   = $this->getActiveParts($emploi);
         $inactiveParts = array_diff(self::SESSION_PARTS, $activeParts);
 
