@@ -1,10 +1,10 @@
-{{-- resources/views/reclamations/create.blade.php --}}
-@extends('layouts.app')
-@section('title', 'Nouvelle réclamation')
-@section('page-title', 'Nouvelle réclamation')
 
-@section('content')
-@php
+
+<?php $__env->startSection('title', 'Nouvelle réclamation'); ?>
+<?php $__env->startSection('page-title', 'Nouvelle réclamation'); ?>
+
+<?php $__env->startSection('content'); ?>
+<?php
     $p = [
         'primary'  => '#1a4f8a',
         'medium'   => '#2563eb',
@@ -15,18 +15,18 @@
         'shadow'   => 'rgba(26,79,138,0.15)',
         'gradient' => 'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)',
     ];
-@endphp
+?>
 
 <style>
 :root {
-    --accent:    {{ $p['primary'] }};
-    --accent-md: {{ $p['medium'] }};
-    --accent-lt: {{ $p['light'] }};
-    --accent-ltr:{{ $p['lighter'] }};
-    --accent-tx: {{ $p['text'] }};
-    --accent-bd: {{ $p['border'] }};
-    --accent-sh: {{ $p['shadow'] }};
-    --accent-gr: {{ $p['gradient'] }};
+    --accent:    <?php echo e($p['primary']); ?>;
+    --accent-md: <?php echo e($p['medium']); ?>;
+    --accent-lt: <?php echo e($p['light']); ?>;
+    --accent-ltr:<?php echo e($p['lighter']); ?>;
+    --accent-tx: <?php echo e($p['text']); ?>;
+    --accent-bd: <?php echo e($p['border']); ?>;
+    --accent-sh: <?php echo e($p['shadow']); ?>;
+    --accent-gr: <?php echo e($p['gradient']); ?>;
 }
 .form-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:1200px; margin:0 auto; }
 .form-card { background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; }
@@ -79,14 +79,14 @@
 
 <div class="form-wrap">
 
-@if($errors->any())
+<?php if($errors->any()): ?>
 <div style="padding:14px 18px;background:#fff1f2;border:1px solid #fecdd3;border-radius:14px;margin-bottom:16px;">
     <div style="font-size:12px;font-weight:700;color:#be123c;margin-bottom:6px;">Veuillez corriger les erreurs :</div>
-    @foreach($errors->all() as $err)
-        <div style="font-size:11px;color:#9f1239;margin-top:2px;">• {{ $err }}</div>
-    @endforeach
+    <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $err): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <div style="font-size:11px;color:#9f1239;margin-top:2px;">• <?php echo e($err); ?></div>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 </div>
-@endif
+<?php endif; ?>
 
 <div class="form-card">
     <div class="form-header">
@@ -99,34 +99,42 @@
         <p>Décrivez votre réclamation. Elle sera transmise à l'équipe pédagogique.</p>
     </div>
 
-    <form action="{{ route('reclamations.store') }}" method="POST" class="form-body">
-        @csrf
+    <form action="<?php echo e(route('reclamations.store')); ?>" method="POST" class="form-body">
+        <?php echo csrf_field(); ?>
 
-        {{-- TYPE --}}
+        
         <div class="form-group">
             <label class="form-label">Type de réclamation <span>*</span></label>
             <div class="type-option-grid">
-                @foreach([
+                <?php $__currentLoopData = [
                     'note'      => ['icon'=>'📝', 'label'=>'Note'],
                     'absence'   => ['icon'=>'📅', 'label'=>'Absence'],
                     'emploi'    => ['icon'=>'🗓️', 'label'=>'Emploi du temps'],
                     'formateur' => ['icon'=>'👨‍🏫', 'label'=>'Formateur'],
                     'autre'     => ['icon'=>'📌', 'label'=>'Autre'],
-                ] as $val => $opt)
+                ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $val => $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="type-option">
-                        <input type="radio" name="type" id="type_{{ $val }}" value="{{ $val }}"
-                            {{ old('type') === $val ? 'checked' : '' }} required>
-                        <label for="type_{{ $val }}">
-                            <span class="type-option-icon">{{ $opt['icon'] }}</span>
-                            {{ $opt['label'] }}
+                        <input type="radio" name="type" id="type_<?php echo e($val); ?>" value="<?php echo e($val); ?>"
+                            <?php echo e(old('type') === $val ? 'checked' : ''); ?> required>
+                        <label for="type_<?php echo e($val); ?>">
+                            <span class="type-option-icon"><?php echo e($opt['icon']); ?></span>
+                            <?php echo e($opt['label']); ?>
+
                         </label>
                     </div>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>
-            @error('type')<div class="error-msg">{{ $message }}</div>@enderror
+            <?php $__errorArgs = ['type'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?><div class="error-msg"><?php echo e($message); ?></div><?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
         </div>
 
-        {{-- DESCRIPTION --}}
+        
         <div class="form-group">
             <label class="form-label" for="description">Description <span>*</span></label>
             <textarea
@@ -136,10 +144,17 @@
                 placeholder="Décrivez votre réclamation de façon précise et détaillée…"
                 maxlength="1000"
                 oninput="updateCharCount(this)"
-            >{{ old('description') }}</textarea>
+            ><?php echo e(old('description')); ?></textarea>
             <div class="char-count" id="char-count">0 / 1000 caractères</div>
             <div class="form-hint">Minimum 10 caractères. Soyez précis pour faciliter le traitement.</div>
-            @error('description')<div class="error-msg">{{ $message }}</div>@enderror
+            <?php $__errorArgs = ['description'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?><div class="error-msg"><?php echo e($message); ?></div><?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
         </div>
 
         <div class="form-footer">
@@ -147,7 +162,7 @@
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                 Soumettre la réclamation
             </button>
-            <a href="{{ route('reclamations.index') }}" class="btn-cancel">← Retour</a>
+            <a href="<?php echo e(route('reclamations.index')); ?>" class="btn-cancel">← Retour</a>
         </div>
     </form>
 </div>
@@ -174,4 +189,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ta && ta.value) updateCharCount(ta);
 });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/reclamations/create.blade.php ENDPATH**/ ?>

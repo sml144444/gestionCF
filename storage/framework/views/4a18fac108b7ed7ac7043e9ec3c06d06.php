@@ -123,6 +123,9 @@
             'edu'         => ['bg'=>'#fff7ed','text'=>'#9a3412'],
             'reportation' => ['bg'=>'#f5f3ff','text'=>'#5b21b6'],
             'salle'       => ['bg'=>'#f0fdfa','text'=>'#0f766e'],
+            'reclamation' => ['bg'=>'#f0fdfa','text'=>'#0f766e'],
+            'news'        => ['bg'=>'#fefce8','text'=>'#b45309'],
+            'absence'     => ['bg'=>'#fdf2f8','text'=>'#be185d'],
         ];
     ?>
     <div class="role-card">

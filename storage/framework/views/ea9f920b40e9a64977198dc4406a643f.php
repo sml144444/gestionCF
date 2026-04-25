@@ -111,6 +111,7 @@
                 'reclamation-create' => '📝 Soumettre une réclamation',
                 'reclamation-list'   => '📋 Voir ses réclamations',
                 'reclamation-manage' => '⚙️ Gérer toutes les réclamations',
+                'reclamation-view-assigned' => '👁️ Voir les réclamations assignées',
             ]
         ],
         'news' => [

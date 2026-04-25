@@ -654,6 +654,7 @@
         $user->can('reclamation-manage') ||
         $user->can('reclamation-list')   ||
         $user->can('reclamation-create') ||
+        $user->can('reclamation-view-assigned') ||
         $user->can('reportation-manage') ||
         $user->can('reportation-create') ||
         $user->can('absence-view-all')   ||
@@ -705,8 +706,34 @@
 <?php endif; ?>
 <?php endif; ?>
 
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-view-assigned')): ?>
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->denies('reclamation-manage')): ?>
+<?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('reclamations.index')).'','label' => 'Réclamations assignées','icon' => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('nav-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['route' => ''.e(route('reclamations.index')).'','label' => 'Réclamations assignées','icon' => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $attributes = $__attributesOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__attributesOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+<?php endif; ?>
+<?php endif; ?>
+
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-create')): ?>
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->denies('reclamation-manage')): ?>
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->denies('reclamation-view-assigned')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('reclamations.index')).'','label' => 'Mes réclamations','icon' => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
@@ -726,6 +753,7 @@
 <?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
 <?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
 <?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>

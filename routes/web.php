@@ -294,26 +294,62 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
 // ─────────────────────────────────────────────
 // RÉCLAMATIONS
 // ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// Add these routes to your routes/web.php
+// ─────────────────────────────────────────────────────────────
+
+
+// ─────────────────────────────────────────────
+// RÉCLAMATIONS
+// ─────────────────────────────────────────────
+
 Route::middleware(['auth'])->group(function () {
+
+    // List (role-aware: admin sees all, stagiaire sees own, formateur sees assigned)
     Route::get('/reclamations', [ReclamationController::class, 'index'])
         ->name('reclamations.index');
 
+    // Stagiaire: create & submit
     Route::get('/reclamations/create', [ReclamationController::class, 'create'])
-        ->name('reclamations.create')
-        ->middleware('can:reclamation-create');
-
+        ->name('reclamations.create');
     Route::post('/reclamations', [ReclamationController::class, 'store'])
-        ->name('reclamations.store')
-        ->middleware('can:reclamation-create');
+        ->name('reclamations.store');
 
+    // Conversation thread (all authorized roles)
+    Route::get('/reclamations/{reclamation}', [ReclamationController::class, 'show'])
+        ->name('reclamations.show');
+
+    // Reply (all authorized roles)
+    Route::post('/reclamations/{reclamation}/message', [ReclamationController::class, 'sendMessage'])
+        ->name('reclamations.message');
+
+    // Admin: assign to formateur / gestionnaire
+    Route::patch('/reclamations/{reclamation}/assign', [ReclamationController::class, 'assign'])
+        ->name('reclamations.assign');
+
+    // Admin / Gestionnaire: change status
     Route::patch('/reclamations/{reclamation}/status', [ReclamationController::class, 'updateStatus'])
-        ->name('reclamations.status')
-        ->middleware('can:reclamation-manage');
+        ->name('reclamations.status');
 
+    // 👇 AJOUTER CETTE ROUTE POUR LA SUPPRESSION
     Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
 });
+
+// ─────────────────────────────────────────────────────────────
+// Add 'reclamation-view-assigned' to PermissionsSeeder
+// for the formateur role so assigned tickets are accessible:
+//
+//   $formateurRole->syncPermissions([
+//       ...existing permissions...
+//       'reclamation-view-assigned',  // ← new
+//   ]);
+//
+// And add to the $permissions array:
+//   'reclamation-view-assigned',
+// ─────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────
 // NEWS & ÉVÉNEMENTS
