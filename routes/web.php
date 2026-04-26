@@ -336,6 +336,15 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
+
+    // Mark all messages in a conversation as seen
+    Route::post('/reclamations/{reclamation}/seen',                      [ReclamationController::class, 'markSeen'])     ->name('reclamations.seen');
+
+    // Delete a single message (only if unseen)
+    Route::delete('/reclamations/{reclamation}/message/{message}',       [ReclamationController::class, 'deleteMessage'])->name('reclamations.message.delete');
+
+    // Edit a single message (only if unseen)
+    Route::patch('/reclamations/{reclamation}/message/{message}',        [ReclamationController::class, 'editMessage'])  ->name('reclamations.message.edit');
 });
 
 // ─────────────────────────────────────────────────────────────

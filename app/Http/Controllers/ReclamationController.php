@@ -258,6 +258,56 @@ public function destroy(Reclamation $reclamation): RedirectResponse
         ->with('success', 'Réclamation #' . $reclamationId . ' supprimée avec succès.');
 }
 
-// ── STORE ─────────────────────────────────────────────────
+// ── MARK MESSAGES AS SEEN ─────────────────────────────────
+public function markSeen(Reclamation $reclamation)
+{
+    $user = Auth::user();
+
+    // Mark all messages NOT sent by me as seen
+    $reclamation->messages()
+        ->where('sender_id', '!=', $user->id)
+        ->whereNull('seen_at')
+        ->update(['seen_at' => now()]);
+
+    return response()->json(['ok' => true]);
+}
+
+// ── DELETE MESSAGE ────────────────────────────────────────
+public function deleteMessage(Request $request, Reclamation $reclamation, ReclamationMessage $message)
+{
+    $user = Auth::user();
+
+    if (! $message->canEditOrDelete($user)) {
+        return response()->json(['error' => 'Ce message a déjà été vu et ne peut plus être supprimé.'], 403);
+    }
+
+    $messageId = $message->id;
+    $message->delete();
+
+    broadcast(new \App\Events\ReclamationMessageDeleted($reclamation->id, $messageId))->toOthers();
+
+    return response()->json(['ok' => true]);
+}
+
+// ── EDIT MESSAGE ──────────────────────────────────────────
+public function editMessage(Request $request, Reclamation $reclamation, ReclamationMessage $message)
+{
+    $user = Auth::user();
+
+    if (! $message->canEditOrDelete($user)) {
+        return response()->json(['error' => 'Ce message a déjà été vu et ne peut plus être modifié.'], 403);
+    }
+
+    $request->validate(['message' => 'required|string|min:1|max:2000']);
+
+    $message->update([
+        'message'   => $request->message,
+        'edited_at' => now(),
+    ]);
+
+    broadcast(new \App\Events\ReclamationMessageUpdated($message->fresh()))->toOthers();
+
+    return response()->json(['ok' => true, 'message' => $message->message, 'edited_at' => $message->edited_at->format('H:i')]);
+}
 
 }

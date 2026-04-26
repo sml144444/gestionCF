@@ -97,14 +97,13 @@ window.Echo = new Echo({
     font-family: 'Segoe UI', system-ui, sans-serif;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 64px); /* adjust 64px to your navbar height */
+    height: calc(100vh - 64px);
     max-width: 860px;
     margin: 0 auto;
     gap: 12px;
     padding-bottom: 12px;
 }
 
-/* ── Flash notice ── */
 .flash-notice {
     flex-shrink: 0;
     padding: 11px 16px;
@@ -137,10 +136,10 @@ window.Echo = new Echo({
     pointer-events: none;
 }
 
-/* ── Chat card — FLEX COLUMN that fills remaining space ── */
+/* ── Chat card ── */
 .chat-card {
-    flex: 1;               /* take all remaining vertical space */
-    min-height: 0;         /* crucial — lets flex child shrink below content size */
+    flex: 1;
+    min-height: 0;
     background: white;
     border-radius: 20px;
     border: 1px solid #e2e8f0;
@@ -149,7 +148,6 @@ window.Echo = new Echo({
     overflow: hidden;
 }
 
-/* ── Chat header — fixed, never scrolls ── */
 .chat-header {
     flex-shrink: 0;
     padding: 14px 20px;
@@ -165,7 +163,7 @@ window.Echo = new Echo({
 /* ── Messages area — ONLY this scrolls ── */
 .messages-area {
     flex: 1;
-    min-height: 0;         /* crucial */
+    min-height: 0;
     overflow-y: auto;
     padding: 20px;
     display: flex;
@@ -173,14 +171,19 @@ window.Echo = new Echo({
     gap: 14px;
     scroll-behavior: smooth;
 }
-/* Custom scrollbar */
 .messages-area::-webkit-scrollbar { width: 5px; }
 .messages-area::-webkit-scrollbar-track { background: transparent; }
 .messages-area::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 .messages-area::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
 /* ── Bubbles ── */
-.msg-bubble { max-width: 72%; display: flex; flex-direction: column; gap: 4px; }
+.msg-bubble {
+    max-width: 72%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+}
 .msg-bubble.mine   { align-self: flex-end;   align-items: flex-end; }
 .msg-bubble.theirs { align-self: flex-start; align-items: flex-start; }
 
@@ -191,20 +194,64 @@ window.Echo = new Echo({
     line-height: 1.6;
     word-break: break-word;
 }
-.msg-bubble.mine .msg-content {
-    background: {{ $gradient }};
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-.msg-bubble.theirs .msg-content {
-    background: #f1f5f9;
-    color: #1e293b;
-    border-bottom-left-radius: 4px;
-}
+.msg-bubble.mine   .msg-content { background: {{ $gradient }}; color: white; border-bottom-right-radius: 4px; }
+.msg-bubble.theirs .msg-content { background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; }
+
 .msg-meta   { font-size: 10px; color: #94a3b8; padding: 0 4px; }
 .msg-sender { font-size: 10px; font-weight: 700; color: #64748b; padding: 0 4px; }
 
-/* Date divider */
+/* ── Edit / Delete actions ── */
+.msg-actions {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 4px);
+    gap: 4px;
+     padding-bottom: -10px;   /* ← bridges the invisible gap */
+    z-index: 10;
+}
+.msg-bubble.mine   .msg-actions { right: 0; }
+.msg-bubble.theirs .msg-actions { left: 0; }
+.msg-bubble:hover  .msg-actions { display: flex; }
+
+.msg-action-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+.btn-edit-msg   { background: #e0f2fe; color: #0369a1; }
+.btn-delete-msg { background: #fee2e2; color: #be123c; }
+.msg-action-btn:hover { opacity: .8; }
+
+/* ── Seen / Edited indicators ── */
+.msg-edited { font-size: 9px; color: rgba(255,255,255,0.55); margin-top: 1px; }
+.msg-bubble.theirs .msg-edited { color: #94a3b8; }
+.msg-seen { font-size: 9px; color: rgba(255,255,255,0.60); display: flex; align-items: center; gap: 3px; }
+
+/* ── Inline edit box ── */
+.edit-box { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+.edit-textarea {
+    border: 1.5px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    min-height: 60px;
+    background: white;
+    color: #1e293b;
+}
+.edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.btn-save-edit   { background: {{ $gradient }}; color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-cancel-edit { background: #f1f5f9; color: #64748b; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+/* ── Date divider ── */
 .date-divider {
     align-self: center;
     font-size: 10px;
@@ -239,7 +286,7 @@ window.Echo = new Echo({
 .typing-dots span:nth-child(3) { animation-delay: .4s; }
 @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px)} }
 
-/* ── Reply area — fixed at card bottom ── */
+/* ── Reply area ── */
 .reply-area {
     flex-shrink: 0;
     padding: 14px 18px;
@@ -247,7 +294,6 @@ window.Echo = new Echo({
     background: #fafbfd;
 }
 .reply-box { display: flex; gap: 10px; align-items: flex-end; }
-
 .reply-input {
     flex: 1;
     border: 1.5px solid #e2e8f0;
@@ -267,14 +313,12 @@ window.Echo = new Echo({
     border-color: {{ $accent }};
     box-shadow: 0 0 0 3px {{ $ring }};
 }
-
 .btn-send {
     background: {{ $gradient }};
     color: white;
     border: none;
     border-radius: 12px;
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -285,10 +329,9 @@ window.Echo = new Echo({
 .btn-send:hover    { opacity: .88; transform: scale(1.04); }
 .btn-send:active   { transform: scale(.97); }
 .btn-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-
 .reply-hint { font-size: 10px; color: #cbd5e1; margin-top: 7px; text-align: right; }
 
-/* ── Traite notice ── */
+/* ── Traite / closed notice ── */
 .traite-notice {
     flex-shrink: 0;
     padding: 16px 20px;
@@ -309,12 +352,7 @@ window.Echo = new Echo({
     border: 1px solid #bbf7d0;
     border-radius: 8px; padding: 3px 9px;
 }
-.rt-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #16a34a;
-    animation: rtpulse 2s infinite;
-}
+.rt-dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; animation: rtpulse 2s infinite; }
 @keyframes rtpulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 /* ── Admin panel ── */
@@ -370,7 +408,7 @@ window.Echo = new Echo({
     {{-- Hero --}}
     <div class="hero">
         <div style="display:flex;align-items:center;gap:14px;">
-          <a href="{{ route('reclamations.index') }}"
+            <a href="{{ route('reclamations.index') }}"
                style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.15);
                       display:flex;align-items:center;justify-content:center;
                       text-decoration:none;color:white;font-size:16px;flex-shrink:0;">←</a>
@@ -410,9 +448,7 @@ window.Echo = new Echo({
                             {{ strtoupper(mb_substr($reclamation->stagiaire?->name ?? '?', 0, 2)) }}
                         </div>
                         <div>
-                            <div style="font-size:12px;font-weight:700;color:#1e293b;">
-                                {{ $reclamation->stagiaire?->name }}
-                            </div>
+                            <div style="font-size:12px;font-weight:700;color:#1e293b;">{{ $reclamation->stagiaire?->name }}</div>
                             <div style="font-size:10px;color:#94a3b8;">{{ $reclamation->stagiaire?->email }}</div>
                         </div>
                     </div>
@@ -424,10 +460,9 @@ window.Echo = new Echo({
             </div>
         </div>
 
-        {{-- Messages — ONLY this div scrolls --}}
+        {{-- Messages — ONLY this scrolls --}}
         <div class="messages-area" id="messages-area">
 
-            {{-- Date divider --}}
             <div class="date-divider">{{ $reclamation->created_at->format('d/m/Y') }}</div>
 
             {{-- Initial description --}}
@@ -447,26 +482,61 @@ window.Echo = new Echo({
 
             {{-- Messages --}}
             @foreach($reclamation->messages as $msg)
-                @php $isMe = $msg->sender_id === $user->id; @endphp
-                <div class="msg-bubble {{ $isMe ? 'mine' : 'theirs' }}" id="msg-{{ $msg->id }}">
+                @php
+                    $isMe   = $msg->sender_id === $user->id;
+                    $canAct = $isMe && is_null($msg->seen_at);
+                @endphp
+                <div class="msg-bubble {{ $isMe ? 'mine' : 'theirs' }}"
+                     id="msg-{{ $msg->id }}"
+                     data-seen="{{ $msg->seen_at ? '1' : '0' }}"
+                     data-mine="{{ $isMe ? '1' : '0' }}">
+
+                    {{-- Edit / Delete — only unseen own messages --}}
+                    @if($canAct)
+                    <div class="msg-actions">
+                        <button class="msg-action-btn btn-edit-msg"
+                                onclick="startEdit({{ $msg->id }})">✏️ Modifier</button>
+                        <button class="msg-action-btn btn-delete-msg"
+                                onclick="deleteMsg({{ $msg->id }})">🗑 Supprimer</button>
+                    </div>
+                    @endif
+
                     @unless($isMe)
                         <div class="msg-sender">
                             {{ $msg->sender?->name }}
                             <span style="font-weight:400;color:#cbd5e1;">· {{ ucfirst($msg->sender?->role) }}</span>
                         </div>
                     @endunless
-                    <div class="msg-content">{{ $msg->message }}</div>
-                    <div class="msg-meta">{{ $msg->created_at->format('H:i') }}</div>
+
+                    <div class="msg-content" id="msg-content-{{ $msg->id }}">{{ $msg->message }}</div>
+
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <div class="msg-meta">{{ $msg->created_at->format('H:i') }}</div>
+
+                        @if($msg->edited_at)
+                            <div class="msg-edited {{ $isMe ? '' : 'theirs' }}">
+                                · modifié {{ $msg->edited_at->format('H:i') }}
+                            </div>
+                        @endif
+
+                        @if($isMe)
+                            @if($msg->seen_at)
+                                <div class="msg-seen" title="Vu">✓✓</div>
+                            @else
+                                <div class="msg-seen" style="opacity:.4;" title="Envoyé">✓</div>
+                            @endif
+                        @endif
+                    </div>
                 </div>
             @endforeach
 
-            {{-- Typing --}}
+            {{-- Typing indicator --}}
             <div class="typing-indicator" id="typing-indicator">
                 <div class="typing-dots"><span></span><span></span><span></span></div>
             </div>
         </div>
 
-        {{-- Reply / Closed notice --}}
+        {{-- Reply / Closed --}}
         @if($reclamation->status === 'traite')
             <div class="traite-notice">✅ Réclamation traitée — les réponses sont désactivées.</div>
         @elseif($canReply)
@@ -542,12 +612,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const CURRENT_USER_ID = {{ $user->id }};
     const RECLAMATION_ID  = {{ $reclamation->id }};
     const SEND_URL        = "{{ route('reclamations.message', $reclamation) }}";
+    const MARK_SEEN_URL   = "{{ route('reclamations.seen', $reclamation) }}";
+    const MSG_BASE_URL    = "/reclamations/{{ $reclamation->id }}/message/";
     const CSRF_TOKEN      = "{{ csrf_token() }}";
 
     const area     = document.getElementById('messages-area');
     const input    = document.getElementById('reply-input');
     const sendBtn  = document.getElementById('send-btn');
     const typingEl = document.getElementById('typing-indicator');
+
+    // ── Mark messages as seen on load ────────────────────────
+    fetch(MARK_SEEN_URL, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' }
+    });
 
     function scrollBottom() { if (area) area.scrollTop = area.scrollHeight; }
     scrollBottom();
@@ -559,24 +637,96 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''; }
 
+    // ── Render new bubble ─────────────────────────────────────
     function renderBubble(data, mine) {
         const div = document.createElement('div');
         div.className = 'msg-bubble ' + (mine ? 'mine' : 'theirs');
         div.id = 'msg-' + data.id;
+        div.dataset.seen = '0';
+        div.dataset.mine = mine ? '1' : '0';
+
         let html = '';
+
+        if (mine) {
+            html += `
+            <div class="msg-actions">
+                <button class="msg-action-btn btn-edit-msg"   onclick="startEdit(${data.id})">✏️ Modifier</button>
+                <button class="msg-action-btn btn-delete-msg" onclick="deleteMsg(${data.id})">🗑 Supprimer</button>
+            </div>`;
+        }
+
         if (!mine) {
             const role = data.sender?.role
                 ? ` <span style="font-weight:400;color:#cbd5e1;">· ${capitalize(data.sender.role)}</span>`
                 : '';
             html += `<div class="msg-sender">${escHtml(data.sender?.name ?? '')}${role}</div>`;
         }
-        html += `<div class="msg-content">${escHtml(data.message)}</div>`;
-        html += `<div class="msg-meta">${data.created_at}</div>`;
+
+        html += `<div class="msg-content" id="msg-content-${data.id}">${escHtml(data.message)}</div>`;
+        html += `<div style="display:flex;align-items:center;gap:6px;">
+                    <div class="msg-meta">${data.created_at}</div>
+                    ${mine ? '<div class="msg-seen" style="opacity:.4;" title="Envoyé">✓</div>' : ''}
+                 </div>`;
+
         div.innerHTML = html;
         area.insertBefore(div, typingEl);
         scrollBottom();
     }
 
+    // ── Remove bubble with animation ──────────────────────────
+    function removeBubble(msgId) {
+        const el = document.getElementById('msg-' + msgId);
+        if (el) {
+            el.style.transition = 'opacity .2s, transform .2s';
+            el.style.opacity    = '0';
+            el.style.transform  = 'scale(.95)';
+            setTimeout(() => el.remove(), 220);
+        }
+    }
+
+    // ── Apply edit to bubble ──────────────────────────────────
+    function applyEdit(msgId, newText, editedAt) {
+        const contentEl = document.getElementById('msg-content-' + msgId);
+        if (contentEl) contentEl.textContent = newText;
+
+        const bubble  = document.getElementById('msg-' + msgId);
+        const actions = bubble?.querySelector('.msg-actions');
+        if (actions) actions.style.display = '';
+
+        // Add/update "modifié" label
+        const metaRow = bubble?.querySelector('[style*="display:flex"]');
+        if (metaRow) {
+            let editedEl = metaRow.querySelector('.msg-edited');
+            if (!editedEl) {
+                editedEl = document.createElement('div');
+                editedEl.className = 'msg-edited';
+                metaRow.appendChild(editedEl);
+            }
+            editedEl.textContent = '· modifié ' + editedAt;
+        }
+    }
+
+    // ── Mark my own bubbles as seen (✓✓) ─────────────────────
+    function markBubbleSeen(msgId) {
+        const bubble  = document.getElementById('msg-' + msgId);
+        if (!bubble || bubble.dataset.mine !== '1') return;
+
+        bubble.dataset.seen = '1';
+
+        // Remove action buttons — can no longer edit/delete
+        const actions = bubble.querySelector('.msg-actions');
+        if (actions) actions.remove();
+
+        // Update tick to double
+        const seenEl = bubble.querySelector('.msg-seen');
+        if (seenEl) {
+            seenEl.style.opacity = '1';
+            seenEl.title         = 'Vu';
+            seenEl.textContent   = '✓✓';
+        }
+    }
+
+    // ── Send message ──────────────────────────────────────────
     async function sendMessage() {
         if (!input) return;
         const text = input.value.trim();
@@ -584,7 +734,12 @@ document.addEventListener('DOMContentLoaded', function () {
         sendBtn.disabled = true;
 
         const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        renderBubble({ id: 'tmp-' + Date.now(), message: text, created_at: now, sender: { id: CURRENT_USER_ID } }, true);
+        renderBubble({
+            id: 'tmp-' + Date.now(),
+            message: text,
+            created_at: now,
+            sender: { id: CURRENT_USER_ID }
+        }, true);
         input.value = '';
         input.style.height = 'auto';
 
@@ -607,6 +762,82 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ── Delete message ────────────────────────────────────────
+    window.deleteMsg = async function(msgId) {
+        if (!confirm('Supprimer ce message ?')) return;
+
+        const res = await fetch(MSG_BASE_URL + msgId, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' }
+        });
+
+        if (res.ok) {
+            removeBubble(msgId);
+        } else {
+            const err = await res.json();
+            alert(err.error ?? 'Impossible de supprimer.');
+        }
+    };
+
+    // ── Edit message ──────────────────────────────────────────
+    window.startEdit = function(msgId) {
+        const contentEl = document.getElementById('msg-content-' + msgId);
+        if (!contentEl) return;
+        const originalText = contentEl.textContent.trim();
+
+        contentEl.innerHTML = `
+            <div class="edit-box">
+                <textarea class="edit-textarea" id="edit-ta-${msgId}">${escHtml(originalText)}</textarea>
+                <div class="edit-actions">
+                    <button class="btn-cancel-edit" onclick="cancelEdit(${msgId}, \`${escHtml(originalText)}\`)">Annuler</button>
+                    <button class="btn-save-edit"   onclick="saveEdit(${msgId})">Enregistrer</button>
+                </div>
+            </div>`;
+
+        const ta = document.getElementById('edit-ta-' + msgId);
+        if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+
+        // Hide action buttons while editing
+        const bubble  = document.getElementById('msg-' + msgId);
+        const actions = bubble?.querySelector('.msg-actions');
+        if (actions) actions.style.display = 'none';
+    };
+
+    window.cancelEdit = function(msgId, originalText) {
+        const contentEl = document.getElementById('msg-content-' + msgId);
+        if (contentEl) contentEl.textContent = originalText;
+
+        const bubble  = document.getElementById('msg-' + msgId);
+        const actions = bubble?.querySelector('.msg-actions');
+        if (actions) actions.style.display = '';
+    };
+
+    window.saveEdit = async function(msgId) {
+        const ta = document.getElementById('edit-ta-' + msgId);
+        if (!ta) return;
+        const newText = ta.value.trim();
+        if (!newText) return;
+
+        const res = await fetch(MSG_BASE_URL + msgId, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ message: newText }),
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            applyEdit(msgId, data.message, data.edited_at);
+        } else {
+            const err = await res.json();
+            alert(err.error ?? 'Impossible de modifier.');
+        }
+    };
+
+    // ── Input events ──────────────────────────────────────────
     if (input) {
         input.addEventListener('input', () => {
             input.style.height = 'auto';
@@ -618,19 +849,37 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
 
+    // ── Echo real-time ────────────────────────────────────────
     if (typeof window.Echo !== 'undefined') {
         window.Echo.private('reclamation.' + RECLAMATION_ID)
+
             .listen('.ReclamationMessageSent', (e) => {
                 if (typingEl) typingEl.classList.remove('visible');
-                if (e.sender?.id !== CURRENT_USER_ID) renderBubble(e, false);
-            })
-            .listenForWhisper('typing', () => {
-                if (typingEl) {
-                    typingEl.classList.add('visible');
-                    scrollBottom();
-                    setTimeout(() => typingEl.classList.remove('visible'), 3000);
+                if (e.sender?.id !== CURRENT_USER_ID) {
+                    renderBubble(e, false);
+                    // We're in the conversation — mark as seen immediately
+                    fetch(MARK_SEEN_URL, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': CSRF_TOKEN }
+                    });
                 }
             })
+
+            .listen('.ReclamationMessageDeleted', (e) => {
+                removeBubble(e.message_id);
+            })
+
+            .listen('.ReclamationMessageUpdated', (e) => {
+                applyEdit(e.message_id, e.message, e.edited_at);
+            })
+
+            .listen('.ReclamationMessageSeen', (e) => {
+                // The other user opened the chat — update our sent bubbles to ✓✓
+                if (Array.isArray(e.message_ids)) {
+                    e.message_ids.forEach(id => markBubbleSeen(id));
+                }
+            })
+
             .listen('.ReclamationStatusUpdated', (e) => {
                 const badge = document.getElementById('status-badge');
                 if (badge) {
@@ -647,6 +896,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         replyArea.innerHTML = '<div class="traite-notice">✅ Réclamation traitée — conversation fermée.</div>';
                     }
                 }
+            })
+
+            .listenForWhisper('typing', () => {
+                if (typingEl) {
+                    typingEl.classList.add('visible');
+                    scrollBottom();
+                    setTimeout(() => typingEl.classList.remove('visible'), 3000);
+                }
             });
 
         if (input) {
@@ -658,6 +915,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         console.error('❌ Echo not loaded!');
     }
+
 });
 </script>
 @endsection
