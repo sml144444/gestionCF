@@ -336,15 +336,6 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
-
-    // Mark all messages in a conversation as seen
-    Route::post('/reclamations/{reclamation}/seen',                      [ReclamationController::class, 'markSeen'])     ->name('reclamations.seen');
-
-    // Delete a single message (only if unseen)
-    Route::delete('/reclamations/{reclamation}/message/{message}',       [ReclamationController::class, 'deleteMessage'])->name('reclamations.message.delete');
-
-    // Edit a single message (only if unseen)
-    Route::patch('/reclamations/{reclamation}/message/{message}',        [ReclamationController::class, 'editMessage'])  ->name('reclamations.message.edit');
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -407,6 +398,9 @@ Route::middleware(['auth'])->group(function () {
 
 // ─────────────────────────────────────────────
 // ABSENCES
+
+// ─────────────────────────────────────────────
+// ABSENCES — replace the existing absences block in routes/web.php
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
 
@@ -436,9 +430,20 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.fichier.delete')
         ->middleware('can:absence-justify');
 
-    // ── ADMIN upload one file for ALL absences of a stagiaire's day ──────────
+    // ── ADMIN upload one file for ALL absences of a stagiaire's day ──
+    // NOTE: static segments (/admin/...) must come BEFORE wildcard routes ({absence})
     Route::post('/absences/admin/upload-jour', [AbsenceController::class, 'adminUploadFichierJour'])
         ->name('absences.admin.fichier.jour')
+        ->middleware('can:absence-justify');
+
+    // ✅ NEW — Autoriser sans justificatif (sets admin_validated = true)
+    Route::post('/absences/admin/valider-sans-justificatif', [AbsenceController::class, 'adminValiderSansJustificatif'])
+        ->name('absences.admin.valider')
+        ->middleware('can:absence-justify');
+
+    // ✅ NEW — Annuler l'autorisation (resets admin_validated = false)
+    Route::post('/absences/admin/annuler-validation', [AbsenceController::class, 'adminAnnulerValidation'])
+        ->name('absences.admin.annuler')
         ->middleware('can:absence-justify');
 
     // ── STAGIAIRE SELF-SERVICE (single absence) ───────────────

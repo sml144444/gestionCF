@@ -9,14 +9,28 @@ class AbsenceRetard extends Model
     protected $table = 'absence_retard';
 
     protected $fillable = [
-        'id_user', 'id_cours', 'type','session_part',
-        'duree', 'justifie', 'file_justification', 'date_event',
+        'id_user',
+        'id_cours',
+        'type',
+        'session_part',
+        'duree',
+        'justifie',
+        'file_justification',
+        // ✅ NEW: admin approved without requiring a justification document.
+        // justifie stays false — the absence is recorded as non-justified —
+        // but this flag suppresses the "last unjustified absence" warning
+        // shown to formateurs on the séance sheet.
+        'admin_validated',
+        'date_event',
     ];
 
     protected $casts = [
-        'justifie'   => 'boolean',
-        'date_event' => 'datetime',
+        'justifie'        => 'boolean',
+        'admin_validated' => 'boolean', // ✅ NEW
+        'date_event'      => 'datetime',
     ];
+
+    // ── RELATIONSHIPS ──────────────────────────────────────────
 
     public function stagiaire()
     {

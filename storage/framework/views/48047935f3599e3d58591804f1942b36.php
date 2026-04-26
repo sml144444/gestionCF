@@ -168,6 +168,36 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 .badge-injustifie { background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; }
 .badge-pending    { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
 
+/* NEW: Admin validation badges and buttons */
+.btn-admin-allow {
+    font-size:10px; font-weight:700; padding:4px 10px; border-radius:8px;
+    background:#fef9c3; color:#713f12;
+    border:1px solid #fde047;
+    cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px;
+    transition:all .15s;
+    white-space:nowrap;
+}
+.btn-admin-allow:hover { background:#fef08a; }
+
+.btn-admin-revert {
+    font-size:10px; font-weight:700; padding:4px 10px; border-radius:8px;
+    background:#f1f5f9; color:#64748b;
+    border:1px solid #cbd5e1;
+    cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px;
+    transition:all .15s;
+    white-space:nowrap;
+}
+.btn-admin-revert:hover { background:#e2e8f0; }
+
+.badge-admin-allowed {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 9px; border-radius:8px; font-size:10px; font-weight:800;
+    background:#fef9c3; color:#713f12;
+    border:1px solid #fde047;
+}
+
 .avatar { width:30px; height:30px; border-radius:9px; background:var(--accent-lt);
           display:inline-flex; align-items:center; justify-content:center;
           font-size:10px; font-weight:800; color:var(--accent-tx); flex-shrink:0; }
@@ -548,7 +578,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 
                     
                     <?php if($canJustify): ?>
-                    <td style="min-width:220px;">
+                    <td style="min-width:260px;">
                         <?php
                             $allAbsIds  = $da->absences->pluck('id');
                             $allJust    = $da->absences->every(fn($a) => $a->justifie);
@@ -559,7 +589,22 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                         ?>
 
                         
-                        <?php if($allJust): ?>
+                        <?php if($da->is_admin_validated): ?>
+                            <div style="display:flex;flex-direction:column;gap:6px;">
+                                <span class="badge-admin-allowed">✔ Autorisé sans justificatif</span>
+                                <form method="POST" action="<?php echo e(route('absences.admin.annuler')); ?>" style="display:inline;">
+                                    <?php echo csrf_field(); ?>
+                                    <?php $__currentLoopData = $allAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    <button type="submit" class="btn-admin-revert" title="Rétablir le signalement formateur">
+                                        ↩ Annuler l'autorisation
+                                    </button>
+                                </form>
+                            </div>
+
+                        
+                        <?php elseif($allJust): ?>
                             <?php if($sharedFile): ?>
                                 <a href="<?php echo e(Storage::url($sharedFile)); ?>" target="_blank"
                                    style="font-size:11px;font-weight:700;color:var(--accent);
@@ -629,9 +674,11 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 
                         
                         <?php else: ?>
+                            
                             <form method="POST"
                                   action="<?php echo e(route('absences.admin.fichier.jour')); ?>"
-                                  enctype="multipart/form-data">
+                                  enctype="multipart/form-data"
+                                  style="margin-bottom:8px;">
                                 <?php echo csrf_field(); ?>
                                 <?php $__currentLoopData = $allAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
@@ -647,13 +694,27 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                            style="display:none;"
                                            onchange="this.closest('form').submit()">
                                 </label>
-                                <div style="font-size:9px;color:#94a3b8;margin-top:4px;">
+                                <div style="font-size:9px;color:#94a3b8;margin-top:2px;margin-bottom:8px;">
                                     Couvre les <?php echo e($allAbsIds->count()); ?> demi-séance(s) du jour
                                 </div>
                             </form>
 
                             
-                            <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+                            <form method="POST" action="<?php echo e(route('absences.admin.valider')); ?>"
+                                  style="margin-bottom:8px;"
+                                  onsubmit="return confirm('⚠️ Autoriser cette absence sans justificatif ?\n\nLe signalement formateur sera supprimé mais l\'absence restera non-justifiée.')">
+                                <?php echo csrf_field(); ?>
+                                <?php $__currentLoopData = $allAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <button type="submit" class="btn-admin-allow"
+                                        title="L'absence reste non-justifiée mais le signalement formateur disparaît">
+                                    🔓 Autoriser sans justificatif
+                                </button>
+                            </form>
+
+                            
+                            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
                                 <?php $__currentLoopData = $da->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
                                     <div style="display:flex;align-items:center;gap:5px;">
@@ -783,7 +844,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         Réinitialiser
     </a>
 </form>
-
 
 
 <div class="abs-table-wrap" id="abs-table-wrap">
@@ -1167,7 +1227,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                         </td>
 
                         
-                        <td style="min-width:220px;">
+                        <td style="min-width:260px;">
                             <?php
                                 $allRowAbsIds  = $row->absences->pluck('id');
                                 $allRowJust    = $row->absences->every(fn($a) => $a->justifie);
@@ -1178,7 +1238,22 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             ?>
 
                             
-                            <?php if($allRowJust): ?>
+                            <?php if($row->is_admin_validated): ?>
+                                <div style="display:flex;flex-direction:column;gap:6px;">
+                                    <span class="badge-admin-allowed">✔ Autorisé sans justificatif</span>
+                                    <form method="POST" action="<?php echo e(route('absences.admin.annuler')); ?>" style="display:inline;">
+                                        <?php echo csrf_field(); ?>
+                                        <?php $__currentLoopData = $allRowAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                        <button type="submit" class="btn-admin-revert" title="Rétablir le signalement formateur">
+                                            ↩ Annuler l'autorisation
+                                        </button>
+                                    </form>
+                                </div>
+
+                            
+                            <?php elseif($allRowJust): ?>
                                 <?php if($rowSharedFile): ?>
                                     <a href="<?php echo e(Storage::url($rowSharedFile)); ?>" target="_blank"
                                        style="font-size:11px;font-weight:700;color:var(--accent);
@@ -1253,49 +1328,65 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             
                             <?php else: ?>
                                 <?php if($canJustify): ?>
-                                <form method="POST"
-                                      action="<?php echo e(route('absences.admin.fichier.jour')); ?>"
-                                      enctype="multipart/form-data">
-                                    <?php echo csrf_field(); ?>
-                                    <?php $__currentLoopData = $allRowAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                    <label class="btn-upload-label">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                        </svg>
-                                        📎 Joindre un justificatif
-                                        <input type="file" name="file_justification"
-                                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                               style="display:none;"
-                                               onchange="this.closest('form').submit()">
-                                    </label>
-                                    <div style="font-size:9px;color:#94a3b8;margin-top:4px;">
-                                        Couvre les <?php echo e($allRowAbsIds->count()); ?> demi-séance(s) du jour
-                                    </div>
-                                </form>
-
-                                
-                                <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
-                                    <?php $__currentLoopData = $row->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
-                                        <div style="display:flex;align-items:center;gap:5px;">
-                                            <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
-                                                         background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
-                                                         border:1px solid <?php echo e($pc['border']); ?>;">
-                                                <?php echo e(strtoupper($abs->session_part)); ?>
-
-                                            </span>
-                                            <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
-                                                <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                                                <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
-                                                    ✓ Justifier
-                                                </button>
-                                            </form>
+                                    
+                                    <form method="POST"
+                                          action="<?php echo e(route('absences.admin.fichier.jour')); ?>"
+                                          enctype="multipart/form-data"
+                                          style="margin-bottom:8px;">
+                                        <?php echo csrf_field(); ?>
+                                        <?php $__currentLoopData = $allRowAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                        <label class="btn-upload-label">
+                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                            </svg>
+                                            📎 Joindre un justificatif
+                                            <input type="file" name="file_justification"
+                                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                   style="display:none;"
+                                                   onchange="this.closest('form').submit()">
+                                        </label>
+                                        <div style="font-size:9px;color:#94a3b8;margin-top:2px;margin-bottom:8px;">
+                                            Couvre les <?php echo e($allRowAbsIds->count()); ?> demi-séance(s) du jour
                                         </div>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                </div>
+                                    </form>
+
+                                    
+                                    <form method="POST" action="<?php echo e(route('absences.admin.valider')); ?>"
+                                          style="margin-bottom:8px;"
+                                          onsubmit="return confirm('⚠️ Autoriser cette absence sans justificatif ?\n\nLe signalement formateur sera supprimé mais l\'absence restera non-justifiée.')">
+                                        <?php echo csrf_field(); ?>
+                                        <?php $__currentLoopData = $allRowAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                        <button type="submit" class="btn-admin-allow"
+                                                title="L'absence reste non-justifiée mais le signalement formateur disparaît">
+                                            🔓 Autoriser sans justificatif
+                                        </button>
+                                    </form>
+
+                                    
+                                    <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+                                        <?php $__currentLoopData = $row->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
+                                            <div style="display:flex;align-items:center;gap:5px;">
+                                                <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
+                                                             background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
+                                                             border:1px solid <?php echo e($pc['border']); ?>;">
+                                                    <?php echo e(strtoupper($abs->session_part)); ?>
+
+                                                </span>
+                                                <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
+                                                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
+                                                    <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
+                                                        ✓ Justifier
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    </div>
                                 <?php else: ?>
                                     <span style="font-size:10px;color:#94a3b8;">—</span>
                                 <?php endif; ?>

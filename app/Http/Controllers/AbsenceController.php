@@ -31,7 +31,6 @@ class AbsenceController extends Controller
         $canViewAll = $user->can('absence-view-all')
                    || in_array($user->role, ['admin', 'gestionnaire', 'formateur']);
 
-        // ── Base filters (shared by both admin and stagiaire) ──────────────────
         $baseQuery = AbsenceRetard::with([
             'stagiaire.groupe',
             'cours.emploiDuTemps.module',
@@ -73,7 +72,7 @@ class AbsenceController extends Controller
             $baseQuery->where('session_part', $request->session_part);
         }
 
-        // ── Stats ─────────────────────────────────────────────────────────────
+        // ── Stats ──────────────────────────────────────────────
         $statsQuery = AbsenceRetard::where('type', 'absence');
         if (!$canViewAll) { $statsQuery->where('id_user', $user->id); }
         if ($canViewAll && $request->filled('stagiaire_id')) { $statsQuery->where('id_user', $request->stagiaire_id); }
@@ -98,7 +97,7 @@ class AbsenceController extends Controller
             's4' => (clone $statsQuery)->where('session_part', 's4')->count(),
         ];
 
-        // ── Dropdowns ─────────────────────────────────────────────────────────
+        // ── Dropdowns ──────────────────────────────────────────
         $filieres   = $canViewAll ? Filiere::orderBy('name')->get() : collect();
         $fId        = $request->filled('filiere_id') ? $request->filiere_id : null;
         $groupes    = $canViewAll
@@ -117,16 +116,12 @@ class AbsenceController extends Controller
             ? User::find($request->stagiaire_id)
             : ($canViewAll ? null : $user);
 
-        // ══════════════════════════════════════════════════════════════════════
-        // ADMIN — Historical table: GROUP BY (date + stagiaire)
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Admin historique grouped by (date + stagiaire) ─────
         $absences        = collect();
         $absencesGrouped = collect();
 
         if ($canViewAll) {
-            $allRecords = (clone $baseQuery)
-                ->orderByDesc('date_event')
-                ->get();
+            $allRecords = (clone $baseQuery)->orderByDesc('date_event')->get();
 
             $grouped = $allRecords
                 ->groupBy(fn($a) =>
@@ -134,28 +129,23 @@ class AbsenceController extends Controller
                 )
                 ->map(function ($group) {
                     $first   = $group->first();
-                    $emplois = $group
-                        ->map(fn($a) => $a->cours?->emploiDuTemps)
+                    $emplois = $group->map(fn($a) => $a->cours?->emploiDuTemps)
                         ->filter()->unique('id')->values();
 
                     return (object) [
-                        'date'         => $first->date_event,
-                        'stagiaire'    => $first->stagiaire,
-                        'groupe'       => $first->stagiaire?->groupe
-                                      ?? $emplois->first()?->groupe,
-                        'total_duree'  => round($group->sum('duree'), 1),
-                        'parts'        => $group->pluck('session_part')
-                                             ->filter()->unique()->sort()->values()->toArray(),
-                        'emplois'      => $emplois,
-                        'modules'      => $emplois->map(fn($e) => $e?->module)
-                                             ->filter()->unique('id')->values(),
-                        'formateurs'   => $emplois->map(fn($e) => $e?->gestionnaire)
-                                             ->filter()->unique('id')->values(),
-                        'is_justified' => $group->every(fn($a) => $a->justifie),
-                        'is_pending'   => $group->contains(
-                            fn($a) => !$a->justifie && !empty($a->file_justification)
-                        ),
-                        'absences'     => $group,
+                        'date'               => $first->date_event,
+                        'stagiaire'          => $first->stagiaire,
+                        'groupe'             => $first->stagiaire?->groupe ?? $emplois->first()?->groupe,
+                        'total_duree'        => round($group->sum('duree'), 1),
+                        'parts'              => $group->pluck('session_part')->filter()->unique()->sort()->values()->toArray(),
+                        'emplois'            => $emplois,
+                        'modules'            => $emplois->map(fn($e) => $e?->module)->filter()->unique('id')->values(),
+                        'formateurs'         => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
+                        'is_justified'       => $group->every(fn($a) => $a->justifie),
+                        'is_pending'         => $group->contains(fn($a) => !$a->justifie && !empty($a->file_justification)),
+                        // ✅ NEW: true when ALL records in this day-group are admin-validated
+                        'is_admin_validated' => $group->every(fn($a) => $a->admin_validated),
+                        'absences'           => $group,
                     ];
                 })
                 ->sortByDesc(fn($d) => $d->date?->timestamp)
@@ -172,9 +162,7 @@ class AbsenceController extends Controller
             );
         }
 
-        // ══════════════════════════════════════════════════════════════════════
-        // ADMIN — "Absents du jour" day panel
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Admin "absents du jour" panel ──────────────────────
         $selectedDay   = null;
         $dayAbsents    = collect();
         $availableDays = collect();
@@ -216,18 +204,17 @@ class AbsenceController extends Controller
                         ->filter()->unique('id')->values();
 
                     return (object) [
-                        'stagiaire'    => $first->stagiaire,
-                        'total_duree'  => round($group->sum('duree'), 1),
-                        'parts'        => $group->pluck('session_part')
-                                             ->filter()->unique()->sort()->values()->toArray(),
-                        'emplois'      => $emplois,
-                        'modules'      => $emplois->map(fn($e) => $e?->module)->filter()->unique('id')->values(),
-                        'formateurs'   => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
-                        'is_justified' => $group->every(fn($a) => $a->justifie),
-                        'is_pending'   => $group->contains(
-                            fn($a) => !$a->justifie && !empty($a->file_justification)
-                        ),
-                        'absences'     => $group,
+                        'stagiaire'          => $first->stagiaire,
+                        'total_duree'        => round($group->sum('duree'), 1),
+                        'parts'              => $group->pluck('session_part')->filter()->unique()->sort()->values()->toArray(),
+                        'emplois'            => $emplois,
+                        'modules'            => $emplois->map(fn($e) => $e?->module)->filter()->unique('id')->values(),
+                        'formateurs'         => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
+                        'is_justified'       => $group->every(fn($a) => $a->justifie),
+                        'is_pending'         => $group->contains(fn($a) => !$a->justifie && !empty($a->file_justification)),
+                        // ✅ NEW
+                        'is_admin_validated' => $group->every(fn($a) => $a->admin_validated),
+                        'absences'           => $group,
                     ];
                 })
                 ->values()
@@ -237,18 +224,16 @@ class AbsenceController extends Controller
                 ->selectRaw('DATE(date_event) as day, COUNT(*) as cnt')
                 ->groupBy('day')->orderByDesc('day')->limit(60)->get()->keyBy('day');
 
-            $dayStr = $selectedDay->toDateString();
-            $keys   = $availableDays->keys()->sort()->values();
-            $idx    = $keys->search($dayStr);
+            $dayStr  = $selectedDay->toDateString();
+            $keys    = $availableDays->keys()->sort()->values();
+            $idx     = $keys->search($dayStr);
             $prevDay = ($idx !== false && $idx > 0) ? $keys->get($idx - 1)
                      : $keys->first(fn($k) => $k < $dayStr);
             $nextDay = ($idx !== false && $idx < $keys->count() - 1) ? $keys->get($idx + 1)
                      : $keys->first(fn($k) => $k > $dayStr);
         }
 
-        // ══════════════════════════════════════════════════════════════════════
-        // STAGIAIRE — Day-grouped view (one row per calendar day)
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Stagiaire day-grouped view ─────────────────────────
         $absencesByDay = collect();
         if (!$canViewAll) {
             $dayQ = AbsenceRetard::with([
@@ -279,19 +264,17 @@ class AbsenceController extends Controller
                         ->filter()->unique('id')->values();
 
                     return (object) [
-                        'date'         => $first->date_event,
-                        'total_duree'  => round($group->sum('duree'), 1),
-                        'parts'        => $group->pluck('session_part')
-                                             ->filter()->unique()->sort()->values()->toArray(),
-                        'modules'      => $emplois->map(fn($e) => $e?->module)->filter()->unique('id')->values(),
-                        'emplois'      => $emplois,
-                        'formateurs'   => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
-                        'salles'       => $emplois->map(fn($e) => $e?->salle)->filter()->unique('id')->values(),
-                        'is_justified' => $group->every(fn($a) => $a->justifie),
-                        'is_pending'   => $group->contains(
-                            fn($a) => !$a->justifie && !empty($a->file_justification)
-                        ),
-                        'absences'     => $group,
+                        'date'               => $first->date_event,
+                        'total_duree'        => round($group->sum('duree'), 1),
+                        'parts'              => $group->pluck('session_part')->filter()->unique()->sort()->values()->toArray(),
+                        'modules'            => $emplois->map(fn($e) => $e?->module)->filter()->unique('id')->values(),
+                        'emplois'            => $emplois,
+                        'formateurs'         => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
+                        'salles'             => $emplois->map(fn($e) => $e?->salle)->filter()->unique('id')->values(),
+                        'is_justified'       => $group->every(fn($a) => $a->justifie),
+                        'is_pending'         => $group->contains(fn($a) => !$a->justifie && !empty($a->file_justification)),
+                        'is_admin_validated' => $group->every(fn($a) => $a->admin_validated),
+                        'absences'           => $group,
                     ];
                 })
                 ->sortByDesc(fn($d) => $d->date?->timestamp)
@@ -305,12 +288,10 @@ class AbsenceController extends Controller
         ));
     }
 
-    // ── TOGGLE JUSTIFICATION (admin/gestionnaire) ─────────────
+    // ── TOGGLE JUSTIFICATION ──────────────────────────────────
     public function toggleJustification(Request $request, AbsenceRetard $absence)
     {
-        if (!Auth::user()->can('absence-justify')) {
-            abort(403);
-        }
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
         $newStatus = !$absence->justifie;
         $absence->update(['justifie' => $newStatus]);
@@ -320,24 +301,20 @@ class AbsenceController extends Controller
         );
     }
 
-    // ── ACCEPT JUSTIFICATION (admin/gestionnaire) ─────────────
+    // ── ACCEPT JUSTIFICATION ──────────────────────────────────
     public function acceptJustification(AbsenceRetard $absence)
     {
-        if (!Auth::user()->can('absence-justify')) {
-            abort(403);
-        }
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
         $absence->update(['justifie' => true]);
 
         return back()->with('success', 'Justificatif accepté — absence marquée comme justifiée.');
     }
 
-    // ── REJECT JUSTIFICATION (admin/gestionnaire) ─────────────
+    // ── REJECT JUSTIFICATION ──────────────────────────────────
     public function rejectJustification(AbsenceRetard $absence)
     {
-        if (!Auth::user()->can('absence-justify')) {
-            abort(403);
-        }
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
         if ($absence->file_justification) {
             Storage::disk('public')->delete($absence->file_justification);
@@ -350,12 +327,53 @@ class AbsenceController extends Controller
         return back()->with('success', 'Justificatif rejeté. Le stagiaire peut en soumettre un nouveau.');
     }
 
-    // ── ADMIN UPLOAD (single absence — direct validation) ─────
+    // ══════════════════════════════════════════════════════════
+    // ✅ NEW — AUTORISER SANS JUSTIFICATIF
+    // Sets admin_validated = true on every absence in the batch.
+    // justifie stays FALSE — the absence remains "non justifiée".
+    // Effect: the "last-absence" warning shown to formateurs disappears.
+    // ══════════════════════════════════════════════════════════
+    public function adminValiderSansJustificatif(Request $request)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
+
+        $ids      = $request->input('absence_ids', []);
+        $absences = AbsenceRetard::whereIn('id', $ids)->get();
+
+        if ($absences->isEmpty()) abort(404);
+
+        foreach ($absences as $absence) {
+            // Only flip admin_validated — justifie is intentionally left unchanged.
+            $absence->update(['admin_validated' => true]);
+        }
+
+        return back()->with('success',
+            'Absence(s) autorisée(s) sans justificatif. Le signalement formateur est supprimé.'
+        );
+    }
+
+    // ✅ NEW — ANNULER L'AUTORISATION SANS JUSTIFICATIF
+    // Reverts admin_validated to false → warning reappears for formateurs.
+    public function adminAnnulerValidation(Request $request)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
+
+        $ids      = $request->input('absence_ids', []);
+        $absences = AbsenceRetard::whereIn('id', $ids)->get();
+
+        if ($absences->isEmpty()) abort(404);
+
+        foreach ($absences as $absence) {
+            $absence->update(['admin_validated' => false]);
+        }
+
+        return back()->with('success', 'Validation sans justificatif annulée. Le signalement est rétabli.');
+    }
+
+    // ── ADMIN UPLOAD FICHIER (direct validation, single record) ─
     public function uploadFichier(Request $request, AbsenceRetard $absence)
     {
-        if (!Auth::user()->can('absence-justify')) {
-            abort(403);
-        }
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
         $request->validate([
             'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
@@ -370,55 +388,49 @@ class AbsenceController extends Controller
         $absence->update([
             'file_justification' => $path,
             'justifie'           => true,
+            'admin_validated'    => false, // properly justified — flag no longer needed
         ]);
 
         return back()->with('success', 'Fichier de justification uploadé et validé.');
     }
 
-    // ── ADMIN UPLOAD (one file for ALL absences of a stagiaire's day) ────────
+    // ── ADMIN UPLOAD (one file for ALL absences of a day) ─────
     public function adminUploadFichierJour(Request $request)
     {
-        if (!Auth::user()->can('absence-justify')) {
-            abort(403);
-        }
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
         $ids      = $request->input('absence_ids', []);
         $absences = AbsenceRetard::whereIn('id', $ids)->get();
 
-        if ($absences->isEmpty()) {
-            abort(404);
-        }
+        if ($absences->isEmpty()) abort(404);
 
         $request->validate([
             'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
 
-        // Delete any existing files first
         foreach ($absences as $absence) {
             if ($absence->file_justification) {
                 Storage::disk('public')->delete($absence->file_justification);
             }
         }
 
-        // Store ONE file, assign the same path + mark all as justified
         $path = $request->file('file_justification')->store('justifications', 'public');
 
         foreach ($absences as $absence) {
             $absence->update([
                 'file_justification' => $path,
                 'justifie'           => true,
+                'admin_validated'    => false,
             ]);
         }
 
         return back()->with('success', 'Justificatif joint et toutes les absences de la journée validées.');
     }
 
-    // ── ADMIN DELETE FICHIER ───────────────────────────────────
+    // ── ADMIN DELETE FICHIER ──────────────────────────────────
     public function deleteFichier(AbsenceRetard $absence)
     {
-        if (!Auth::user()->can('absence-justify')) {
-            abort(403);
-        }
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
         if ($absence->file_justification) {
             Storage::disk('public')->delete($absence->file_justification);
@@ -431,16 +443,11 @@ class AbsenceController extends Controller
         return back()->with('success', 'Fichier supprimé.');
     }
 
-    // ── STAGIAIRE UPLOAD (single absence — kept for backward compat) ──────
+    // ── STAGIAIRE UPLOAD (single absence) ────────────────────
     public function stagiaireUploadFichier(Request $request, AbsenceRetard $absence)
     {
-        if (Auth::id() !== $absence->id_user) {
-            abort(403);
-        }
-
-        if ($absence->justifie) {
-            return back()->with('error', 'Cette absence est déjà justifiée.');
-        }
+        if (Auth::id() !== $absence->id_user) abort(403);
+        if ($absence->justifie) return back()->with('error', 'Cette absence est déjà justifiée.');
 
         $request->validate([
             'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
@@ -457,21 +464,16 @@ class AbsenceController extends Controller
             'justifie'           => false,
         ]);
 
-        return back()->with('success', 'Justificatif envoyé avec succès. En attente de validation par l\'administration.');
+        return back()->with('success', 'Justificatif envoyé avec succès. En attente de validation.');
     }
 
-    // ── STAGIAIRE UPLOAD (one file for ALL absences of a day) ────────────
+    // ── STAGIAIRE UPLOAD (whole day) ──────────────────────────
     public function stagiaireUploadFichierJour(Request $request)
     {
         $ids      = $request->input('absence_ids', []);
-        $absences = AbsenceRetard::whereIn('id', $ids)
-                        ->where('id_user', Auth::id())
-                        ->get();
+        $absences = AbsenceRetard::whereIn('id', $ids)->where('id_user', Auth::id())->get();
 
-        if ($absences->isEmpty()) {
-            abort(403);
-        }
-
+        if ($absences->isEmpty()) abort(403);
         if ($absences->contains(fn($a) => $a->justifie)) {
             return back()->with('error', 'Une ou plusieurs absences sont déjà justifiées.');
         }
@@ -480,36 +482,26 @@ class AbsenceController extends Controller
             'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
 
-        // Delete old files first
         foreach ($absences as $absence) {
             if ($absence->file_justification) {
                 Storage::disk('public')->delete($absence->file_justification);
             }
         }
 
-        // Store ONE file, assign the same path to all absences of the day
         $path = $request->file('file_justification')->store('justifications', 'public');
 
         foreach ($absences as $absence) {
-            $absence->update([
-                'file_justification' => $path,
-                'justifie'           => false,
-            ]);
+            $absence->update(['file_justification' => $path, 'justifie' => false]);
         }
 
         return back()->with('success', 'Justificatif envoyé pour toutes les absences de la journée. En attente de validation.');
     }
 
-    // ── STAGIAIRE DELETE OWN FILE (single absence) ────────────────────────
+    // ── STAGIAIRE DELETE (single absence) ────────────────────
     public function stagiaireDeleteFichier(AbsenceRetard $absence)
     {
-        if (Auth::id() !== $absence->id_user) {
-            abort(403);
-        }
-
-        if ($absence->justifie) {
-            return back()->with('error', 'Vous ne pouvez pas supprimer un justificatif déjà accepté.');
-        }
+        if (Auth::id() !== $absence->id_user) abort(403);
+        if ($absence->justifie) return back()->with('error', 'Vous ne pouvez pas supprimer un justificatif déjà accepté.');
 
         if ($absence->file_justification) {
             Storage::disk('public')->delete($absence->file_justification);
@@ -519,27 +511,19 @@ class AbsenceController extends Controller
         return back()->with('success', 'Fichier supprimé.');
     }
 
-    // ── STAGIAIRE DELETE (removes file from ALL absences of a day) ────────
+    // ── STAGIAIRE DELETE (whole day) ──────────────────────────
     public function stagiaireDeleteFichierJour(Request $request)
     {
         $ids      = $request->input('absence_ids', []);
-        $absences = AbsenceRetard::whereIn('id', $ids)
-                        ->where('id_user', Auth::id())
-                        ->get();
+        $absences = AbsenceRetard::whereIn('id', $ids)->where('id_user', Auth::id())->get();
 
-        if ($absences->isEmpty()) {
-            abort(403);
-        }
-
+        if ($absences->isEmpty()) abort(403);
         if ($absences->contains(fn($a) => $a->justifie)) {
             return back()->with('error', 'Vous ne pouvez pas supprimer un justificatif déjà accepté.');
         }
 
-        // Delete the physical file once (all absences share the same path)
         $filePath = $absences->first()?->file_justification;
-        if ($filePath) {
-            Storage::disk('public')->delete($filePath);
-        }
+        if ($filePath) Storage::disk('public')->delete($filePath);
 
         foreach ($absences as $absence) {
             $absence->update(['file_justification' => null]);

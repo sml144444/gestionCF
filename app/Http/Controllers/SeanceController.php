@@ -59,14 +59,12 @@ class SeanceController extends Controller
 
         return array_slice(self::SESSION_PARTS, $startIndex, $numParts);
     }
-
-    // ── SHOW ──────────────────────────────────────────────────
     public function show(EmploiDuTemps $emploi)
     {
         $emploi->load(['module', 'groupe', 'salle', 'gestionnaire', 'remplacant']);
-
+ 
         $user = Auth::user();
-
+ 
         // Stagiaire sees only themselves
         if ($user->role === 'stagiaire') {
             $stagiaires = User::where('id', $user->id)
@@ -78,54 +76,58 @@ class SeanceController extends Controller
                 ->orderBy('name')
                 ->get();
         }
-
+ 
         $presenceCours = Cours::where('id_emplois_du_temps', $emploi->id)
             ->where('titre', '__presence__')
             ->first();
-
+ 
         $presences = $presenceCours
             ? AbsenceRetard::where('id_cours', $presenceCours->id)
                 ->get()
                 ->keyBy(fn($a) => $a->id_user . '_' . $a->session_part)
             : collect();
-
+ 
         $coursItems = Cours::where('id_emplois_du_temps', $emploi->id)
             ->where('titre', '!=', '__presence__')
             ->with('formateur')
             ->latest()
             ->get();
-
+ 
         $canPresence = Auth::user()->can('emploi-view-all-groups')
                     || in_array(Auth::user()->role, ['admin', 'gestionnaire', 'formateur']);
-
+ 
         $canEditClassroom = Auth::user()->can('emploi-view-all-groups')
                          || in_array(Auth::user()->role, ['admin', 'formateur']);
-
+ 
         $activeParts = $this->getActiveParts($emploi);
-
-        // ── Last absence warning ──────────────────────────────
-        // For each stagiaire, get their single most recent retard_absences record.
-        // If it is an unjustified absence, flag them so the view can show a warning.
+ 
+        // ── ✅ UPDATED: Last absence warning ───────────────────
+        // Show warning ONLY when the last record is:
+        //   - type      = 'absence'
+        //   - justifie  = false
+        //   - admin_validated = false   ← NEW condition
+        //
+        // If admin has clicked "Autoriser sans justificatif" (admin_validated = true),
+        // the warning is suppressed even though justifie stays false.
         $stagiaireIds = $stagiaires->pluck('id');
-
-        // ✅ FIXED: removed the empty whereIn subquery that caused SQLSTATE[HY000] 1096
-$lastAbsences = AbsenceRetard::whereIn('id_user', $stagiaireIds)
-    ->where('date_event', '<', $emploi->date_debut)  // ← uniquement AVANT cette séance
-    ->orderBy('date_event', 'desc')
-    ->get()
-    ->groupBy('id_user')
-    ->map(fn($records) => $records->first());
-
-        // Build a set of stagiaire IDs whose last record is an unjustified absence
+ 
+        $lastAbsences = AbsenceRetard::whereIn('id_user', $stagiaireIds)
+            ->where('date_event', '<', $emploi->date_debut)
+            ->orderBy('date_event', 'desc')
+            ->get()
+            ->groupBy('id_user')
+            ->map(fn($records) => $records->first());
+ 
         $lastAbsenceWarnings = $lastAbsences
             ->filter(fn($rec) =>
-                $rec->type    === 'absence' &&
-                $rec->justifie == false      // justifie = 0 / false = non justifié
+                $rec->type           === 'absence' &&
+                $rec->justifie       == false       &&
+                $rec->admin_validated == false       // ← NEW: suppress if admin validated
             )
-            ->keys()                         // collection of id_user values
-            ->flip()                         // key by id for O(1) lookup in Blade
+            ->keys()
+            ->flip()
             ->map(fn() => true);
-
+ 
         return view('seances.show', compact(
             'emploi', 'stagiaires', 'presences', 'coursItems',
             'canPresence', 'canEditClassroom',

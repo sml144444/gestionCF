@@ -169,6 +169,36 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 .badge-injustifie { background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; }
 .badge-pending    { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
 
+/* NEW: Admin validation badges and buttons */
+.btn-admin-allow {
+    font-size:10px; font-weight:700; padding:4px 10px; border-radius:8px;
+    background:#fef9c3; color:#713f12;
+    border:1px solid #fde047;
+    cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px;
+    transition:all .15s;
+    white-space:nowrap;
+}
+.btn-admin-allow:hover { background:#fef08a; }
+
+.btn-admin-revert {
+    font-size:10px; font-weight:700; padding:4px 10px; border-radius:8px;
+    background:#f1f5f9; color:#64748b;
+    border:1px solid #cbd5e1;
+    cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px;
+    transition:all .15s;
+    white-space:nowrap;
+}
+.btn-admin-revert:hover { background:#e2e8f0; }
+
+.badge-admin-allowed {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 9px; border-radius:8px; font-size:10px; font-weight:800;
+    background:#fef9c3; color:#713f12;
+    border:1px solid #fde047;
+}
+
 .avatar { width:30px; height:30px; border-radius:9px; background:var(--accent-lt);
           display:inline-flex; align-items:center; justify-content:center;
           font-size:10px; font-weight:800; color:var(--accent-tx); flex-shrink:0; }
@@ -542,11 +572,10 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                     </td>
 
                     {{-- ══════════════════════════════════════════════════════
-                         JUSTIFICATIF & ACTIONS — ONE BUTTON FOR THE WHOLE DAY
-                         (same UX as stagiaire view)
+                         JUSTIFICATIF & ACTIONS — WITH ADMIN VALIDATION BUTTON
                          ══════════════════════════════════════════════════════ --}}
                     @if($canJustify)
-                    <td style="min-width:220px;">
+                    <td style="min-width:260px;">
                         @php
                             $allAbsIds  = $da->absences->pluck('id');
                             $allJust    = $da->absences->every(fn($a) => $a->justifie);
@@ -556,8 +585,23 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             $sharedFile = $da->absences->first(fn($a) => $a->file_justification)?->file_justification;
                         @endphp
 
-                        {{-- ── Case 1 : all sessions already justified ── --}}
-                        @if($allJust)
+                        {{-- CASE 1: Already admin validated (without justification) --}}
+                        @if($da->is_admin_validated)
+                            <div style="display:flex;flex-direction:column;gap:6px;">
+                                <span class="badge-admin-allowed">✔ Autorisé sans justificatif</span>
+                                <form method="POST" action="{{ route('absences.admin.annuler') }}" style="display:inline;">
+                                    @csrf
+                                    @foreach($allAbsIds as $id)
+                                        <input type="hidden" name="absence_ids[]" value="{{ $id }}">
+                                    @endforeach
+                                    <button type="submit" class="btn-admin-revert" title="Rétablir le signalement formateur">
+                                        ↩ Annuler l'autorisation
+                                    </button>
+                                </form>
+                            </div>
+
+                        {{-- CASE 2: All sessions already justified --}}
+                        @elseif($allJust)
                             @if($sharedFile)
                                 <a href="{{ Storage::url($sharedFile) }}" target="_blank"
                                    style="font-size:11px;font-weight:700;color:var(--accent);
@@ -587,7 +631,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 @endforeach
                             </div>
 
-                        {{-- ── Case 2 : file uploaded, awaiting admin validation ── --}}
+                        {{-- CASE 3: File uploaded, awaiting admin validation --}}
                         @elseif($anyPending)
                             @if($sharedFile)
                                 <a href="{{ Storage::url($sharedFile) }}" target="_blank"
@@ -623,11 +667,13 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 @endforeach
                             </div>
 
-                        {{-- ── Case 3 : no file yet — ONE upload button for ALL sessions ── --}}
+                        {{-- CASE 4: No file yet — Upload + Admin validate without justification --}}
                         @else
+                            {{-- Upload button --}}
                             <form method="POST"
                                   action="{{ route('absences.admin.fichier.jour') }}"
-                                  enctype="multipart/form-data">
+                                  enctype="multipart/form-data"
+                                  style="margin-bottom:8px;">
                                 @csrf
                                 @foreach($allAbsIds as $id)
                                     <input type="hidden" name="absence_ids[]" value="{{ $id }}">
@@ -643,13 +689,27 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                            style="display:none;"
                                            onchange="this.closest('form').submit()">
                                 </label>
-                                <div style="font-size:9px;color:#94a3b8;margin-top:4px;">
+                                <div style="font-size:9px;color:#94a3b8;margin-top:2px;margin-bottom:8px;">
                                     Couvre les {{ $allAbsIds->count() }} demi-séance(s) du jour
                                 </div>
                             </form>
 
-                            {{-- Also allow direct justify (no file) per session --}}
-                            <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+                            {{-- ⭐ ADMIN VALIDATE WITHOUT JUSTIFICATION BUTTON ⭐ --}}
+                            <form method="POST" action="{{ route('absences.admin.valider') }}"
+                                  style="margin-bottom:8px;"
+                                  onsubmit="return confirm('⚠️ Autoriser cette absence sans justificatif ?\n\nLe signalement formateur sera supprimé mais l\'absence restera non-justifiée.')">
+                                @csrf
+                                @foreach($allAbsIds as $id)
+                                    <input type="hidden" name="absence_ids[]" value="{{ $id }}">
+                                @endforeach
+                                <button type="submit" class="btn-admin-allow"
+                                        title="L'absence reste non-justifiée mais le signalement formateur disparaît">
+                                    🔓 Autoriser sans justificatif
+                                </button>
+                            </form>
+
+                            {{-- Direct per-session justify (no file) --}}
+                            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
                                 @foreach($da->absences as $abs)
                                     @php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; @endphp
                                     <div style="display:flex;align-items:center;gap:5px;">
@@ -777,11 +837,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 </form>
 
 {{-- ─── TABLE — always visible ─── --}}
-{{--
-    CHANGE 1: Removed the @if condition that required a filter to be selected.
-    The historique table now shows for everyone (admin included) without needing
-    to select a filière / groupe / stagiaire first.
---}}
 <div class="abs-table-wrap" id="abs-table-wrap">
     <div class="abs-table-head">
         <div>
@@ -1151,10 +1206,9 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                         </td>
 
                         {{-- ══════════════════════════════════════════════════════════════════
-                             CHANGE 2: Single day-level "Joindre" button in historique (admin)
-                             Same 3-case logic as the day panel: justified / pending / upload
+                             JUSTIFICATIF & ACTIONS — WITH ADMIN VALIDATION BUTTON
                              ══════════════════════════════════════════════════════════════════ --}}
-                        <td style="min-width:220px;">
+                        <td style="min-width:260px;">
                             @php
                                 $allRowAbsIds  = $row->absences->pluck('id');
                                 $allRowJust    = $row->absences->every(fn($a) => $a->justifie);
@@ -1164,8 +1218,23 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 $rowSharedFile = $row->absences->first(fn($a) => $a->file_justification)?->file_justification;
                             @endphp
 
-                            {{-- ── Case 1: all justified ── --}}
-                            @if($allRowJust)
+                            {{-- CASE 1: Already admin validated (without justification) --}}
+                            @if($row->is_admin_validated)
+                                <div style="display:flex;flex-direction:column;gap:6px;">
+                                    <span class="badge-admin-allowed">✔ Autorisé sans justificatif</span>
+                                    <form method="POST" action="{{ route('absences.admin.annuler') }}" style="display:inline;">
+                                        @csrf
+                                        @foreach($allRowAbsIds as $id)
+                                            <input type="hidden" name="absence_ids[]" value="{{ $id }}">
+                                        @endforeach
+                                        <button type="submit" class="btn-admin-revert" title="Rétablir le signalement formateur">
+                                            ↩ Annuler l'autorisation
+                                        </button>
+                                    </form>
+                                </div>
+
+                            {{-- CASE 2: All justified --}}
+                            @elseif($allRowJust)
                                 @if($rowSharedFile)
                                     <a href="{{ Storage::url($rowSharedFile) }}" target="_blank"
                                        style="font-size:11px;font-weight:700;color:var(--accent);
@@ -1196,7 +1265,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 </div>
                                 @endif
 
-                            {{-- ── Case 2: pending file awaiting validation ── --}}
+                            {{-- CASE 3: Pending file awaiting validation --}}
                             @elseif($anyRowPending)
                                 @if($rowSharedFile)
                                     <a href="{{ Storage::url($rowSharedFile) }}" target="_blank"
@@ -1235,51 +1304,67 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                     <div style="font-size:10px;color:#92400e;margin-top:4px;">En cours d'examen</div>
                                 @endif
 
-                            {{-- ── Case 3: no file — ONE upload button for ALL sessions of the day ── --}}
+                            {{-- CASE 4: No file — Upload + Admin validate without justification --}}
                             @else
                                 @if($canJustify)
-                                <form method="POST"
-                                      action="{{ route('absences.admin.fichier.jour') }}"
-                                      enctype="multipart/form-data">
-                                    @csrf
-                                    @foreach($allRowAbsIds as $id)
-                                        <input type="hidden" name="absence_ids[]" value="{{ $id }}">
-                                    @endforeach
-                                    <label class="btn-upload-label">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                        </svg>
-                                        📎 Joindre un justificatif
-                                        <input type="file" name="file_justification"
-                                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                               style="display:none;"
-                                               onchange="this.closest('form').submit()">
-                                    </label>
-                                    <div style="font-size:9px;color:#94a3b8;margin-top:4px;">
-                                        Couvre les {{ $allRowAbsIds->count() }} demi-séance(s) du jour
-                                    </div>
-                                </form>
-
-                                {{-- Direct per-session justify (no file) --}}
-                                <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
-                                    @foreach($row->absences as $abs)
-                                        @php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; @endphp
-                                        <div style="display:flex;align-items:center;gap:5px;">
-                                            <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
-                                                         background:{{ $pc['bg'] }};color:{{ $pc['color'] }};
-                                                         border:1px solid {{ $pc['border'] }};">
-                                                {{ strtoupper($abs->session_part) }}
-                                            </span>
-                                            <form method="POST" action="{{ route('absences.justify', $abs) }}" style="display:inline;">
-                                                @csrf @method('PATCH')
-                                                <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
-                                                    ✓ Justifier
-                                                </button>
-                                            </form>
+                                    {{-- Upload button --}}
+                                    <form method="POST"
+                                          action="{{ route('absences.admin.fichier.jour') }}"
+                                          enctype="multipart/form-data"
+                                          style="margin-bottom:8px;">
+                                        @csrf
+                                        @foreach($allRowAbsIds as $id)
+                                            <input type="hidden" name="absence_ids[]" value="{{ $id }}">
+                                        @endforeach
+                                        <label class="btn-upload-label">
+                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                            </svg>
+                                            📎 Joindre un justificatif
+                                            <input type="file" name="file_justification"
+                                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                   style="display:none;"
+                                                   onchange="this.closest('form').submit()">
+                                        </label>
+                                        <div style="font-size:9px;color:#94a3b8;margin-top:2px;margin-bottom:8px;">
+                                            Couvre les {{ $allRowAbsIds->count() }} demi-séance(s) du jour
                                         </div>
-                                    @endforeach
-                                </div>
+                                    </form>
+
+                                    {{-- ⭐ ADMIN VALIDATE WITHOUT JUSTIFICATION BUTTON ⭐ --}}
+                                    <form method="POST" action="{{ route('absences.admin.valider') }}"
+                                          style="margin-bottom:8px;"
+                                          onsubmit="return confirm('⚠️ Autoriser cette absence sans justificatif ?\n\nLe signalement formateur sera supprimé mais l\'absence restera non-justifiée.')">
+                                        @csrf
+                                        @foreach($allRowAbsIds as $id)
+                                            <input type="hidden" name="absence_ids[]" value="{{ $id }}">
+                                        @endforeach
+                                        <button type="submit" class="btn-admin-allow"
+                                                title="L'absence reste non-justifiée mais le signalement formateur disparaît">
+                                            🔓 Autoriser sans justificatif
+                                        </button>
+                                    </form>
+
+                                    {{-- Direct per-session justify (no file) --}}
+                                    <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+                                        @foreach($row->absences as $abs)
+                                            @php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; @endphp
+                                            <div style="display:flex;align-items:center;gap:5px;">
+                                                <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
+                                                             background:{{ $pc['bg'] }};color:{{ $pc['color'] }};
+                                                             border:1px solid {{ $pc['border'] }};">
+                                                    {{ strtoupper($abs->session_part) }}
+                                                </span>
+                                                <form method="POST" action="{{ route('absences.justify', $abs) }}" style="display:inline;">
+                                                    @csrf @method('PATCH')
+                                                    <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
+                                                        ✓ Justifier
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 @else
                                     <span style="font-size:10px;color:#94a3b8;">—</span>
                                 @endif
