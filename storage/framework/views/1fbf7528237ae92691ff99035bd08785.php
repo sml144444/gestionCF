@@ -3,6 +3,24 @@
 <?php $__env->startSection('title', 'Réclamations'); ?>
 <?php $__env->startSection('page-title', 'Gestion des réclamations'); ?>
 
+
+<?php $__env->startPush('scripts'); ?>
+<script src="https://js.pusher.com/8.4/pusher.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+<script>
+window.Pusher = Pusher;
+window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key: '<?php echo e(env("REVERB_APP_KEY")); ?>',
+    wsHost: '<?php echo e(env("REVERB_HOST", "localhost")); ?>',
+    wsPort: <?php echo e(env("REVERB_PORT", 8080)); ?>,
+    wssPort: <?php echo e(env("REVERB_PORT", 8080)); ?>,
+    forceTLS: false,
+    enabledTransports: ['ws', 'wss'],
+});
+</script>
+<?php $__env->stopPush(); ?>
+
 <?php $__env->startSection('content'); ?>
 <?php
     $user = Auth::user();
@@ -42,7 +60,7 @@
 .rc-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px;
                   border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
 .stat-pill { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2);
-             border-radius:14px; padding:10px 18px; text-align:center; }
+             border-radius:14px; padding:10px 18px; text-align:center; transition:transform .2s; }
 .stat-pill-val { font-size:22px; font-weight:900; color:white; }
 .stat-pill-lbl { font-size:10px; color:rgba(255,255,255,0.72); }
 
@@ -85,6 +103,37 @@
             display:inline-flex; align-items:center; gap:4px; transition:opacity .15s; }
 .btn-view:hover { opacity:.85; }
 .unread-row td:first-child { border-left:3px solid #2563eb; }
+
+/* Real-time row highlight */
+@keyframes rowSlideIn {
+    from { opacity:0; transform:translateY(-10px); background:#eff6ff; }
+    to   { opacity:1; transform:translateY(0);     background:transparent; }
+}
+.rt-new-row td { animation: rowSlideIn .5s ease forwards; }
+
+/* Real-time toast */
+.rt-toast { position:fixed; top:20px; right:20px; z-index:9999;
+            background:white; border:1px solid #bfdbfe; border-radius:16px;
+            padding:14px 18px; box-shadow:0 8px 32px rgba(0,0,0,0.12);
+            display:flex; align-items:center; gap:12px; min-width:280px;
+            animation:toastIn .3s ease; }
+@keyframes toastIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+.rt-toast-hide { animation:toastOut .3s ease forwards; }
+@keyframes toastOut { to{opacity:0;transform:translateX(30px)} }
+.rt-dot { width:8px; height:8px; border-radius:50%; background:#2563eb; animation:rtpulse 2s infinite; flex-shrink:0; }
+@keyframes rtpulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Stat pulse animation */
+@keyframes statBump { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+.stat-bump { animation:statBump .4s ease; }
+
+/* Delete row fade */
+@keyframes rowFadeOut { to{opacity:0;transform:scaleY(0);max-height:0;padding:0;margin:0;} }
+.rt-deleting td { animation:rowFadeOut .4s ease forwards; }
+
+/* rt-badge */
+.rt-badge { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700;
+            color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; border-radius:8px; padding:3px 9px; }
 </style>
 
 <div class="rc-wrap">
@@ -115,10 +164,14 @@
             </p>
         </div>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <span class="rt-badge" style="margin-right:4px;">
+            <span style="width:6px;height:6px;border-radius:50%;background:#16a34a;animation:rtpulse 2s infinite;display:inline-block;"></span>
+            Temps réel
+        </span>
         <?php $__currentLoopData = ['total'=>'Total','en_attente'=>'En attente','en_cours'=>'En cours','traite'=>'Traités']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $k => $l): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <div class="stat-pill">
-            <div class="stat-pill-val"><?php echo e($stats[$k]); ?></div>
+        <div class="stat-pill" id="stat-<?php echo e($k); ?>">
+            <div class="stat-pill-val" id="stat-val-<?php echo e($k); ?>"><?php echo e($stats[$k]); ?></div>
             <div class="stat-pill-lbl"><?php echo e($l); ?></div>
         </div>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -159,7 +212,7 @@
 
 <div class="rc-table-wrap">
     <?php if($reclamations->isEmpty()): ?>
-        <div style="text-align:center;padding:60px 20px;">
+        <div id="empty-state" style="text-align:center;padding:60px 20px;">
             <div style="width:60px;height:60px;border-radius:18px;background:var(--accent-lt);
                         margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:26px;">
                 💬
@@ -169,35 +222,37 @@
                 Aucune réclamation pour ces filtres.
             </p>
         </div>
-    <?php else: ?>
-        <div style="overflow-x:auto;">
+        
+        <div id="table-container" style="display:none;overflow-x:auto;">
         <table class="rc-table">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Stagiaire</th>
-                    <th>Type</th>
-                    <th>Aperçu</th>
-                    <th>Messages</th>
-                    <th>Assigné à</th>
-                    <th>Statut</th>
-                    <th>Date</th>
-                    <th>Action</th>
+                    <th>#</th><th>Stagiaire</th><th>Type</th><th>Description</th>
+                    <th>Msgs</th><th>Assigné à</th><th>Statut</th><th>Date</th><th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="reclamations-tbody"></tbody>
+        </table>
+        </div>
+    <?php else: ?>
+        <div style="overflow-x:auto;" id="table-container">
+        <table class="rc-table">
+            <thead>
+                <tr>
+                    <th>#</th><th>Stagiaire</th><th>Type</th><th>Description</th>
+                    <th>Msgs</th><th>Assigné à</th><th>Statut</th><th>Date</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="reclamations-tbody">
             <?php $__currentLoopData = $reclamations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rec): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <?php
                     $sc = $statusConfig[$rec->status] ?? $statusConfig['en_attente'];
                     $tc = $typeConfig[$rec->type]     ?? $typeConfig['autre'];
-                    $sName    = $rec->stagiaire?->name ?? '—';
-                    $initials = strtoupper(mb_substr($sName, 0, 1) . mb_substr(explode(' ', $sName)[1] ?? '', 0, 1));
-                    $isNew    = $rec->status === 'en_attente';
+                    $sName = $rec->stagiaire?->name ?? '—';
+                    $initials = strtoupper(mb_substr($sName,0,1).mb_substr(explode(' ',$sName)[1]??'',0,1));
                 ?>
-                <tr class="<?php echo e($isNew ? 'unread-row' : ''); ?>">
-                    <td>
-                        <span style="font-size:11px;font-weight:700;color:#94a3b8;">#<?php echo e($rec->id); ?></span>
-                    </td>
+                <tr id="rec-row-<?php echo e($rec->id); ?>">
+                    <td><span style="font-size:11px;font-weight:700;color:#94a3b8;">#<?php echo e($rec->id); ?></span></td>
                     <td>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div class="avatar-sm"><?php echo e($initials); ?></div>
@@ -258,7 +313,6 @@
                         <a href="<?php echo e(route('reclamations.show', $rec)); ?>" class="btn-view">
                             💬 Ouvrir
                         </a>
-                        
                         <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-manage')): ?>
                         <button onclick="confirmDelete(<?php echo e($rec->id); ?>)"
                             style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:9px;
@@ -269,8 +323,6 @@
                             onmouseout="this.style.background='#fff1f2'">
                             🗑️ Supprimer
                         </button>
-
-                        
                         <form id="delete-form-<?php echo e($rec->id); ?>"
                               action="<?php echo e(route('reclamations.destroy', $rec)); ?>"
                               method="POST" style="display:none;">
@@ -299,11 +351,8 @@
 
 <div id="delete-modal" style="display:none;position:fixed;inset:0;z-index:9999;
      align-items:center;justify-content:center;">
-    
     <div onclick="cancelDelete()"
          style="position:absolute;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(3px);"></div>
-
-    
     <div style="position:relative;background:white;border-radius:20px;padding:32px;
                 max-width:420px;width:90%;box-shadow:0 24px 48px rgba(0,0,0,0.18);
                 animation:popIn .2s ease;">
@@ -320,7 +369,6 @@
                 Tous les messages liés seront supprimés.
             </p>
         </div>
-
         <div style="display:flex;gap:10px;">
             <button onclick="cancelDelete()"
                 style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #e2e8f0;
@@ -345,28 +393,183 @@
 </style>
 
 <script>
+// ── Delete modal ────────────────────────────────────────────
 let _deleteId = null;
-
 function confirmDelete(id) {
     _deleteId = id;
-    const modal = document.getElementById('delete-modal');
-    modal.style.display = 'flex';
+    document.getElementById('delete-modal').style.display = 'flex';
 }
-
 function cancelDelete() {
     _deleteId = null;
     document.getElementById('delete-modal').style.display = 'none';
 }
-
 function submitDelete() {
-    if (_deleteId) {
-        document.getElementById('delete-form-' + _deleteId).submit();
+    if (_deleteId) document.getElementById('delete-form-' + _deleteId).submit();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cancelDelete(); });
+
+// ── Real-time helpers ────────────────────────────────────────
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Toast notification
+let _toastTimer = null;
+function showToast(icon, title, body, color) {
+    // Remove existing toast
+    const old = document.getElementById('rt-toast');
+    if (old) old.remove();
+    if (_toastTimer) clearTimeout(_toastTimer);
+
+    const toast = document.createElement('div');
+    toast.id = 'rt-toast';
+    toast.className = 'rt-toast';
+    toast.innerHTML = `
+        <div style="width:36px;height:36px;border-radius:10px;background:${color||'#eff6ff'};
+                    display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+            ${icon}
+        </div>
+        <div>
+            <div style="font-size:12px;font-weight:800;color:#1e293b;">${escHtml(title)}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">${escHtml(body)}</div>
+        </div>
+        <button onclick="this.parentElement.remove()"
+            style="margin-left:auto;background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:0;">✕</button>
+    `;
+    document.body.appendChild(toast);
+    _toastTimer = setTimeout(() => {
+        toast.classList.add('rt-toast-hide');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// Bump stat counter
+function bumpStat(key, delta) {
+    const el = document.getElementById('stat-val-' + key);
+    if (!el) return;
+    el.textContent = Math.max(0, parseInt(el.textContent || '0') + delta);
+    const pill = document.getElementById('stat-' + key);
+    if (pill) {
+        pill.classList.remove('stat-bump');
+        void pill.offsetWidth; // reflow
+        pill.classList.add('stat-bump');
     }
 }
 
-// Close on ESC
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') cancelDelete();
+// Prepend a new row to the table
+function prependRow(e) {
+    const tbody = document.getElementById('reclamations-tbody');
+    if (!tbody) return;
+
+    // Hide empty state, show table
+    const empty = document.getElementById('empty-state');
+    const table = document.getElementById('table-container');
+    if (empty) empty.style.display = 'none';
+    if (table) table.style.display = 'block';
+
+    const initials = (e.stagiaire || '?')
+        .split(' ')
+        .slice(0,2)
+        .map(w => w.charAt(0).toUpperCase())
+        .join('');
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR');
+    const timeStr = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+
+    const tr = document.createElement('tr');
+    tr.id = 'rec-row-' + e.id;
+    tr.className = 'rt-new-row';
+    tr.innerHTML = `
+        <td><span style="font-size:11px;font-weight:700;color:#94a3b8;">#${escHtml(e.id)}</span></td>
+        <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="avatar-sm">${escHtml(initials)}</div>
+                <div>
+                    <div style="font-weight:700;font-size:12px;">${escHtml(e.stagiaire || '—')}</div>
+                </div>
+            </div>
+        </td>
+        <td>
+            <span class="badge" style="background:#eff6ff;color:#1e40af;">
+                ${escHtml(e.type_icon)} ${escHtml(e.type_label)}
+            </span>
+        </td>
+        <td style="max-width:220px;">
+            <p style="margin:0;font-size:12px;color:#475569;overflow:hidden;
+                      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+                ${escHtml(e.description)}
+            </p>
+        </td>
+        <td><span class="msg-dot">💬 0</span></td>
+        <td><span style="font-size:10px;color:#cbd5e1;">—</span></td>
+        <td>
+            <span class="badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">
+                ⏳ En attente
+            </span>
+        </td>
+        <td style="white-space:nowrap;">
+            <div style="font-size:11px;color:#64748b;">${dateStr}</div>
+            <div style="font-size:10px;color:#94a3b8;">${timeStr}</div>
+        </td>
+        <td style="white-space:nowrap;">
+            <a href="${escHtml(e.url)}" class="btn-view">💬 Ouvrir</a>
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-manage')): ?>
+            <button onclick="confirmDelete(${e.id})"
+                style="font-size:11px;font-weight:700;padding:6px 14px;border-radius:9px;
+                       background:#fff1f2;color:#be123c;border:1.5px solid #fecdd3;
+                       cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:4px;">
+                🗑️ Supprimer
+            </button>
+            <form id="delete-form-${e.id}" action="/reclamations/${e.id}" method="POST" style="display:none;">
+                <?php echo csrf_field(); ?>
+                <?php echo method_field('DELETE'); ?>
+            </form>
+            <?php endif; ?>
+        </td>
+    `;
+
+    tbody.insertBefore(tr, tbody.firstChild);
+}
+
+// Remove a row with animation
+function removeRow(id) {
+    const row = document.getElementById('rec-row-' + id);
+    if (!row) return;
+    row.classList.add('rt-deleting');
+    setTimeout(() => row.remove(), 450);
+}
+
+// ── Echo listeners ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof window.Echo === 'undefined') {
+        console.error('❌ Echo not loaded on index page!');
+        return;
+    }
+
+    // PUBLIC channel — anyone subscribed sees new/deleted reclamations
+    window.Echo.channel('reclamations.admin')
+
+        // ✅ New reclamation created by a stagiaire
+        .listen('.ReclamationCreated', (e) => {
+            console.log('🆕 ReclamationCreated:', e);
+            prependRow(e);
+            bumpStat('total', +1);
+            bumpStat('en_attente', +1);
+            showToast('📝', 'Nouvelle réclamation #' + e.id,
+                (e.stagiaire || 'Stagiaire') + ' · ' + e.type_label, '#eff6ff');
+        })
+
+        // ✅ Reclamation deleted (by admin on another tab or another admin)
+        .listen('.ReclamationDeleted', (e) => {
+            console.log('🗑️ ReclamationDeleted:', e);
+            removeRow(e.reclamation_id);
+            bumpStat('total', -1);
+            // We don't know the status here so we can't update individual status counters
+            // A page refresh will fix stats — or add status to the broadcast payload
+        });
+
+    console.log('✅ Admin real-time listeners active on reclamations.admin');
 });
 </script>
 

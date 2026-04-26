@@ -13,7 +13,13 @@
     #sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
     #sidebar-nav { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
     </style>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+@keyframes fadeOut { 
+    from { opacity:1; transform:translateX(0); } 
+    to   { opacity:0; transform:translateX(30px); } 
+}
+</style>
+     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-screen w-screen overflow-hidden flex bg-slate-100" x-data="{ sidebarOpen: true }">
 
@@ -145,6 +151,130 @@
             @yield('content')
         </main>
     </div>
+@stack('scripts')
 
+{{-- Toast container --}}
+<div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;"></div>
+
+<script src="https://js.pusher.com/8.4/pusher.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+<script>
+window.Pusher = Pusher;
+window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key: '{{ env("REVERB_APP_KEY") }}',
+    wsHost: '{{ env("REVERB_HOST", "localhost") }}',
+    wsPort: {{ env("REVERB_PORT", 8080) }},
+    wssPort: {{ env("REVERB_PORT", 8080) }},
+    forceTLS: false,
+    enabledTransports: ['ws', 'wss'],
+});
+
+// ── Toast function ──────────────────────────
+function showToast(icon, title, body, url) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        background:white;border-radius:14px;border:1px solid #e2e8f0;
+        padding:14px 16px;min-width:280px;max-width:340px;
+        box-shadow:0 8px 24px rgba(0,0,0,0.12);
+        display:flex;gap:12px;align-items:flex-start;
+        animation:slideIn .3s ease;cursor:pointer;
+    `;
+    toast.innerHTML = `
+        <div style="font-size:22px;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;">
+            <div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:3px;">${title}</div>
+            <div style="font-size:11px;color:#64748b;line-height:1.4;">${body}</div>
+        </div>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:0;flex-shrink:0;">×</button>
+    `;
+    if (url) toast.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON') window.location.href = url;
+    });
+
+    const container = document.getElementById('toast-container');
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 6000);
+}
+
+const style = document.createElement('style');
+style.textContent = `@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }`;
+document.head.appendChild(style);
+
+// ── Listen — assignation (pour formateur/gestionnaire) ──
+@auth
+window.Echo.private('user.{{ Auth::id() }}')
+    .listen('.ReclamationAssigned', (e) => {
+        showToast(
+            '📋',
+            'Réclamation assignée !',
+            `Réclamation #${e.reclamation_id} de ${e.stagiaire} vous a été assignée.`,
+            e.url
+        );
+    });
+
+// ── Listen — nouvelle réclamation (pour admin/gestionnaire) ──
+@can('reclamation-manage')
+window.Echo.channel('reclamations.admin')
+    .listen('.ReclamationCreated', (e) => {
+        showToast(
+            e.type_icon,
+            'Nouvelle réclamation !',
+            `${e.stagiaire} : ${e.description}`,
+            e.url
+        );
+
+        // Update badge compteur si kayn f sidebar
+        const badge = document.getElementById('reclamations-count');
+        if (badge) badge.textContent = parseInt(badge.textContent || 0) + 1;
+    });
+@endcan
+
+// ── Suppression (admin + stagiaire) ──
+window.Echo.private('user.{{ Auth::id() }}')
+    .listen('.ReclamationDeleted', (e) => {
+        showToast('🗑️', 'Réclamation supprimée', 
+            `La réclamation #${e.reclamation_id} a été supprimée.`, 
+            null
+        );
+        // Ila kayn f l-liste — supprime la ligne
+        const row = document.getElementById('rec-row-' + e.reclamation_id);
+        if (row) {
+            row.style.animation = 'fadeOut .4s ease forwards';
+            setTimeout(() => row.remove(), 400);
+        }
+        // Ila kayn f show page — redirect
+        if (window.location.href.includes('/reclamations/' + e.reclamation_id)) {
+            setTimeout(() => window.location.href = '{{ route("reclamations.index") }}', 2000);
+        }
+    });
+
+@can('reclamation-manage')
+// ── Nouvelle réclamation (admin/gestionnaire) ──
+window.Echo.channel('reclamations.admin')
+    .listen('.ReclamationCreated', (e) => {
+        showToast(
+            e.type_icon,
+            '🔔 Nouvelle réclamation !',
+            `${e.stagiaire} : ${e.description}`,
+            e.url
+        );
+    })
+    .listen('.ReclamationDeleted', (e) => {
+        showToast('🗑️', 'Réclamation supprimée',
+            `Réclamation #${e.reclamation_id} supprimée.`,
+            null
+        );
+        const row = document.getElementById('rec-row-' + e.reclamation_id);
+        if (row) {
+            row.style.animation = 'fadeOut .4s ease forwards';
+            setTimeout(() => row.remove(), 400);
+        }
+    });
+@endcan
+@endauth
+</script>
+
+@stack('scripts')
 </body>
 </html>

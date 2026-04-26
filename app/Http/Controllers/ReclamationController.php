@@ -8,6 +8,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use App\Events\ReclamationMessageSent;
+use App\Events\ReclamationStatusUpdated;
+use App\Events\ReclamationAssigned;      // ← ZID HADI
+use App\Events\ReclamationCreated;       // ← W HADI
+use App\Events\ReclamationDeleted;
 
 class ReclamationController extends Controller
 {
@@ -98,26 +103,28 @@ class ReclamationController extends Controller
     }
 
     // ── STORE ─────────────────────────────────────────────────
-    public function store(Request $request): RedirectResponse
-    {
-        $this->authorize('reclamation-create');
+public function store(Request $request): RedirectResponse
+{
+    $this->authorize('reclamation-create');
 
-        $validated = $request->validate([
-            'type'        => 'required|in:note,absence,emploi,formateur,autre',
-            'description' => ['required', 'string', 'min:10', 'max:1000', 'regex:/^\S{1,50}(\s\S{1,50})*$/u'],
-        ]);
+    $validated = $request->validate([
+        'type'        => 'required|in:note,absence,emploi,formateur,autre',
+        'description' => ['required', 'string', 'min:10', 'max:1000', 'regex:/^\S{1,50}(\s\S{1,50})*$/u'],
+    ]);
 
-        $reclamation = Reclamation::create([
-            'id_user'     => Auth::id(),
-            'type'        => $validated['type'],
-            'description' => $validated['description'],
-            'status'      => 'en_attente',
-        ]);
+    $reclamation = Reclamation::create([
+        'id_user'     => Auth::id(),
+        'type'        => $validated['type'],
+        'description' => $validated['description'],
+        'status'      => 'en_attente',
+    ]);
 
-        return redirect()->route('reclamations.show', $reclamation)
-            ->with('success', 'Réclamation soumise avec succès. L\'équipe vous répondra prochainement.');
-    }
+    // 🔥 Broadcast nouvelle réclamation
+    broadcast(new ReclamationCreated($reclamation->fresh()));
 
+    return redirect()->route('reclamations.show', $reclamation)
+        ->with('success', 'Réclamation soumise avec succès.');
+}
     // ── SHOW (conversation thread) ────────────────────────────
     public function show(Reclamation $reclamation)
     {
@@ -137,88 +144,120 @@ class ReclamationController extends Controller
     }
 
     // ── SEND MESSAGE ──────────────────────────────────────────
-    public function sendMessage(Request $request, Reclamation $reclamation): RedirectResponse
-    {
-        $user = Auth::user();
+// ── SEND MESSAGE ──────────────────────────────────────────
+public function sendMessage(Request $request, Reclamation $reclamation)
+{
+    $user = Auth::user();
 
-        if (! $reclamation->canReply($user)) {
-            abort(403, 'Vous ne pouvez pas répondre à cette réclamation.');
+    if (! $reclamation->canReply($user)) {
+        if ($request->expectsJson()) {
+            return response()->json(['error' => 'Non autorisé.'], 403);
         }
-
-        $request->validate([
-            'message' => 'required|string|min:1|max:2000',
-        ]);
-
-        ReclamationMessage::create([
-            'reclamation_id' => $reclamation->id,
-            'sender_id'      => Auth::id(),
-            'message'        => $request->message,
-        ]);
-
-        // Auto-move to en_cours if still en_attente and a staff member replies
-        if ($reclamation->status === 'en_attente'
-            && $user->id !== $reclamation->id_user) {
-            $reclamation->update(['status' => 'en_cours']);
-        }
-
-        $reclamation->touch(); // update updated_at so it bubbles up in list
-
-        return redirect()
-            ->route('reclamations.show', $reclamation)
-            ->with('success', 'Message envoyé.')
-            ->withFragment('messages-end');
+        abort(403);
     }
 
+    $request->validate([
+        'message' => 'required|string|min:1|max:2000',
+    ]);
+
+    $msg = ReclamationMessage::create([
+        'reclamation_id' => $reclamation->id,
+        'sender_id'      => Auth::id(),
+        'message'        => $request->message,
+    ]);
+
+    if ($reclamation->status === 'en_attente' && $user->id !== $reclamation->id_user) {
+        $reclamation->update(['status' => 'en_cours']);
+        // broadcast(new ReclamationStatusUpdated($reclamation->fresh()))->toOthers();
+    }
+
+    $reclamation->touch();
+    broadcast(new ReclamationMessageSent($msg))->toOthers();
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => [
+                'id'         => $msg->id,
+                'message'    => $msg->message,
+                'created_at' => $msg->created_at->format('H:i'),
+                'sender'     => [
+                    'id'   => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->role,
+                ],
+            ],
+        ]);
+    }
+
+    return redirect()
+        ->route('reclamations.show', $reclamation)
+        ->with('success', 'Message envoyé.');
+}
     // ── ASSIGN (admin only) ───────────────────────────────────
-    public function assign(Request $request, Reclamation $reclamation): RedirectResponse
-    {
-        $this->authorize('reclamation-manage');
+public function assign(Request $request, Reclamation $reclamation): RedirectResponse
+{
+    $this->authorize('reclamation-manage');
 
-        $request->validate([
-            'assigned_to' => 'nullable|exists:users,id',
-        ]);
+    $request->validate([
+        'assigned_to' => 'nullable|exists:users,id',
+    ]);
 
-        $reclamation->update(['assigned_to' => $request->assigned_to ?: null]);
+    $reclamation->update(['assigned_to' => $request->assigned_to ?: null]);
 
-        $assignee = $request->assigned_to
-            ? User::find($request->assigned_to)?->name
-            : null;
-
-        $msg = $assignee
-            ? "Réclamation assignée à {$assignee}."
-            : 'Assignation retirée.';
-
-        return back()->with('success', $msg);
+    // 🔥 Broadcast l-assigné
+    if ($request->assigned_to) {
+        broadcast(new ReclamationAssigned($reclamation->fresh()));
     }
+
+    $assignee = $request->assigned_to
+        ? User::find($request->assigned_to)?->name
+        : null;
+
+    return back()->with('success', $assignee
+        ? "Réclamation assignée à {$assignee}."
+        : 'Assignation retirée.');
+}
 
     // ── UPDATE STATUS (admin / gestionnaire) ──────────────────
-    public function updateStatus(Request $request, Reclamation $reclamation): RedirectResponse
-    {
-        $this->authorize('reclamation-manage');
+ // ── UPDATE STATUS ──────────────────────────────────────────
+public function updateStatus(Request $request, Reclamation $reclamation): RedirectResponse
+{
+    $this->authorize('reclamation-manage');
 
-        $request->validate([
-            'status' => 'required|in:en_attente,en_cours,traite',
-        ]);
+    $request->validate([
+        'status' => 'required|in:en_attente,en_cours,traite',
+    ]);
 
-        $reclamation->update(['status' => $request->status]);
+    $reclamation->update(['status' => $request->status]);
 
-        $label = Reclamation::STATUSES[$request->status]['label'] ?? $request->status;
+    // 🔥 Broadcast le changement de statut
+    broadcast(new ReclamationStatusUpdated($reclamation->fresh()));
 
-        return back()->with('success', "Statut mis à jour : {$label}.");
-    }
+    $label = Reclamation::STATUSES[$request->status]['label'] ?? $request->status;
+
+    return back()->with('success', "Statut mis à jour : {$label}.");
+}
 
     // ── DESTROY (admin / gestionnaire only) ───────────────────
-    public function destroy(Reclamation $reclamation): RedirectResponse
-    {
-        $this->authorize('reclamation-manage');
-        
-        // Supprimer d'abord tous les messages associés
-        $reclamation->messages()->delete();
-        
-        // Puis supprimer la réclamation
-        $reclamation->delete();
+// ── DESTROY ───────────────────────────────────────────────
+public function destroy(Reclamation $reclamation): RedirectResponse
+{
+    $this->authorize('reclamation-manage');
 
-        return redirect()->route('reclamations.index')
-            ->with('success', 'Réclamation #' . $reclamation->id . ' supprimée avec succès.');
-    }
+    $stagiaireId   = $reclamation->id_user;
+    $reclamationId = $reclamation->id;
+
+    $reclamation->messages()->delete();
+    $reclamation->delete();
+
+    // 🔥 Broadcast suppression
+    broadcast(new \App\Events\ReclamationDeleted($reclamationId, $stagiaireId));
+
+    return redirect()->route('reclamations.index')
+        ->with('success', 'Réclamation #' . $reclamationId . ' supprimée avec succès.');
+}
+
+// ── STORE ─────────────────────────────────────────────────
+
 }

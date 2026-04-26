@@ -1,522 +1,672 @@
 
 
 <?php $__env->startSection('title', 'Réclamation #' . $reclamation->id); ?>
-<?php $__env->startSection('page-title', 'Réclamation'); ?>
+<?php $__env->startSection('page-title', 'Conversation'); ?>
+
+<?php $__env->startPush('scripts'); ?>
+<script src="https://js.pusher.com/8.4/pusher.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
+<script>
+window.Pusher = Pusher;
+window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key: '<?php echo e(env("REVERB_APP_KEY")); ?>',
+    wsHost: '<?php echo e(env("REVERB_HOST", "localhost")); ?>',
+    wsPort: <?php echo e(env("REVERB_PORT", 8080)); ?>,
+    wssPort: <?php echo e(env("REVERB_PORT", 8080)); ?>,
+    forceTLS: false,
+    enabledTransports: ['ws', 'wss'],
+});
+</script>
+<?php $__env->stopPush(); ?>
 
 <?php $__env->startSection('content'); ?>
 <?php
-    $user      = Auth::user();
-    $role      = $user->role;
-    $isAdmin   = $user->can('reclamation-manage');
-    $isMine    = $reclamation->id_user === $user->id;
-    $canReply  = $reclamation->canReply($user);
-    $sc        = $reclamation->statusConfig;
-    $tc        = $reclamation->typeConfig;
+    $user        = Auth::user();
+    $isStaff     = $user->can('reclamation-manage');
+    $isAssigned  = $reclamation->assigned_to === $user->id;
+    $isStagiaire = $user->id === $reclamation->id_user;
+    $sc          = $reclamation->statusConfig;
+    $tc          = $reclamation->typeConfig;
+    $canReply    = $reclamation->canReply($user);
 
-    $palettes = [
-        'admin' => [
-            'gradient' => 'linear-gradient(135deg,#0a6640 0%,#1a8c56 100%)',
-            'primary'  => '#0a6640',
-            'light'    => '#e8f5ee',
-            'lighter'  => '#f0fdf4',
-            'text'     => '#065f38',
-            'border'   => '#bbf7d0',
-            'shadow'   => 'rgba(10,102,64,0.15)',
-            'btn_bg'   => 'linear-gradient(135deg,#0a6640,#1a8c56)',
-        ],
-        'gestionnaire' => [
-            'gradient' => 'linear-gradient(135deg,#1e293b 0%,#334155 100%)',
-            'primary'  => '#1e293b',
-            'light'    => '#f1f5f9',
-            'lighter'  => '#f8fafc',
-            'text'     => '#1e293b',
-            'border'   => '#cbd5e1',
-            'shadow'   => 'rgba(30,41,59,0.15)',
-            'btn_bg'   => 'linear-gradient(135deg,#1e293b,#334155)',
-        ],
-        'formateur' => [
-            'gradient' => 'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)',
-            'primary'  => '#1a4f8a',
-            'light'    => '#eff6ff',
-            'lighter'  => '#f0f7ff',
-            'text'     => '#1e40af',
-            'border'   => '#bfdbfe',
-            'shadow'   => 'rgba(26,79,138,0.15)',
-            'btn_bg'   => 'linear-gradient(135deg,#1a4f8a,#2563eb)',
-        ],
-        'stagiaire' => [
-            'gradient' => 'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)',
-            'primary'  => '#1a4f8a',
-            'light'    => '#eff6ff',
-            'lighter'  => '#f0f7ff',
-            'text'     => '#1e40af',
-            'border'   => '#bfdbfe',
-            'shadow'   => 'rgba(26,79,138,0.15)',
-            'btn_bg'   => 'linear-gradient(135deg,#1a4f8a,#2563eb)',
-        ],
+    $roleGradients = [
+        'admin'        => 'linear-gradient(135deg,#065f46 0%,#0a6640 100%)',
+        'gestionnaire' => 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)',
+        'formateur'    => 'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)',
+        'stagiaire'    => 'linear-gradient(135deg,#1a4f8a 0%,#2563eb 100%)',
     ];
-
-    $p = $palettes[$role] ?? $palettes['stagiaire'];
-
-    $roleLabels = [
-        'admin'        => ['label'=>'Admin',        'bg'=>'#d1fae5','color'=>'#065f38'],
-        'gestionnaire' => ['label'=>'Gestionnaire', 'bg'=>'#f1f5f9','color'=>'#1e293b'],
-        'formateur'    => ['label'=>'Formateur',    'bg'=>'#eff6ff','color'=>'#1e40af'],
-        'stagiaire'    => ['label'=>'Stagiaire',    'bg'=>'#f5f3ff','color'=>'#6d28d9'],
+    $roleAccents = [
+        'admin'        => '#0a6640',
+        'gestionnaire' => '#1e293b',
+        'formateur'    => '#2563eb',
+        'stagiaire'    => '#2563eb',
     ];
+    $roleFocusRings = [
+        'admin'        => 'rgba(10,102,64,0.12)',
+        'gestionnaire' => 'rgba(30,41,59,0.12)',
+        'formateur'    => 'rgba(26,79,138,0.10)',
+        'stagiaire'    => 'rgba(26,79,138,0.10)',
+    ];
+    $roleAvatarBg = [
+        'admin'        => '#dcfce7',
+        'gestionnaire' => '#e2e8f0',
+        'formateur'    => '#eff6ff',
+        'stagiaire'    => '#eff6ff',
+    ];
+    $roleAvatarText = [
+        'admin'        => '#065f46',
+        'gestionnaire' => '#334155',
+        'formateur'    => '#1e40af',
+        'stagiaire'    => '#1e40af',
+    ];
+    $roleMsgBg = [
+        'admin'        => '#f0fdf4',
+        'gestionnaire' => '#f8fafc',
+        'formateur'    => '#f0f7ff',
+        'stagiaire'    => '#f0f7ff',
+    ];
+    $roleMsgBorder = [
+        'admin'        => '#bbf7d0',
+        'gestionnaire' => '#e2e8f0',
+        'formateur'    => '#bfdbfe',
+        'stagiaire'    => '#bfdbfe',
+    ];
+    $roleSuccessBg     = ['admin'=>'#f0fdf4','gestionnaire'=>'#f8fafc','formateur'=>'#f0f7ff','stagiaire'=>'#f0f7ff'];
+    $roleSuccessBorder = ['admin'=>'#bbf7d0','gestionnaire'=>'#e2e8f0','formateur'=>'#bfdbfe','stagiaire'=>'#bfdbfe'];
+    $roleSuccessText   = ['admin'=>'#065f46','gestionnaire'=>'#1e293b','formateur'=>'#1e40af','stagiaire'=>'#1e40af'];
+
+    $role      = $user->role ?? 'stagiaire';
+    $gradient  = $roleGradients[$role]     ?? $roleGradients['stagiaire'];
+    $accent    = $roleAccents[$role]       ?? $roleAccents['stagiaire'];
+    $ring      = $roleFocusRings[$role]    ?? $roleFocusRings['stagiaire'];
+    $avatarBg  = $roleAvatarBg[$role]      ?? $roleAvatarBg['stagiaire'];
+    $avatarTx  = $roleAvatarText[$role]    ?? $roleAvatarText['stagiaire'];
+    $msgBg     = $roleMsgBg[$role]         ?? $roleMsgBg['stagiaire'];
+    $msgBorder = $roleMsgBorder[$role]     ?? $roleMsgBorder['stagiaire'];
+    $succBg    = $roleSuccessBg[$role]     ?? $roleSuccessBg['stagiaire'];
+    $succBd    = $roleSuccessBorder[$role] ?? $roleSuccessBorder['stagiaire'];
+    $succTx    = $roleSuccessText[$role]   ?? $roleSuccessText['stagiaire'];
 ?>
 
 <style>
-:root {
-    --gr:  <?php echo e($p['gradient']); ?>;
-    --pr:  <?php echo e($p['primary']); ?>;
-    --lt:  <?php echo e($p['light']); ?>;
-    --ltr: <?php echo e($p['lighter']); ?>;
-    --tx:  <?php echo e($p['text']); ?>;
-    --bd:  <?php echo e($p['border']); ?>;
-    --sh:  <?php echo e($p['shadow']); ?>;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Full-viewport shell ── */
+.conv-shell {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px); /* adjust 64px to your navbar height */
+    max-width: 860px;
+    margin: 0 auto;
+    gap: 12px;
+    padding-bottom: 12px;
 }
 
-* { box-sizing:border-box; }
-.rc-show { font-family:'Segoe UI',system-ui,sans-serif; max-width:1200px; margin:0 auto; }
-
-/* ── HERO ── */
-.rc-hero { background:var(--gr); border-radius:20px; padding:24px 28px; margin-bottom:20px;
-           display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-           position:relative; overflow:hidden; }
-.rc-hero::after { content:''; position:absolute; right:-40px; top:-40px; width:200px; height:200px;
-                  border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
-.rc-hero-back { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
-                color:#fff; font-size:11px; font-weight:700; padding:7px 16px; border-radius:99px;
-                text-decoration:none; transition:background .15s; white-space:nowrap; }
-.rc-hero-back:hover { background:rgba(255,255,255,0.22); }
-
-/* ── LAYOUT ── */
-.rc-body { display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; }
-@media(max-width:860px) { .rc-body { grid-template-columns:1fr; } }
-
-/* ── SIDEBAR ── */
-.rc-sidebar { display:flex; flex-direction:column; gap:14px; }
-.rc-card { background:white; border-radius:18px; border:1px solid #e2e8f0; overflow:hidden; }
-.rc-card-head { padding:13px 16px; border-bottom:1px solid #f1f5f9;
-                font-size:10px; font-weight:800; color:#94a3b8;
-                text-transform:uppercase; letter-spacing:.9px; }
-.rc-info-row { display:flex; justify-content:space-between; align-items:center;
-               padding:10px 16px; border-bottom:1px solid #f8fafc; gap:8px; }
-.rc-info-row:last-child { border-bottom:none; }
-.rc-info-label { font-size:11px; color:#94a3b8; font-weight:600; flex-shrink:0; }
-.rc-info-val   { font-size:11px; color:#1e293b; font-weight:700; text-align:right; }
-
-/* Status buttons */
-.btn-status { width:100%; margin:0; padding:9px; border-radius:10px; border:1.5px solid;
-              font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; background:white; }
-
-/* Assign select */
-.assign-select { width:100%; padding:9px 12px; border:1.5px solid #e2e8f0; border-radius:10px;
-                 font-size:12px; color:#1e293b; background:white; outline:none; cursor:pointer;
-                 transition:border-color .15s; }
-.assign-select:focus { border-color:var(--bd); }
-.btn-assign { width:100%; margin-top:8px; padding:9px; border-radius:10px;
-              background:var(--gr); color:white; border:none; font-size:12px;
-              font-weight:700; cursor:pointer; transition:opacity .15s; }
-.btn-assign:hover { opacity:.88; }
-
-/* ── CONVERSATION ── */
-.rc-thread { background:white; border-radius:18px; border:1px solid #e2e8f0; overflow:hidden; }
-.rc-thread-head { padding:14px 20px; border-bottom:1px solid #f1f5f9;
-                  display:flex; align-items:center; justify-content:space-between; }
-
-/* Original ticket */
-.ticket-desc { margin:20px; padding:16px 20px; background:#f8fafc;
-               border-radius:14px; border:1px solid #e2e8f0;
-               border-left:4px solid var(--pr); }
-.ticket-desc-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.ticket-desc-body   { font-size:13px; color:#374151; line-height:1.7; white-space:pre-wrap; }
-
-/* Messages area */
-.messages-area { padding:8px 20px 20px; display:flex; flex-direction:column; gap:16px; }
-
-/* Bubble: theirs */
-.bubble-left  { display:flex; gap:10px; align-items:flex-end; max-width:80%; }
-.bubble-right { display:flex; justify-content:flex-end; }
-.bubble-right-inner { max-width:80%; }
-
-.bubble-body-left {
-    background:white; border:1px solid #e2e8f0;
-    border-radius:4px 16px 16px 16px;
-    padding:12px 16px; font-size:13px; color:#1e293b;
-    line-height:1.6; word-break:break-word;
-    box-shadow:0 1px 4px rgba(0,0,0,0.05);
+/* ── Flash notice ── */
+.flash-notice {
+    flex-shrink: 0;
+    padding: 11px 16px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
 }
-.bubble-body-right {
-    background:var(--gr);
-    border-radius:16px 4px 16px 16px;
-    padding:12px 16px; font-size:13px; color:white;
-    line-height:1.6; word-break:break-word;
-    box-shadow:0 2px 8px var(--sh);
+
+/* ── Hero ── */
+.hero {
+    flex-shrink: 0;
+    background: <?php echo e($gradient); ?>;
+    border-radius: 18px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
 }
-.bubble-meta  { font-size:10px; color:#94a3b8; margin-bottom:5px; display:flex; align-items:center; gap:6px; }
-.bubble-meta-right { text-align:right; justify-content:flex-end; }
-.avatar-sm    { width:28px; height:28px; border-radius:8px; background:#eff6ff;
-                display:flex; align-items:center; justify-content:center;
-                font-size:9px; font-weight:800; color:#1e40af; flex-shrink:0; }
-.role-chip    { font-size:9px; font-weight:700; padding:1px 7px; border-radius:5px; white-space:nowrap; }
+.hero::after {
+    content: '';
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    pointer-events: none;
+}
 
-/* Divider */
-.day-divider  { display:flex; align-items:center; gap:10px; margin:8px 0; }
-.day-divider::before, .day-divider::after { content:''; flex:1; height:1px; background:#f1f5f9; }
-.day-divider span { font-size:10px; color:#cbd5e1; font-weight:600; white-space:nowrap; }
+/* ── Chat card — FLEX COLUMN that fills remaining space ── */
+.chat-card {
+    flex: 1;               /* take all remaining vertical space */
+    min-height: 0;         /* crucial — lets flex child shrink below content size */
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
 
-/* Reply form */
-.reply-area { border-top:1px solid #f1f5f9; padding:16px 20px; background:#fafbfd; }
-.reply-textarea { width:100%; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:14px;
-                  font-size:13px; font-family:inherit; color:#1e293b; background:white;
-                  outline:none; resize:vertical; min-height:90px; line-height:1.6;
-                  transition:border-color .15s, box-shadow .15s; }
-.reply-textarea:focus { border-color:var(--bd); box-shadow:0 0 0 3px rgba(26,79,138,0.08); }
-.reply-submit { margin-top:10px; display:flex; justify-content:flex-end; }
-.btn-send { padding:10px 24px; border-radius:12px; background:var(--gr); color:white;
-            border:none; font-size:13px; font-weight:700; cursor:pointer;
-            display:inline-flex; align-items:center; gap:8px;
-            box-shadow:0 2px 8px var(--sh); transition:opacity .15s; }
-.btn-send:hover { opacity:.88; }
-.reply-closed { padding:14px 20px; background:#fef3c7; border-top:1px solid #fde68a;
-                font-size:12px; color:#92400e; font-weight:600;
-                display:flex; align-items:center; gap:8px; }
+/* ── Chat header — fixed, never scrolls ── */
+.chat-header {
+    flex-shrink: 0;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: white;
+}
 
-/* Flash */
-.flash-ok  { display:flex; align-items:center; gap:12px; padding:14px 18px; border-radius:14px;
-             margin-bottom:18px; background:var(--ltr); border:1px solid var(--bd); animation:fi .3s; }
-@keyframes fi { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+/* ── Messages area — ONLY this scrolls ── */
+.messages-area {
+    flex: 1;
+    min-height: 0;         /* crucial */
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+}
+/* Custom scrollbar */
+.messages-area::-webkit-scrollbar { width: 5px; }
+.messages-area::-webkit-scrollbar-track { background: transparent; }
+.messages-area::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+.messages-area::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+/* ── Bubbles ── */
+.msg-bubble { max-width: 72%; display: flex; flex-direction: column; gap: 4px; }
+.msg-bubble.mine   { align-self: flex-end;   align-items: flex-end; }
+.msg-bubble.theirs { align-self: flex-start; align-items: flex-start; }
+
+.msg-content {
+    padding: 11px 15px;
+    border-radius: 18px;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+.msg-bubble.mine .msg-content {
+    background: <?php echo e($gradient); ?>;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+.msg-bubble.theirs .msg-content {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
+}
+.msg-meta   { font-size: 10px; color: #94a3b8; padding: 0 4px; }
+.msg-sender { font-size: 10px; font-weight: 700; color: #64748b; padding: 0 4px; }
+
+/* Date divider */
+.date-divider {
+    align-self: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 4px 14px;
+    margin: 4px 0;
+}
+
+/* ── Typing indicator ── */
+.typing-indicator { display: none; align-self: flex-start; }
+.typing-indicator.visible { display: flex; }
+.typing-dots {
+    background: #f1f5f9;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.typing-dots span {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #94a3b8;
+    animation: bounce 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .2s; }
+.typing-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px)} }
+
+/* ── Reply area — fixed at card bottom ── */
+.reply-area {
+    flex-shrink: 0;
+    padding: 14px 18px;
+    border-top: 1px solid #f1f5f9;
+    background: #fafbfd;
+}
+.reply-box { display: flex; gap: 10px; align-items: flex-end; }
+
+.reply-input {
+    flex: 1;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 11px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    min-height: 44px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color .15s, box-shadow .15s;
+    background: white;
+}
+.reply-input:focus {
+    border-color: <?php echo e($accent); ?>;
+    box-shadow: 0 0 0 3px <?php echo e($ring); ?>;
+}
+
+.btn-send {
+    background: <?php echo e($gradient); ?>;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity .15s, transform .1s;
+}
+.btn-send:hover    { opacity: .88; transform: scale(1.04); }
+.btn-send:active   { transform: scale(.97); }
+.btn-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+.reply-hint { font-size: 10px; color: #cbd5e1; margin-top: 7px; text-align: right; }
+
+/* ── Traite notice ── */
+.traite-notice {
+    flex-shrink: 0;
+    padding: 16px 20px;
+    background: #f0fdf4;
+    border-top: 1px solid #bbf7d0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #166534;
+}
+
+/* ── Badges ── */
+.badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 8px; white-space: nowrap; }
+.rt-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700;
+    color: #16a34a; background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px; padding: 3px 9px;
+}
+.rt-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #16a34a;
+    animation: rtpulse 2s infinite;
+}
+@keyframes rtpulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Admin panel ── */
+.admin-panel {
+    flex-shrink: 0;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    padding: 16px 20px;
+}
+.admin-panel h3 {
+    font-size: 11px; font-weight: 800; color: #1e293b;
+    margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px;
+}
+.f-select {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #1e293b;
+    background: white;
+    cursor: pointer;
+    outline: none;
+    width: 100%;
+    transition: border-color .15s;
+}
+.f-select:focus { border-color: <?php echo e($accent); ?>; box-shadow: 0 0 0 3px <?php echo e($ring); ?>; }
+.btn-action {
+    font-size: 12px; font-weight: 700;
+    padding: 8px 18px; border-radius: 10px;
+    background: <?php echo e($gradient); ?>;
+    color: white; border: none; cursor: pointer;
+    transition: opacity .15s; width: 100%;
+}
+.btn-action:hover { opacity: .88; }
+
+/* ── Animations ── */
+@keyframes slideUp { from{transform:translateY(12px);opacity:0} to{transform:translateY(0);opacity:1} }
+.msg-bubble { animation: slideUp .2s ease; }
+@keyframes flashIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
+.status-updated { animation: flashIn .3s ease; }
 </style>
 
-<div class="rc-show">
-
-
-<?php if(session('success')): ?>
-<div class="flash-ok">
-    <svg width="16" height="16" fill="none" stroke="var(--tx)" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-    </svg>
-    <span style="font-size:13px;font-weight:600;color:var(--tx);"><?php echo e(session('success')); ?></span>
-</div>
-<?php endif; ?>
-
-
-<div class="rc-hero">
-    <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.15);
-                    display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
-            <?php echo e($tc['icon']); ?>
-
-        </div>
-        <div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.65);font-weight:600;margin-bottom:3px;">
-                Réclamation #<?php echo e($reclamation->id); ?>
-
-            </div>
-            <h1 style="font-size:18px;font-weight:800;color:white;margin:0;">
-                <?php echo e($tc['icon']); ?> <?php echo e($tc['label']); ?>
-
-            </h1>
-            <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;">
-                par <?php echo e($reclamation->stagiaire?->name ?? '—'); ?> ·
-                <?php echo e($reclamation->created_at->format('d/m/Y à H:i')); ?>
-
-            </div>
-        </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span style="background:<?php echo e($sc['bg']); ?>;color:<?php echo e($sc['color']); ?>;
-                     border:1px solid <?php echo e($sc['border']); ?>;font-size:11px;font-weight:800;
-                     padding:5px 13px;border-radius:99px;">
-            <?php echo e($sc['icon']); ?> <?php echo e($sc['label']); ?>
-
-        </span>
-        <a href="<?php echo e(route('reclamations.index')); ?>" class="rc-hero-back">← Retour</a>
-    </div>
-</div>
-
-
-<div class="rc-body">
+<div class="conv-shell">
 
     
-    <div class="rc-thread">
-        <div class="rc-thread-head">
-            <div style="font-size:13px;font-weight:800;color:#1e293b;display:flex;align-items:center;gap:8px;">
-                💬 Conversation
-                <span style="font-size:10px;font-weight:600;color:#94a3b8;">
-                    <?php echo e($reclamation->messages->count()); ?> message(s)
-                </span>
+    <?php if(session('success')): ?>
+    <div class="flash-notice" style="background:<?php echo e($succBg); ?>;border:1px solid <?php echo e($succBd); ?>;color:<?php echo e($succTx); ?>;">
+        ✓ <?php echo e(session('success')); ?>
+
+    </div>
+    <?php endif; ?>
+
+    
+    <div class="hero">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <a href="<?php echo e(route('reclamations.index')); ?>"
+               style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.15);
+                      display:flex;align-items:center;justify-content:center;
+                      text-decoration:none;color:white;font-size:16px;flex-shrink:0;">←</a>
+            <div>
+                <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;">
+                    <?php echo e($tc['icon']); ?> <?php echo e($tc['label']); ?> · #<?php echo e($reclamation->id); ?>
+
+                </div>
+                <div style="font-size:15px;font-weight:800;color:white;margin-top:1px;">Conversation</div>
             </div>
-            <span style="font-size:10px;color:#94a3b8;">
-                Mis à jour <?php echo e($reclamation->updated_at->diffForHumans()); ?>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span id="status-badge" class="badge"
+                  style="background:<?php echo e($sc['bg']); ?>;color:<?php echo e($sc['color']); ?>;border:1px solid <?php echo e($sc['border']); ?>;">
+                <?php echo e($sc['icon']); ?> <?php echo e($sc['label']); ?>
 
             </span>
+            <span class="rt-badge"><span class="rt-dot"></span> Temps réel</span>
         </div>
+    </div>
+
+    
+    <div class="chat-card">
 
         
-        <div class="ticket-desc">
-            <div class="ticket-desc-header">
-                <?php
-                    $stag = $reclamation->stagiaire;
-                    $stagInitials = strtoupper(
-                        mb_substr($stag?->name ?? '?', 0, 1) .
-                        mb_substr(explode(' ', $stag?->name ?? '?')[1] ?? '', 0, 1)
-                    );
-                ?>
-                <div style="width:34px;height:34px;border-radius:10px;background:#eff6ff;
-                            display:flex;align-items:center;justify-content:center;
-                            font-size:11px;font-weight:800;color:#1e40af;flex-shrink:0;">
-                    <?php echo e($stagInitials); ?>
-
-                </div>
-                <div>
-                    <div style="font-size:12px;font-weight:700;color:#1e293b;">
-                        <?php echo e($stag?->name ?? '—'); ?>
-
-                        <span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:5px;
-                                     background:#f5f3ff;color:#6d28d9;margin-left:4px;">Stagiaire</span>
-                    </div>
-                    <div style="font-size:10px;color:#94a3b8;">
-                        Ticket ouvert le <?php echo e($reclamation->created_at->format('d/m/Y à H:i')); ?>
+        <div class="chat-header">
+            <div>
+                <?php if($isStagiaire): ?>
+                    <div style="font-size:12px;font-weight:700;color:#1e293b;">Votre réclamation</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:1px;">
+                        Ouverte le <?php echo e($reclamation->created_at->format('d/m/Y à H:i')); ?>
 
                     </div>
-                </div>
-                <span style="margin-left:auto;font-size:10px;font-weight:700;padding:3px 10px;
-                             border-radius:8px;background:#dbeafe;color:#1e40af;">
-                    <?php echo e($tc['icon']); ?> <?php echo e($tc['label']); ?>
-
-                </span>
-            </div>
-            <div class="ticket-desc-body"><?php echo e($reclamation->description); ?></div>
-        </div>
-
-        
-        <?php if($reclamation->messages->isNotEmpty()): ?>
-        <div class="messages-area" id="messages-area">
-            <?php $prevDate = null; ?>
-            <?php $__currentLoopData = $reclamation->messages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $msg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <?php
-                    $isMe       = $msg->sender_id === Auth::id();
-                    $sender     = $msg->sender;
-                    $role       = $sender?->role ?? 'stagiaire';
-                    $rc         = $roleLabels[$role] ?? $roleLabels['stagiaire'];
-                    $initials   = strtoupper(
-                        mb_substr($sender?->name ?? '?', 0, 1) .
-                        mb_substr(explode(' ', $sender?->name ?? '?')[1] ?? '', 0, 1)
-                    );
-                    $msgDate    = $msg->created_at->toDateString();
-                ?>
-
-                
-                <?php if($msgDate !== $prevDate): ?>
-                    <?php $prevDate = $msgDate; ?>
-                    <div class="day-divider">
-                        <span>
-                            <?php echo e($msg->created_at->isToday() ? "Aujourd'hui" : ($msg->created_at->isYesterday() ? 'Hier' : $msg->created_at->format('d M Y'))); ?>
-
-                        </span>
-                    </div>
-                <?php endif; ?>
-
-                <?php if($isMe): ?>
-                
-                <div class="bubble-right">
-                    <div class="bubble-right-inner">
-                        <div class="bubble-meta bubble-meta-right">
-                            <span><?php echo e($msg->created_at->format('H:i')); ?></span>
-                            <span style="font-weight:700;color:#475569;">Moi</span>
-                        </div>
-                        <div class="bubble-body-right"><?php echo e($msg->message); ?></div>
-                    </div>
-                </div>
                 <?php else: ?>
-                
-                <div class="bubble-left">
-                    <div class="avatar-sm"><?php echo e($initials); ?></div>
-                    <div style="flex:1;">
-                        <div class="bubble-meta">
-                            <span style="font-weight:700;color:#1e293b;"><?php echo e($sender?->name ?? '—'); ?></span>
-                            <span class="role-chip" style="background:<?php echo e($rc['bg']); ?>;color:<?php echo e($rc['color']); ?>;">
-                                <?php echo e($rc['label']); ?>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:34px;height:34px;border-radius:10px;
+                                    background:<?php echo e($avatarBg); ?>;flex-shrink:0;
+                                    display:flex;align-items:center;justify-content:center;
+                                    font-size:11px;font-weight:800;color:<?php echo e($avatarTx); ?>;">
+                            <?php echo e(strtoupper(mb_substr($reclamation->stagiaire?->name ?? '?', 0, 2))); ?>
 
-                            </span>
-                            <span>· <?php echo e($msg->created_at->format('H:i')); ?></span>
                         </div>
-                        <div class="bubble-body-left"><?php echo e($msg->message); ?></div>
+                        <div>
+                            <div style="font-size:12px;font-weight:700;color:#1e293b;">
+                                <?php echo e($reclamation->stagiaire?->name); ?>
+
+                            </div>
+                            <div style="font-size:10px;color:#94a3b8;"><?php echo e($reclamation->stagiaire?->email); ?></div>
+                        </div>
                     </div>
-                </div>
                 <?php endif; ?>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            <div id="messages-end"></div>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;
+                        border-radius:8px;padding:4px 10px;">
+                <?php echo e($reclamation->messages->count()); ?> msg
+            </div>
         </div>
-        <?php else: ?>
-        <div style="padding:32px 20px;text-align:center;color:#94a3b8;font-size:12px;">
-            Aucun message pour l'instant. Soyez le premier à répondre.
-        </div>
-        <?php endif; ?>
 
         
-        <?php if($canReply): ?>
-        <div class="reply-area">
-            <form method="POST" action="<?php echo e(route('reclamations.message', $reclamation)); ?>">
-                <?php echo csrf_field(); ?>
-                <?php $__errorArgs = ['message'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                    <div style="font-size:11px;color:#ef4444;margin-bottom:8px;"><?php echo e($message); ?></div>
-                <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                <textarea
-                    name="message"
-                    class="reply-textarea"
-                    placeholder="Écrivez votre message ici…"
-                    maxlength="2000"
-                    required
-                    autofocus
-                ><?php echo e(old('message')); ?></textarea>
-                <div class="reply-submit">
-                    <button type="submit" class="btn-send">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+        <div class="messages-area" id="messages-area">
+
+            
+            <div class="date-divider"><?php echo e($reclamation->created_at->format('d/m/Y')); ?></div>
+
+            
+            <div class="msg-bubble <?php echo e($isStagiaire ? 'mine' : 'theirs'); ?>">
+                <?php if (! ($isStagiaire)): ?>
+                    <div class="msg-sender"><?php echo e($reclamation->stagiaire?->name); ?></div>
+                <?php endif; ?>
+                <div class="msg-content"
+                     style="<?php echo e(!$isStagiaire ? "background:{$msgBg};border:1px solid {$msgBorder};color:#1e293b;" : ''); ?>">
+                    <div style="font-size:10px;font-weight:700;margin-bottom:6px;opacity:.6;letter-spacing:.3px;">
+                        📝 RÉCLAMATION INITIALE
+                    </div>
+                    <?php echo e($reclamation->description); ?>
+
+                </div>
+                <div class="msg-meta"><?php echo e($reclamation->created_at->format('H:i')); ?></div>
+            </div>
+
+            
+            <?php $__currentLoopData = $reclamation->messages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $msg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php $isMe = $msg->sender_id === $user->id; ?>
+                <div class="msg-bubble <?php echo e($isMe ? 'mine' : 'theirs'); ?>" id="msg-<?php echo e($msg->id); ?>">
+                    <?php if (! ($isMe)): ?>
+                        <div class="msg-sender">
+                            <?php echo e($msg->sender?->name); ?>
+
+                            <span style="font-weight:400;color:#cbd5e1;">· <?php echo e(ucfirst($msg->sender?->role)); ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <div class="msg-content"><?php echo e($msg->message); ?></div>
+                    <div class="msg-meta"><?php echo e($msg->created_at->format('H:i')); ?></div>
+                </div>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+            
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="typing-dots"><span></span><span></span><span></span></div>
+            </div>
+        </div>
+
+        
+        <?php if($reclamation->status === 'traite'): ?>
+            <div class="traite-notice">✅ Réclamation traitée — les réponses sont désactivées.</div>
+        <?php elseif($canReply): ?>
+            <div class="reply-area">
+                <div class="reply-box">
+                    <textarea id="reply-input" class="reply-input"
+                              placeholder="Votre message…" rows="1"></textarea>
+                    <button class="btn-send" id="send-btn" title="Envoyer (Ctrl+Entrée)">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                         </svg>
-                        Envoyer
                     </button>
                 </div>
-            </form>
-        </div>
-        <?php else: ?>
-        <div class="reply-closed">
-            <svg width="16" height="16" fill="none" stroke="#92400e" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <?php if($reclamation->status === 'traite'): ?>
-                Cette réclamation est marquée comme traitée — la conversation est fermée.
-            <?php else: ?>
-                Vous ne pouvez pas répondre à cette réclamation.
-            <?php endif; ?>
-        </div>
+                <div class="reply-hint">Ctrl + Entrée pour envoyer</div>
+            </div>
         <?php endif; ?>
     </div>
 
     
-    <div class="rc-sidebar">
-
-        
-        <div class="rc-card">
-            <div class="rc-card-head">📋 Informations</div>
-
-            <div class="rc-info-row">
-                <span class="rc-info-label">Ticket</span>
-                <span class="rc-info-val">#<?php echo e($reclamation->id); ?></span>
-            </div>
-            <div class="rc-info-row">
-                <span class="rc-info-label">Type</span>
-                <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;background:#eff6ff;color:#1e40af;">
-                    <?php echo e($tc['icon']); ?> <?php echo e($tc['label']); ?>
-
-                </span>
-            </div>
-            <div class="rc-info-row">
-                <span class="rc-info-label">Statut</span>
-                <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;
-                             background:<?php echo e($sc['bg']); ?>;color:<?php echo e($sc['color']); ?>;border:1px solid <?php echo e($sc['border']); ?>;">
-                    <?php echo e($sc['icon']); ?> <?php echo e($sc['label']); ?>
-
-                </span>
-            </div>
-            <div class="rc-info-row">
-                <span class="rc-info-label">Stagiaire</span>
-                <span class="rc-info-val"><?php echo e($reclamation->stagiaire?->name ?? '—'); ?></span>
-            </div>
-            <?php if($reclamation->assignee): ?>
-            <div class="rc-info-row">
-                <span class="rc-info-label">Assigné à</span>
-                <span class="rc-info-val" style="display:flex;align-items:center;gap:5px;justify-content:flex-end;">
-                    <?php echo e($reclamation->assignee->name); ?>
-
-                    <?php $ar = $roleLabels[$reclamation->assignee->role] ?? $roleLabels['formateur']; ?>
-                    <span class="role-chip" style="background:<?php echo e($ar['bg']); ?>;color:<?php echo e($ar['color']); ?>;">
-                        <?php echo e($ar['label']); ?>
-
-                    </span>
-                </span>
-            </div>
-            <?php endif; ?>
-            <div class="rc-info-row">
-                <span class="rc-info-label">Ouvert le</span>
-                <span class="rc-info-val"><?php echo e($reclamation->created_at->format('d/m/Y')); ?></span>
-            </div>
-            <div class="rc-info-row">
-                <span class="rc-info-label">Dernière activité</span>
-                <span class="rc-info-val"><?php echo e($reclamation->updated_at->diffForHumans()); ?></span>
-            </div>
-        </div>
-
-        
-        <?php if($isAdmin): ?>
-        <div class="rc-card">
-            <div class="rc-card-head">🔄 Changer le statut</div>
-            <div style="padding:14px;display:flex;flex-direction:column;gap:8px;">
-                <?php $__currentLoopData = \App\Models\Reclamation::STATUSES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $statusKey => $statusCfg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <form method="POST" action="<?php echo e(route('reclamations.status', $reclamation)); ?>">
-                        <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                        <input type="hidden" name="status" value="<?php echo e($statusKey); ?>">
-                        <button type="submit" class="btn-status"
-                            style="color:<?php echo e($statusCfg['color']); ?>;border-color:<?php echo e($statusCfg['border']); ?>;
-                                   background:<?php echo e($reclamation->status === $statusKey ? $statusCfg['bg'] : 'white'); ?>;
-                                   font-weight:<?php echo e($reclamation->status === $statusKey ? '800' : '600'); ?>;">
-                            <?php echo e($statusCfg['icon']); ?> <?php echo e($statusCfg['label']); ?>
-
-                            <?php if($reclamation->status === $statusKey): ?> ← actuel <?php endif; ?>
-                        </button>
-                    </form>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </div>
-        </div>
-
-        
-        <div class="rc-card">
-            <div class="rc-card-head">👤 Assigner à</div>
-            <div style="padding:14px;">
-                <form method="POST" action="<?php echo e(route('reclamations.assign', $reclamation)); ?>">
+    <?php if($isStaff): ?>
+    <div class="admin-panel">
+        <h3>⚙️ Gestion</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+                <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;">Assigner à</div>
+                <form action="<?php echo e(route('reclamations.assign', $reclamation)); ?>" method="POST">
                     <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                    <select name="assigned_to" class="assign-select">
-                        <option value="">— Non assigné —</option>
-                        <?php $__currentLoopData = $assignableUsers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $assignable): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <?php $ar = $roleLabels[$assignable->role] ?? $roleLabels['formateur']; ?>
-                            <option value="<?php echo e($assignable->id); ?>"
-                                <?php echo e($reclamation->assigned_to == $assignable->id ? 'selected' : ''); ?>>
-                                <?php echo e($assignable->name); ?> (<?php echo e($ar['label']); ?>)
+                    <select name="assigned_to" class="f-select" onchange="this.form.submit()">
+                        <option value="">— Non assignée —</option>
+                        <?php $__currentLoopData = $assignableUsers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $u): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($u->id); ?>" <?php echo e($reclamation->assigned_to === $u->id ? 'selected' : ''); ?>>
+                                <?php echo e($u->name); ?> (<?php echo e(ucfirst($u->role)); ?>)
                             </option>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
-                    <button type="submit" class="btn-assign">
-                        Assigner
-                    </button>
+                </form>
+            </div>
+            <div>
+                <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;">Statut</div>
+                <form action="<?php echo e(route('reclamations.status', $reclamation)); ?>" method="POST">
+                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
+                    <select name="status" class="f-select" style="margin-bottom:8px;">
+                        <?php $__currentLoopData = \App\Models\Reclamation::STATUSES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $k => $cfg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($k); ?>" <?php echo e($reclamation->status === $k ? 'selected' : ''); ?>>
+                                <?php echo e($cfg['icon']); ?> <?php echo e($cfg['label']); ?>
+
+                            </option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </select>
+                    <button type="submit" class="btn-action">Mettre à jour</button>
                 </form>
             </div>
         </div>
+        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-manage')): ?>
+        <form action="<?php echo e(route('reclamations.destroy', $reclamation)); ?>" method="POST"
+              onsubmit="return confirm('Supprimer ?');" style="margin-top:12px;text-align:right;">
+            <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
+            <button type="submit"
+                    style="font-size:11px;font-weight:700;padding:7px 16px;border-radius:10px;
+                           background:white;border:1.5px solid #fecdd3;color:#be123c;cursor:pointer;">
+                🗑 Supprimer
+            </button>
+        </form>
         <?php endif; ?>
-
     </div>
-    
-</div>
+    <?php endif; ?>
 
 </div>
 
 <script>
-// Auto-scroll to bottom of messages on load
-document.addEventListener('DOMContentLoaded', () => {
-    const end = document.getElementById('messages-end');
-    if (end) end.scrollIntoView({ behavior: 'smooth', block: 'end' });
+document.addEventListener('DOMContentLoaded', function () {
+
+    const CURRENT_USER_ID = <?php echo e($user->id); ?>;
+    const RECLAMATION_ID  = <?php echo e($reclamation->id); ?>;
+    const SEND_URL        = "<?php echo e(route('reclamations.message', $reclamation)); ?>";
+    const CSRF_TOKEN      = "<?php echo e(csrf_token()); ?>";
+
+    const area     = document.getElementById('messages-area');
+    const input    = document.getElementById('reply-input');
+    const sendBtn  = document.getElementById('send-btn');
+    const typingEl = document.getElementById('typing-indicator');
+
+    function scrollBottom() { if (area) area.scrollTop = area.scrollHeight; }
+    scrollBottom();
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''; }
+
+    function renderBubble(data, mine) {
+        const div = document.createElement('div');
+        div.className = 'msg-bubble ' + (mine ? 'mine' : 'theirs');
+        div.id = 'msg-' + data.id;
+        let html = '';
+        if (!mine) {
+            const role = data.sender?.role
+                ? ` <span style="font-weight:400;color:#cbd5e1;">· ${capitalize(data.sender.role)}</span>`
+                : '';
+            html += `<div class="msg-sender">${escHtml(data.sender?.name ?? '')}${role}</div>`;
+        }
+        html += `<div class="msg-content">${escHtml(data.message)}</div>`;
+        html += `<div class="msg-meta">${data.created_at}</div>`;
+        div.innerHTML = html;
+        area.insertBefore(div, typingEl);
+        scrollBottom();
+    }
+
+    async function sendMessage() {
+        if (!input) return;
+        const text = input.value.trim();
+        if (!text || sendBtn.disabled) return;
+        sendBtn.disabled = true;
+
+        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        renderBubble({ id: 'tmp-' + Date.now(), message: text, created_at: now, sender: { id: CURRENT_USER_ID } }, true);
+        input.value = '';
+        input.style.height = 'auto';
+
+        try {
+            const res = await fetch(SEND_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ message: text }),
+            });
+            if (!res.ok) console.error('Erreur:', await res.json());
+        } catch (e) {
+            console.error('Erreur envoi:', e);
+        } finally {
+            sendBtn.disabled = false;
+            if (input) input.focus();
+        }
+    }
+
+    if (input) {
+        input.addEventListener('input', () => {
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        });
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); sendMessage(); }
+        });
+    }
+    if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+
+    if (typeof window.Echo !== 'undefined') {
+        window.Echo.private('reclamation.' + RECLAMATION_ID)
+            .listen('.ReclamationMessageSent', (e) => {
+                if (typingEl) typingEl.classList.remove('visible');
+                if (e.sender?.id !== CURRENT_USER_ID) renderBubble(e, false);
+            })
+            .listenForWhisper('typing', () => {
+                if (typingEl) {
+                    typingEl.classList.add('visible');
+                    scrollBottom();
+                    setTimeout(() => typingEl.classList.remove('visible'), 3000);
+                }
+            })
+            .listen('.ReclamationStatusUpdated', (e) => {
+                const badge = document.getElementById('status-badge');
+                if (badge) {
+                    badge.style.background = e.bg;
+                    badge.style.color      = e.color;
+                    badge.style.border     = '1px solid ' + e.border;
+                    badge.textContent      = e.icon + ' ' + e.label;
+                    badge.classList.add('status-updated');
+                    setTimeout(() => badge.classList.remove('status-updated'), 400);
+                }
+                if (e.status === 'traite') {
+                    const replyArea = document.querySelector('.reply-area');
+                    if (replyArea) {
+                        replyArea.innerHTML = '<div class="traite-notice">✅ Réclamation traitée — conversation fermée.</div>';
+                    }
+                }
+            });
+
+        if (input) {
+            input.addEventListener('input', () => {
+                window.Echo.private('reclamation.' + RECLAMATION_ID)
+                    .whisper('typing', { user: CURRENT_USER_ID });
+            });
+        }
+    } else {
+        console.error('❌ Echo not loaded!');
+    }
 });
 </script>
 <?php $__env->stopSection(); ?>
