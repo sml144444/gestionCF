@@ -88,9 +88,10 @@
 .btn-action-edit:hover { background:#dbeafe; }
 .btn-action-delete { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:8px; border:1.5px solid #fecdd3; background:#fff1f2; color:#dc2626; font-size:10px; font-weight:700; cursor:pointer; transition:all .15s; }
 .btn-action-delete:hover { background:#fee2e2; }
-.fmt-header { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent); }
-.fmt-row-a  { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent-lt); }
-.fmt-row-b  { display:grid; grid-template-columns:repeat(6,1fr); }
+/* ✅ 7-column format table (with promo) */
+.fmt-header { display:grid; grid-template-columns:repeat(7,1fr); background:var(--accent); }
+.fmt-row-a  { display:grid; grid-template-columns:repeat(7,1fr); background:var(--accent-lt); }
+.fmt-row-b  { display:grid; grid-template-columns:repeat(7,1fr); }
 .fmt-cell { padding:7px 10px; font-size:9px; font-weight:700; border-right:1px solid rgba(255,255,255,0.12); }
 .fmt-header .fmt-cell { color:rgba(255,255,255,0.85); text-transform:uppercase; }
 .fmt-row-a  .fmt-cell,.fmt-row-b .fmt-cell { font-size:10px; font-weight:500; }
@@ -270,24 +271,27 @@
             <div class="edu-card-head">
                 <div>
                     <p class="edu-card-title">Format attendu</p>
-                    <p class="edu-card-sub">6 colonnes — le mot de passe est <strong>obligatoire</strong></p>
+                    {{-- ✅ 7 columns with promo (optional) --}}
+                    <p class="edu-card-sub">7 colonnes — le mot de passe est <strong>obligatoire</strong>, la promo est <strong>optionnelle</strong></p>
                 </div>
             </div>
             <div class="edu-card-body">
                 <div style="border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--accent-bd);">
                     <div class="fmt-header">
-                        @foreach(['edu_email','nom','prenom','filiere_code','groupe_code','password'] as $h)
+                        @foreach(['edu_email','nom','prenom','filiere_code','groupe_code','password','promo (optionnel)'] as $h)
                             <div class="fmt-cell">{{ $h }}</div>
                         @endforeach
                     </div>
                     <div class="fmt-row-a">
-                        @foreach(['m.alami@ofppt.ma','Alami','Mohammed','DEVDIG','TDEV-101','MonPass123!'] as $v)
+                        @foreach(['m.alami@ofppt.ma','Alami','Mohammed','DEVDIG','TDEV-101','MonPass123!','2025'] as $v)
                             <div class="fmt-cell">{{ $v }}</div>
                         @endforeach
                     </div>
                     <div class="fmt-row-b">
-                        @foreach(['s.idrissi@ofppt.ma','Idrissi','Sara','GI','TGI-101','Sara2024!'] as $v)
-                            <div class="fmt-cell">{{ $v }}</div>
+                        @foreach(['s.idrissi@ofppt.ma','Idrissi','Sara','GI','TGI-101','Sara2024!',''] as $v)
+                            <div class="fmt-cell" style="{{ $v==='' ? 'color:#94a3b8;font-style:italic;' : '' }}">
+                                {{ $v !== '' ? $v : 'auto-généré' }}
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -296,7 +300,9 @@
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1 v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                     </svg>
-                    La colonne <strong>password</strong> est <strong>obligatoire</strong> — le stagiaire utilisera ce mot de passe pour se connecter. Aucun email n'est envoyé automatiquement.
+                    Le <strong>password</strong> est obligatoire. La colonne <strong>promo</strong> est
+                    <strong>optionnelle</strong> — si fournie, elle doit correspondre à la promo du groupe.
+                    Aucun email n'est envoyé automatiquement.
                 </div>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -319,7 +325,10 @@
                                 <div class="code-chip">
                                     <span class="code-chip-key" style="color:#059669;">{{ $g->code ?? '—' }}</span>
                                     <span style="color:#cbd5e1;">·</span>
-                                    <span class="code-chip-val">{{ $g->filiere->name ?? '' }}@if($g->name) — {{ $g->name }}@endif</span>
+                                    <span class="code-chip-val">
+                                        {{ $g->filiere->name ?? '' }}@if($g->name) — {{ $g->name }}@endif
+                                        @if($g->promo) — promo {{ $g->promo }} @endif
+                                    </span>
                                 </div>
                             @endforeach
                         </div>
@@ -720,10 +729,28 @@
                     <input type="password" name="password" value="{{ old('password') }}" placeholder="Min. 6 caractères" required class="edu-input">
                     @error('password')<p style="font-size:11px;color:#dc2626;margin-top:4px;">{{ $message }}</p>@enderror
                 </div>
+
+                {{-- ✅ NEW: Promo field (optional) --}}
+                <div>
+                    <label class="edu-label">Promo <span style="color:#94a3b8;font-weight:400;">(optionnelle)</span></label>
+                    <select name="promo" id="manual-promo" class="edu-input edu-select">
+                        <option value="">— Automatique —</option>
+                        @foreach($anneesScolaires as $annee)
+                            @php $year = (int) explode('/', $annee)[0]; @endphp
+                            <option value="{{ $year }}" {{ old('promo') == $year ? 'selected' : '' }}>{{ $annee }} (promo {{ $year }})</option>
+                        @endforeach
+                    </select>
+                    <p style="font-size:10px;color:#64748b;margin-top:4px;">
+                        Si vide, la promo sera celle du groupe sélectionné.
+                    </p>
+                    @error('promo')<p style="font-size:11px;color:#dc2626;margin-top:4px;">{{ $message }}</p>@enderror
+                </div>
+
                 <div class="info-notice blue">
                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1 v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-                    <span>Le mot de passe est obligatoire. Le stagiaire utilisera cet email et ce mot de passe pour créer son compte. Aucun email n'est envoyé automatiquement.</span>
+                    <span>Le mot de passe est obligatoire. La promo est optionnelle — si fournie, elle sera vérifiée par rapport au groupe sélectionné. Aucun email n'est envoyé automatiquement.</span>
                 </div>
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div>
                         <label class="edu-label">Filière</label>
@@ -853,7 +880,13 @@ function updateGroupeOptions(filiereCode) {
 }
 
 @php
-$groupesJs = $groupes->map(fn($g) => ['code'=>$g->code,'name'=>$g->name??'G'.$g->id,'filiere_code'=>$g->filiere?->code,'annee'=>$g->annee??1])->values();
+$groupesJs = $groupes->map(fn($g) => [
+    'code'         => $g->code,
+    'name'         => $g->name ?? 'G'.$g->id,
+    'filiere_code' => $g->filiere?->code,
+    'annee'        => $g->annee ?? 1,
+    'promo'        => $g->promo,
+])->values();
 @endphp
 const allGroupes = @json($groupesJs);
 let selectedAnnee = {{ old('_annee_filter', 1) }};
@@ -877,19 +910,45 @@ function filterGroups(fc) {
     const sel = document.getElementById('manual-groupe');
     if(!sel) return;
     const anneeLabels = {1:'An.1',2:'An.2',3:'An.3'};
+    // ✅ Get selected promo value
+    const selectedPromo = parseInt(document.getElementById('manual-promo')?.value) || null;
+    
     sel.innerHTML = '<option value="">— Sélectionner —</option>';
-    allGroupes.filter(g => (!fc || g.filiere_code === fc) && g.annee === selectedAnnee).forEach(g => {
-        const o = document.createElement('option');
-        o.value = g.code;
-        o.textContent = g.code + ' — ' + g.name + ' (' + anneeLabels[g.annee] + ')';
-        sel.appendChild(o);
-    });
-    if(sel.options.length === 1) { const o = document.createElement('option'); o.disabled = true; o.textContent = '— Aucun groupe pour cette année —'; sel.appendChild(o); }
+    
+    // ✅ Filter by filiere, annee, and promo
+    allGroupes
+        .filter(g => (!fc || g.filiere_code === fc) && 
+                     g.annee === selectedAnnee &&
+                     (!selectedPromo || g.promo === selectedPromo))
+        .forEach(g => {
+            const o = document.createElement('option');
+            o.value = g.code;
+            // ✅ Show promo in the option text
+            o.textContent = g.code + ' — ' + g.name + ' (' + anneeLabels[g.annee] + (g.promo ? ', promo ' + g.promo : '') + ')';
+            sel.appendChild(o);
+        });
+    
+    if(sel.options.length === 1) { 
+        const o = document.createElement('option'); 
+        o.disabled = true; 
+        o.textContent = '— Aucun groupe pour ces critères —'; 
+        sel.appendChild(o); 
+    }
 }
+
+// ✅ Add event listener for promo change to re-filter groups
 document.addEventListener('DOMContentLoaded', function() {
     selectAnnee(selectedAnnee);
     const filiereSelect = document.getElementById('filter-filiere');
     if(filiereSelect && filiereSelect.value) updateGroupeOptions(filiereSelect.value);
+    
+    const promoSelect = document.getElementById('manual-promo');
+    if(promoSelect) {
+        promoSelect.addEventListener('change', function() {
+            const fc = document.getElementById('manual-filiere')?.value;
+            filterGroups(fc);
+        });
+    }
 });
 
 let modalData = [];
@@ -917,7 +976,7 @@ function openLogModal(logId) {
         tbody.innerHTML = modalData.map((acc,i) => {
             const initials = (acc.prenom?.[0] ?? '?').toUpperCase() + (acc.nom?.[0] ?? '?').toUpperCase();
             const statusBadge = acc.used ? '<span style="padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ Compte créé</span>' : '<span style="padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">⏳ En attente</span>';
-            return `<tr><td style="color:#94a3b8;font-size:10px;">${acc.id}</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:8px;flex-shrink:0;background:var(--accent-lt);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--accent-tx);">${initials}</div><span style="font-weight:700;color:#0f172a;font-size:12px;">${acc.prenom ?? ''} ${acc.nom ?? ''}</span></div></td><td style="color:#1e40af;font-weight:600;font-size:11px;">${acc.edu_email}</td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">${acc.filiere_code ?? '—'}</span></td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">${acc.groupe_code ?? '—'}</span></td><td>${statusBadge}</td></tr>`;
+            return `<tr><td style="color:#94a3b8;font-size:10px;">${acc.id}</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:8px;flex-shrink:0;background:var(--accent-lt);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--accent-tx);">${initials}</div><span style="font-weight:700;color:#0f172a;font-size:12px;">${acc.prenom ?? ''} ${acc.nom ?? ''}</span></div></td><td style="color:#1e40af;font-weight:600;font-size:11px;">${acc.edu_email}</td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">${acc.filiere_code ?? '—'}</span></td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">${acc.groupe_code ?? '—'}</span></td><td>${statusBadge}</td></td>`;
         }).join('');
     }).catch(() => { document.getElementById('modal-loading').textContent = 'Erreur de chargement.'; });
 }

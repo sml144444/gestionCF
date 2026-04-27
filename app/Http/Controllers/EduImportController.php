@@ -198,7 +198,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // CONFIRM IMPORT — ✅ NO EMAIL SENT
+    // CONFIRM IMPORT — NO EMAIL SENT
     // ─────────────────────────────────────────────────────────
     public function confirm(Request $request): RedirectResponse
     {
@@ -256,7 +256,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // MANUAL ADD — ✅ password required, no email sent
+    // MANUAL ADD — password required, no email sent
     // ─────────────────────────────────────────────────────────
     public function manualStore(Request $request): RedirectResponse
     {
@@ -269,6 +269,7 @@ class EduImportController extends Controller
             'filiere_code' => 'required|exists:filieres,code',
             'groupe_code'  => 'required|exists:groupes,code',
             'password'     => 'required|string|min:6',
+            'promo'        => 'nullable|integer|min:2000|max:2099',
         ]);
 
         $groupeAppartient = Groupe::join('filieres', 'groupes.id_filiere', '=', 'filieres.id')
@@ -291,6 +292,15 @@ class EduImportController extends Controller
             return back()
                 ->withErrors([
                     'groupe_code' => "Le groupe «{$data['groupe_code']}» est complet ({$groupe->stagiaires_count}/{$groupe->nbr_limit} places). Choisissez un autre groupe.",
+                ])
+                ->withInput();
+        }
+
+        // Vérification promo si fournie
+        if (isset($data['promo']) && $groupe && $groupe->promo != $data['promo']) {
+            return back()
+                ->withErrors([
+                    'promo' => "La promo «{$data['promo']}» ne correspond pas à la promo du groupe «{$groupe->code}» (promo attendue : {$groupe->promo}).",
                 ])
                 ->withInput();
         }
@@ -345,7 +355,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // DOWNLOAD TEMPLATE — 6 colonnes AVEC mot de passe (obligatoire)
+    // DOWNLOAD TEMPLATE — 7 colonnes (avec promo optionnelle)
     // ─────────────────────────────────────────────────────────
     public function downloadTemplate()
     {
@@ -354,8 +364,9 @@ class EduImportController extends Controller
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
 
-        // ✅ 6 colonnes
-        $headers = ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code', 'password'];
+        // ✅ 7 colonnes
+        $headers = ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code', 'password', 'promo'];
+        $col_widths = [32, 16, 16, 14, 14, 16, 10];
 
         foreach ($headers as $col => $header) {
             $cell = chr(65 + $col) . '1';
@@ -365,13 +376,13 @@ class EduImportController extends Controller
                 'fill'      => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF1E293B']],
                 'alignment' => ['horizontal' => 'center'],
             ]);
-            $sheet->getColumnDimensionByColumn($col + 1)->setWidth(24);
+            $sheet->getColumnDimensionByColumn($col + 1)->setWidth($col_widths[$col]);
         }
 
-        // ✅ Exemples avec codes réels du seeder et password obligatoire
+        // ✅ Exemples avec promo
         $examples = [
-            ['ahmed.alami@ofppt.ma',  'Alami',   'Ahmed', 'DEVDIG', 'TDEV-101', 'MonPass123!'],
-            ['sara.idrissi@ofppt.ma', 'Idrissi', 'Sara',  'GI',     'TGI-101',  'Sara2024!'],
+            ['ahmed.alami@ofppt.ma',  'Alami',   'Ahmed', 'DEVDIG', 'TDEV-101', 'MonPass123!', '2025'],
+            ['sara.idrissi@ofppt.ma', 'Idrissi', 'Sara',  'GI',     'TGI-101',  'Sara2024!',   '2025'],
         ];
 
         foreach ($examples as $ri => $row) {
@@ -405,7 +416,7 @@ class EduImportController extends Controller
     }
 
     /**
-     * Parse uploaded file — 6 colonnes (password obligatoire).
+     * Parse uploaded file — 7 colonnes (password obligatoire, promo optionnelle).
      */
     private function parseFile($file): array
     {
@@ -421,7 +432,7 @@ class EduImportController extends Controller
                     $header = array_map('trim', $line);
                     continue;
                 }
-                if (count($line) >= 6) {
+                if (count($line) >= 7) {
                     $mapped = array_map('trim', $line);
                     $rows[] = [
                         'edu_email'    => $mapped[0] ?? '',
@@ -430,6 +441,7 @@ class EduImportController extends Controller
                         'filiere_code' => $mapped[3] ?? '',
                         'groupe_code'  => $mapped[4] ?? '',
                         'password'     => $mapped[5] ?? '',
+                        'promo'        => $mapped[6] ?? '',
                     ];
                 }
             }
@@ -439,20 +451,21 @@ class EduImportController extends Controller
             $sheet       = $spreadsheet->getActiveSheet();
 
             for ($row = 2; $row <= $sheet->getHighestDataRow(); $row++) {
-                $data6 = [];
-                for ($col = 1; $col <= 6; $col++) {
-                    $data6[] = trim((string) $sheet
+                $data7 = [];
+                for ($col = 1; $col <= 7; $col++) {
+                    $data7[] = trim((string) $sheet
                         ->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row)
                         ->getValue());
                 }
-                if (array_filter($data6)) {
+                if (array_filter($data7)) {
                     $rows[] = [
-                        'edu_email'    => $data6[0],
-                        'nom'          => $data6[1],
-                        'prenom'       => $data6[2],
-                        'filiere_code' => $data6[3],
-                        'groupe_code'  => $data6[4],
-                        'password'     => $data6[5] ?? '',
+                        'edu_email'    => $data7[0],
+                        'nom'          => $data7[1],
+                        'prenom'       => $data7[2],
+                        'filiere_code' => $data7[3],
+                        'groupe_code'  => $data7[4],
+                        'password'     => $data7[5] ?? '',
+                        'promo'        => $data7[6] ?? '',
                     ];
                 }
             }
@@ -462,7 +475,7 @@ class EduImportController extends Controller
     }
 
     /**
-     * Validate rows — password OBLIGATOIRE.
+     * Validate rows — password OBLIGATOIRE, promo optionnelle.
      */
     private function validateRows(array $rows): array
     {
@@ -479,6 +492,9 @@ class EduImportController extends Controller
             ->get()
             ->pluck('filiere_code', 'groupe_code')
             ->toArray();
+
+        // ✅ Pré-charger promo par groupe_code
+        $groupePromoMap = Groupe::pluck('promo', 'code')->toArray();
 
         $groupeCapacities = Groupe::withCount('stagiaires')
             ->get()
@@ -500,6 +516,7 @@ class EduImportController extends Controller
             $fc     = strtoupper(trim($row['filiere_code'] ?? ''));
             $gc     = trim($row['groupe_code'] ?? '');
             $rawPassword = trim($row['password'] ?? '');
+            $rawPromo = trim($row['promo'] ?? '');
 
             if (empty($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = "Ligne {$line} — Email invalide : «{$email}»";
@@ -534,6 +551,16 @@ class EduImportController extends Controller
                 continue;
             }
 
+            // ✅ Vérification promo (optionnelle — si fournie dans le fichier)
+            if ($rawPromo !== '') {
+                $promoInt = (int) $rawPromo;
+                $groupePromo = $groupePromoMap[$gc] ?? null;
+                if ($groupePromo && $groupePromo != $promoInt) {
+                    $errors[] = "Ligne {$line} — La promo «{$rawPromo}» ne correspond pas au groupe «{$gc}» (promo attendue : {$groupePromo})";
+                    continue;
+                }
+            }
+
             // ✅ Vérification capacité groupe
             if (isset($groupeCapacities[$gc])) {
                 $currentCount = $groupeCapacities[$gc]['count'] + ($groupeAddedCount[$gc] ?? 0);
@@ -555,6 +582,9 @@ class EduImportController extends Controller
                 continue;
             }
 
+            // ✅ Promo: prendre celle du fichier, sinon celle du groupe
+            $promoValue = $rawPromo !== '' ? (int)$rawPromo : ($groupePromoMap[$gc] ?? null);
+
             $validRows[] = [
                 'edu_email'      => $email,
                 'plain_password' => $rawPassword,
@@ -562,6 +592,7 @@ class EduImportController extends Controller
                 'prenom'         => $prenom,
                 'filiere_code'   => $fc,
                 'groupe_code'    => $gc,
+                'promo'          => $promoValue,
             ];
         }
 
