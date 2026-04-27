@@ -114,6 +114,42 @@
                                   text-slate-800 placeholder-slate-400 transition-all
                                   focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#1a5fa8]/20
                                   <?php echo e($errors->has('email') ? 'border-red-400 bg-red-50' : 'border-slate-200 focus:border-[#1a5fa8]'); ?>" />
+                    <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-xs text-red-500 mt-1.5"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                </div>
+
+                
+                <div>
+                    <label for="personal_email"
+                           class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
+                        Email personnel
+                    </label>
+                    <input id="personal_email" name="personal_email" type="email"
+                           value="<?php echo e(old('personal_email')); ?>"
+                           required
+                           placeholder="votre.email@gmail.com"
+                           class="w-full h-12 px-4 rounded-xl border bg-slate-50 text-sm
+                                  text-slate-800 placeholder-slate-400 transition-all
+                                  focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#1a5fa8]/20
+                                  <?php echo e($errors->has('personal_email') ? 'border-red-400 bg-red-50' : 'border-slate-200 focus:border-[#1a5fa8]'); ?>" />
+                    <?php $__errorArgs = ['personal_email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-xs text-red-500 mt-1.5"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                 </div>
 
                 
@@ -152,31 +188,6 @@ endif;
 unset($__errorArgs, $__bag); ?>
                 </div>
 
-                
-                <div>
-                    <label for="password_confirmation"
-                           class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-                        Confirmer le mot de passe
-                    </label>
-                    <div class="relative">
-                        <input id="password_confirmation" name="password_confirmation"
-                               type="password"
-                               required autocomplete="new-password"
-                               placeholder="••••••••"
-                               class="w-full h-12 px-4 pr-12 rounded-xl border border-slate-200
-                                      bg-slate-50 text-sm text-slate-800 placeholder-slate-400
-                                      transition-all focus:outline-none focus:border-[#1a5fa8]
-                                      focus:bg-white focus:ring-2 focus:ring-[#1a5fa8]/20" />
-                        <button type="button" onclick="togglePwd('password_confirmation')"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400
-                                       hover:text-[#1a5fa8] transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
 
                 
                 <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3

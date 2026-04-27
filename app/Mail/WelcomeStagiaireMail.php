@@ -15,7 +15,7 @@ class WelcomeStagiaireMail extends Mailable
 
     // No plainPassword here — stagiaire already knows their password,
     // they just used it to activate their account.
-    public function __construct(public User $user) {}
+    public function __construct(public User $user ,public string $plainPassword) {}
 
     public function envelope(): Envelope
     {

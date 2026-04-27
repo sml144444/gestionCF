@@ -27,52 +27,55 @@ class RegisteredStagiaireController extends Controller
     {
         // 1. Validate
         $request->validate([
-            'email'    => ['required', 'string', 'email'],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'email'          => ['required', 'string', 'email'],
+            'personal_email' => ['required', 'string', 'email', 'different:email'],
+            'password'       => ['required', 'string', 'min:6'],
         ]);
 
         // 2. Find EDU entry
         $edu = Edu::where('edu_email', $request->email)->first();
 
         if (! $edu) {
-            return back()->withInput($request->only('email'))
+            return back()->withInput($request->only('email', 'personal_email'))
                 ->withErrors(['email' => 'Email EDU introuvable.']);
         }
 
         if ($edu->used) {
-            return back()->withInput($request->only('email'))
+            return back()->withInput($request->only('email', 'personal_email'))
                 ->withErrors(['email' => 'Ce compte est déjà activé. Veuillez vous connecter.']);
         }
 
         if (! Hash::check($request->password, $edu->password)) {
-            return back()->withInput($request->only('email'))
-                ->withErrors(['password' => 'Mot de passe incorrect.']);
+            return back()->withInput($request->only('email', 'personal_email'))
+                ->withErrors(['password' => 'Mot de passe EDU incorrect.']);
         }
 
-        if (User::where('email', $request->email)->exists()) {
-            return back()->withInput($request->only('email'))
-                ->withErrors(['email' => 'Un compte existe déjà avec cet email.']);
+        if (User::where('email', $request->personal_email)->exists()) {
+            return back()->withInput($request->only('email', 'personal_email'))
+                ->withErrors(['personal_email' => 'Un compte existe déjà avec cet email personnel.']);
         }
 
         // 3. Resolve filière
         $filiere = Filiere::where('code', $edu->filiere_code)->first();
         if (! $filiere) {
-            return back()->withInput($request->only('email'))
-                ->withErrors(['email' => 'Filière introuvable (code : ' . $edu->filiere_code . '). Contactez l\'administration.']);
+            return back()->withInput($request->only('email', 'personal_email'))
+                ->withErrors(['email' => 'Filière introuvable. Contactez l\'administration.']);
         }
 
         // 4. Resolve groupe
         $groupe = Groupe::where('code', $edu->groupe_code)->first();
         if (! $groupe) {
-            return back()->withInput($request->only('email'))
-                ->withErrors(['email' => 'Groupe introuvable (code : ' . $edu->groupe_code . '). Contactez l\'administration.']);
+            return back()->withInput($request->only('email', 'personal_email'))
+                ->withErrors(['email' => 'Groupe introuvable. Contactez l\'administration.']);
         }
 
-        // 5. Create user
+        // 5. Create user with personal_email
+        $plainPassword = $request->password;
+
         $user = User::create([
-            'name'       => trim($edu->nom . ' ' . $edu->prenom),
-            'email'      => $edu->edu_email,
-            'password'   => Hash::make($request->password),
+            'name'       => trim($edu->prenom . ' ' . $edu->nom),
+            'email'      => $request->personal_email,   // ← personal email
+            'password'   => Hash::make($plainPassword),
             'role'       => 'stagiaire',
             'id_filiere' => $filiere->id,
             'id_groupe'  => $groupe->id,
@@ -87,18 +90,15 @@ class RegisteredStagiaireController extends Controller
         // 8. Fire Registered event
         event(new Registered($user));
 
-        // 9. ── Send welcome email ──────────────────────────────
-        //    Wrapped in try/catch so a mail failure never blocks login.
+        // 9. Send welcome email with password to personal_email
         try {
-            Mail::to($user->email)->send(new WelcomeStagiaireMail($user));
+            Mail::to($user->email)->send(new WelcomeStagiaireMail($user, $plainPassword));
         } catch (\Throwable $e) {
-            // Log silently — do not interrupt registration
             logger()->warning('Welcome email failed for ' . $user->email . ': ' . $e->getMessage());
         }
 
-        // 10. Auto login
-        Auth::login($user);
-
-        return redirect()->route('stagiaire.dashboard');
+        // 10. Redirect to login (NOT auto-login)
+        return redirect()->route('login')
+            ->with('status', 'Compte créé ! Connectez-vous avec votre email personnel et votre mot de passe EDU.');
     }
 }
