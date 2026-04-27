@@ -40,7 +40,7 @@
     icon="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 
 
-{{-- ════ MA FORMATION — formateur uniquement, chaque item protégé par @can ════ --}}
+{{-- ════ MA FORMATION — formateur uniquement ════ --}}
 @if($role === 'formateur')
     @php
         $hasFormationItems =
@@ -103,6 +103,13 @@
 @can('groupe-create')
 <x-nav-section label="Gestion" />
 
+@if(in_array($role, ['admin', 'gestionnaire']))
+<x-nav-item
+    route="{{ route('controles.index') }}"
+    label="Contrôles & Notes"
+    icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+@endif
+
 @can('stagiaire-list')
 <x-nav-item
     route="{{ route('stagiaire.index') }}"
@@ -142,24 +149,23 @@
     @php
         $hasSaisieItems =
             $user->can('absence-view-all') ||
-            $user->can('reportation-create');
+            $user->can('groupe-list');
     @endphp
 
     @if($hasSaisieItems)
     <x-nav-section label="Saisie" />
 
-    {{-- placeholder items — guard individually when real routes exist --}}
     @can('absence-view-all')
     <x-nav-item route="#" label="Saisir absences"
         icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
     @endcan
 
+    {{-- Contrôles & Notes — formateur sees only his modules (scoped in controller) --}}
     @can('groupe-list')
-    <x-nav-item route="#" label="Saisir notes"
-        icon="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-
-    <x-nav-item route="#" label="Contrôles"
-        icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    <x-nav-item
+        route="{{ route('controles.index') }}"
+        label="Contrôles & Notes"
+        icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
     @endcan
 
     @endif
@@ -167,19 +173,23 @@
 
 
 {{-- ════ STAGIAIRE — Évaluation ════ --}}
+{{-- Replace the existing Évaluation section in sidebar.blade.php --}}
+ 
 @if($role === 'stagiaire')
 <x-nav-section label="Évaluation" />
-
-<x-nav-item route="#" label="Mes notes"
+ 
+<x-nav-item
+    route="{{ route('controles.my-notes') }}"
+    label="Mes notes"
     icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-
+ 
 @can('absence-view')
 <x-nav-item
     route="{{ route('absences.index') }}"
     label="Mes absences & retards"
     icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 @endcan
-
+ 
 <x-nav-item route="#" label="Bulletin"
     icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 @endif

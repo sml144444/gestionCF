@@ -126,6 +126,8 @@ class DatabaseSeeder extends Seeder
             'emploi-view', 'emploi-lien',
             'user-list', 'groupe-list', 'salle-list',
             'reportation-create',
+            'groupe-list',          // → Mes modules, Mes groupes (scoped in controller)
+           'stagiaire-list',     
             'news-list', 'news-comment', 'news-like',
             'absence-view', 'absence-view-all',
             'reclamation-view-assigned',

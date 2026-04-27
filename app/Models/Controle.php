@@ -8,7 +8,7 @@ class Controle extends Model
 {
     protected $fillable = [
         'titre', 'id_module', 'id_groupe',
-        'type', 'duree', 'description', 'variante', 'created_by',
+        'type', 'duree', 'description', 'variante', 'created_by', 'date',  
     ];
 
     public function module()

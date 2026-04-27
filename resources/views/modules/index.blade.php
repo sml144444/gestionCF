@@ -1,4 +1,3 @@
-{{-- resources/views/modules/index.blade.php --}}
 @extends('layouts.app')
 @section('title', 'Modules')
 @section('page-title', 'Modules')
@@ -334,6 +333,7 @@
                                 '{{ addslashes($module->name) }}',
                                 {{ $module->nbr_heure }},
                                 {{ $module->coefficience }},
+                                {{ $module->nbr_controles ?? 1 }},
                                 '{{ $module->id_user ?? '' }}',
                                 '{{ $module->id_user_remplacant ?? '' }}',
                                 '{{ $module->type }}',
@@ -375,7 +375,7 @@
 </div>{{-- .mod-wrap --}}
 
 {{-- ════════════════════════════════════════════════════════════
-     MODAL CRÉER
+     MODAL CRÉER (avec nbr_controles)
      ════════════════════════════════════════════════════════════ --}}
 @if($canCreate)
 <div id="modal-create" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
@@ -406,8 +406,8 @@
                 <input type="text" name="name" class="mod-input" required placeholder="Ex : PHP & Laravel…" value="{{ old('name') }}">
             </div>
 
-            {{-- Heures + Coeff --}}
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            {{-- Heures + Coeff + Nbre contrôles (3 colonnes) --}}
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures totales <span style="color:#ef4444;">*</span></label>
                     <input type="number" name="nbr_heure" class="mod-input" required min="1" max="500" placeholder="75" value="{{ old('nbr_heure') }}">
@@ -415,6 +415,16 @@
                 <div>
                     <label class="mod-label">Coefficient <span style="color:#ef4444;">*</span></label>
                     <input type="number" name="coefficience" class="mod-input" required min="0.5" max="10" step="0.5" placeholder="3" value="{{ old('coefficience') }}">
+                </div>
+                <div>
+                    <label class="mod-label">
+                        Nbre contrôles
+                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
+                    </label>
+                    <input type="number" name="nbr_controles" class="mod-input"
+                           min="0" max="10" step="1" placeholder="1"
+                           value="{{ old('nbr_controles', 1) }}"
+                           title="0 = EFM uniquement · L'EFM est toujours ajouté automatiquement">
                 </div>
             </div>
 
@@ -491,7 +501,7 @@
 @endif
 
 {{-- ════════════════════════════════════════════════════════════
-     MODAL ÉDITER
+     MODAL ÉDITER (avec nbr_controles)
      ════════════════════════════════════════════════════════════ --}}
 @if($canEdit)
 <div id="modal-edit" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
@@ -513,8 +523,8 @@
                 <input type="text" name="name" id="edit-name" class="mod-input" required>
             </div>
 
-            {{-- Heures + Coeff --}}
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            {{-- Heures + Coeff + Nbre contrôles (3 colonnes) --}}
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures totales</label>
                     <input type="number" name="nbr_heure" id="edit-heure" class="mod-input" required min="1" max="500">
@@ -522,6 +532,15 @@
                 <div>
                     <label class="mod-label">Coefficient</label>
                     <input type="number" name="coefficience" id="edit-coeff" class="mod-input" required min="0.5" max="10" step="0.5">
+                </div>
+                <div>
+                    <label class="mod-label">
+                        Nbre contrôles
+                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
+                    </label>
+                    <input type="number" name="nbr_controles" id="edit-nbr-controles" class="mod-input"
+                           min="0" max="10" step="1" placeholder="1"
+                           title="0 = EFM uniquement">
                 </div>
             </div>
 
@@ -651,11 +670,12 @@ function filterRemplacantCreate(userId) {
 }
 
 // ── Éditer modal ──────────────────────────────────────────────
-function openEditModal(id, name, heure, coeff, userId, remplacantId, type, annee) {
+function openEditModal(id, name, heure, coeff, nbrControles, userId, remplacantId, type, annee) {
     document.getElementById('edit-form').action          = '/modules/' + id;
     document.getElementById('edit-name').value           = name;
     document.getElementById('edit-heure').value          = heure;
     document.getElementById('edit-coeff').value          = coeff;
+    document.getElementById('edit-nbr-controles').value  = nbrControles;
     document.getElementById('edit-user').value           = userId;
     document.getElementById('edit-remplacant').value     = remplacantId || '';
     document.getElementById('edit-subtitle').textContent = 'Modification : ' + name;

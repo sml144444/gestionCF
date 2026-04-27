@@ -19,6 +19,30 @@ use Spatie\Permission\Models\Role;
 class StagiaireController extends Controller
 {
     // ─────────────────────────────────────────────────────────────────────────
+    // HELPERS — resolve formateur scope once, reuse everywhere
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the groupe IDs a formateur is allowed to see.
+     * Returns null for non-formateurs (= no restriction).
+     */
+    private function formateurGroupeIds(User $user): ?\Illuminate\Support\Collection
+    {
+        if ($user->role !== 'formateur') {
+            return null;
+        }
+
+        $moduleIds = Module::where('id_user', $user->id)
+            ->orWhere('id_user_remplacant', $user->id)
+            ->pluck('id');
+
+        return EmploiDuTemps::whereIn('id_module', $moduleIds)
+            ->pluck('id_groupe')
+            ->unique()
+            ->values();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // LIST
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -27,25 +51,11 @@ class StagiaireController extends Controller
         $user        = Auth::user();
         $isFormateur = $user->role === 'formateur';
 
-        // ── Formateur scope: resolve which groups they teach ──────────────────
-        $formateurGroupeIds  = collect();
-        $formateurFiliereIds = collect();
-
-        if ($isFormateur) {
-            $moduleIds = Module::where('id_user', $user->id)
-                ->orWhere('id_user_remplacant', $user->id)
-                ->pluck('id');
-
-            $formateurGroupeIds = EmploiDuTemps::whereIn('id_module', $moduleIds)
-                ->pluck('id_groupe')
-                ->unique()
-                ->values();
-
-            $formateurFiliereIds = Groupe::whereIn('id', $formateurGroupeIds)
-                ->pluck('id_filiere')
-                ->unique()
-                ->values();
-        }
+        // ── Resolve formateur scope ───────────────────────────────────────────
+        $allowedGroupeIds  = $this->formateurGroupeIds($user);   // null = no restriction
+        $allowedFiliereIds = $allowedGroupeIds
+            ? Groupe::whereIn('id', $allowedGroupeIds)->pluck('id_filiere')->unique()->values()
+            : null;
 
         $filiereId     = $request->get('filiere_id');
         $search        = $request->get('search', '');
@@ -56,19 +66,15 @@ class StagiaireController extends Controller
 
         $hasAnneeScolaireColumn = Schema::hasColumn('groupes', 'annee_scolaire');
 
-        // Filieres visible to this user
-        $filieresQuery = Filiere::withCount('stagiaires')
-            ->with(['groupes' => fn ($q) => $q->withCount('stagiaires')]);
+        // ── Filieres visible to this user ─────────────────────────────────────
+        $filieres = Filiere::withCount('stagiaires')
+            ->with(['groupes' => fn($q) => $q->withCount('stagiaires')])
+            ->when($allowedFiliereIds, fn($q) => $q->whereIn('id', $allowedFiliereIds))
+            ->get();
 
-        if ($isFormateur) {
-            $filieresQuery->whereIn('id', $formateurFiliereIds);
-        }
-
-        $filieres = $filieresQuery->get();
-
-        $totalStagiaires = $isFormateur
-            ? User::where('role', 'stagiaire')->whereIn('id_groupe', $formateurGroupeIds)->count()
-            : User::where('role', 'stagiaire')->count();
+        $totalStagiaires = User::where('role', 'stagiaire')
+            ->when($allowedGroupeIds, fn($q) => $q->whereIn('id_groupe', $allowedGroupeIds))
+            ->count();
 
         // ── MODE A — no filière selected ──────────────────────────────────────
         if (! $filiereId) {
@@ -96,12 +102,13 @@ class StagiaireController extends Controller
         // ── MODE B — filière selected ─────────────────────────────────────────
         $selectedFiliere = Filiere::findOrFail($filiereId);
 
-        if ($isFormateur && ! $formateurFiliereIds->contains($filiereId)) {
+        // Block formateur from accessing a filière they don't teach in
+        if ($allowedFiliereIds && ! $allowedFiliereIds->contains($filiereId)) {
             abort(403, 'Vous n\'enseignez pas dans cette filière.');
         }
 
         $groupes = Groupe::where('id_filiere', $filiereId)
-            ->when($isFormateur, fn ($q) => $q->whereIn('id', $formateurGroupeIds))
+            ->when($allowedGroupeIds, fn($q) => $q->whereIn('id', $allowedGroupeIds))
             ->withCount('stagiaires')
             ->orderBy('annee')
             ->orderBy('name')
@@ -113,38 +120,31 @@ class StagiaireController extends Controller
 
         if ($hasAnneeScolaireColumn) {
             $anneesScolaires = Groupe::where('id_filiere', $filiereId)
-                ->when($isFormateur, fn ($q) => $q->whereIn('id', $formateurGroupeIds))
+                ->when($allowedGroupeIds, fn($q) => $q->whereIn('id', $allowedGroupeIds))
                 ->whereNotNull('annee_scolaire')
                 ->pluck('annee_scolaire')
                 ->unique()->sort()->values();
         }
 
-        $query = User::where('role', 'stagiaire')
+        $stagiaires = User::where('role', 'stagiaire')
             ->where('id_filiere', $filiereId)
             ->with('groupe')
-            ->orderBy('name');
-
-        if ($isFormateur) {
-            $query->whereIn('id_groupe', $formateurGroupeIds);
-        }
-
-        if ($search) {
-            $query->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('cin', 'like', "%{$search}%")
-            );
-        }
-
-        if ($groupeId)      { $query->where('id_groupe', $groupeId); }
-        if ($annee)         { $query->whereHas('groupe', fn ($q) => $q->where('annee', $annee)); }
-        if ($promo)         { $query->whereHas('groupe', fn ($q) => $q->where('promo', $promo)); }
-        if ($anneeScolaire && $hasAnneeScolaireColumn) {
-            $query->whereHas('groupe', fn ($q) => $q->where('annee_scolaire', $anneeScolaire));
-        }
+            ->when($allowedGroupeIds, fn($q) => $q->whereIn('id_groupe', $allowedGroupeIds))
+            ->when($search, fn($q) => $q->where(fn($sq) =>
+                $sq->where('name', 'like', "%{$search}%")
+                   ->orWhere('email', 'like', "%{$search}%")
+                   ->orWhere('cin', 'like', "%{$search}%")
+            ))
+            ->when($groupeId,      fn($q) => $q->where('id_groupe', $groupeId))
+            ->when($annee,         fn($q) => $q->whereHas('groupe', fn($gq) => $gq->where('annee', $annee)))
+            ->when($promo,         fn($q) => $q->whereHas('groupe', fn($gq) => $gq->where('promo', $promo)))
+            ->when($anneeScolaire && $hasAnneeScolaireColumn,
+                                   fn($q) => $q->whereHas('groupe', fn($gq) => $gq->where('annee_scolaire', $anneeScolaire)))
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
 
         $hasFilters = (bool) ($search || $groupeId || $annee || $promo || $anneeScolaire);
-        $stagiaires = $query->paginate(20)->withQueryString();
 
         return view('stagiaire.index', compact(
             'filiereId', 'selectedFiliere', 'filieres',
@@ -161,6 +161,8 @@ class StagiaireController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('stagiaire-create');
+
         $data = $request->validate([
             'name'           => 'required|string|max:255',
             'email'          => 'required|email|unique:users,email',
@@ -204,6 +206,8 @@ class StagiaireController extends Controller
 
     public function update(Request $request, User $stagiaire)
     {
+        $this->authorize('stagiaire-edit');
+
         $data = $request->validate([
             'name'           => 'required|string|max:255',
             'email'          => 'required|email|unique:users,email,' . $stagiaire->id,
@@ -247,16 +251,17 @@ class StagiaireController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // DELETE — ✅ remet le compte EDU en "en attente" si existe
+    // DELETE
     // ─────────────────────────────────────────────────────────────────────────
 
     public function destroy(User $stagiaire)
     {
+        $this->authorize('stagiaire-delete');
+
         $name  = $stagiaire->name;
         $email = $stagiaire->email;
 
-        // ✅ Chercher un compte EDU lié au même email
-        //    et le remettre en "en attente" (used = false)
+        // Remet le compte EDU en "en attente" si existe
         $edu = Edu::where('edu_email', $email)->first();
         if ($edu && $edu->used) {
             $edu->used = false;

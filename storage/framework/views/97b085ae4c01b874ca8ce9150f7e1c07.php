@@ -1,5 +1,4 @@
 
-
 <?php $__env->startSection('title', 'Modules'); ?>
 <?php $__env->startSection('page-title', 'Modules'); ?>
 
@@ -338,6 +337,7 @@
                                 '<?php echo e(addslashes($module->name)); ?>',
                                 <?php echo e($module->nbr_heure); ?>,
                                 <?php echo e($module->coefficience); ?>,
+                                <?php echo e($module->nbr_controles ?? 1); ?>,
                                 '<?php echo e($module->id_user ?? ''); ?>',
                                 '<?php echo e($module->id_user_remplacant ?? ''); ?>',
                                 '<?php echo e($module->type); ?>',
@@ -411,7 +411,7 @@
             </div>
 
             
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures totales <span style="color:#ef4444;">*</span></label>
                     <input type="number" name="nbr_heure" class="mod-input" required min="1" max="500" placeholder="75" value="<?php echo e(old('nbr_heure')); ?>">
@@ -419,6 +419,16 @@
                 <div>
                     <label class="mod-label">Coefficient <span style="color:#ef4444;">*</span></label>
                     <input type="number" name="coefficience" class="mod-input" required min="0.5" max="10" step="0.5" placeholder="3" value="<?php echo e(old('coefficience')); ?>">
+                </div>
+                <div>
+                    <label class="mod-label">
+                        Nbre contrôles
+                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
+                    </label>
+                    <input type="number" name="nbr_controles" class="mod-input"
+                           min="0" max="10" step="1" placeholder="1"
+                           value="<?php echo e(old('nbr_controles', 1)); ?>"
+                           title="0 = EFM uniquement · L'EFM est toujours ajouté automatiquement">
                 </div>
             </div>
 
@@ -518,7 +528,7 @@
             </div>
 
             
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures totales</label>
                     <input type="number" name="nbr_heure" id="edit-heure" class="mod-input" required min="1" max="500">
@@ -526,6 +536,15 @@
                 <div>
                     <label class="mod-label">Coefficient</label>
                     <input type="number" name="coefficience" id="edit-coeff" class="mod-input" required min="0.5" max="10" step="0.5">
+                </div>
+                <div>
+                    <label class="mod-label">
+                        Nbre contrôles
+                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
+                    </label>
+                    <input type="number" name="nbr_controles" id="edit-nbr-controles" class="mod-input"
+                           min="0" max="10" step="1" placeholder="1"
+                           title="0 = EFM uniquement">
                 </div>
             </div>
 
@@ -654,11 +673,12 @@ function filterRemplacantCreate(userId) {
 }
 
 // ── Éditer modal ──────────────────────────────────────────────
-function openEditModal(id, name, heure, coeff, userId, remplacantId, type, annee) {
+function openEditModal(id, name, heure, coeff, nbrControles, userId, remplacantId, type, annee) {
     document.getElementById('edit-form').action          = '/modules/' + id;
     document.getElementById('edit-name').value           = name;
     document.getElementById('edit-heure').value          = heure;
     document.getElementById('edit-coeff').value          = coeff;
+    document.getElementById('edit-nbr-controles').value  = nbrControles;
     document.getElementById('edit-user').value           = userId;
     document.getElementById('edit-remplacant').value     = remplacantId || '';
     document.getElementById('edit-subtitle').textContent = 'Modification : ' + name;

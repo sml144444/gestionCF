@@ -608,32 +608,22 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             <?php if($sharedFile): ?>
                                 <a href="<?php echo e(Storage::url($sharedFile)); ?>" target="_blank"
                                    style="font-size:11px;font-weight:700;color:var(--accent);
-                                          text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:6px;">
+                                          text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;">
                                     📎 Voir le justificatif
                                 </a><br>
                             <?php else: ?>
-                                <span class="badge badge-justifie" style="margin-bottom:6px;display:inline-flex;">✅ Toutes justifiées</span><br>
+                                <span class="badge badge-justifie" style="margin-bottom:8px;display:inline-flex;">✅ Toutes justifiées</span><br>
                             <?php endif; ?>
-                            
-                            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                                <?php $__currentLoopData = $da->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
-                                    <div style="display:flex;align-items:center;gap:5px;">
-                                        <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
-                                                     background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
-                                                     border:1px solid <?php echo e($pc['border']); ?>;">
-                                            <?php echo e(strtoupper($abs->session_part)); ?>
 
-                                        </span>
-                                        <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
-                                            <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                                            <button type="submit" class="btn-toggle" style="font-size:9px;padding:2px 7px;">
-                                                ↩ Annuler
-                                            </button>
-                                        </form>
-                                    </div>
+                            
+                            <form method="POST" action="<?php echo e(route('absences.admin.bulk.unjustify')); ?>"
+                                  onsubmit="return confirm('Annuler la justification pour toutes les demi-séances de cette journée ?')">
+                                <?php echo csrf_field(); ?>
+                                <?php $__currentLoopData = $allAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </div>
+                                <button type="submit" class="btn-toggle">↩ Annuler toutes</button>
+                            </form>
 
                         
                         <?php elseif($anyPending): ?>
@@ -714,25 +704,13 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             </form>
 
                             
-                            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                                <?php $__currentLoopData = $da->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
-                                    <div style="display:flex;align-items:center;gap:5px;">
-                                        <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
-                                                     background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
-                                                     border:1px solid <?php echo e($pc['border']); ?>;">
-                                            <?php echo e(strtoupper($abs->session_part)); ?>
-
-                                        </span>
-                                        <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
-                                            <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                                            <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
-                                                ✓ Justifier
-                                            </button>
-                                        </form>
-                                    </div>
+                            <form method="POST" action="<?php echo e(route('absences.admin.bulk.justify')); ?>" style="margin-top:6px;">
+                                <?php echo csrf_field(); ?>
+                                <?php $__currentLoopData = $allAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                            </div>
+                                <button type="submit" class="btn-accept">✓ Justifier toutes</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                     <?php endif; ?>
@@ -854,7 +832,8 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
             </div>
             <div style="font-size:12px;color:#64748b;margin-top:2px;">
                 <?php if(!$canViewAll): ?>
-                    <?php echo e($absencesByDay->count()); ?> jour(s) d'absence
+                    <?php echo e($absencesByDay->total()); ?> jour(s) d'absence — page <?php echo e($absencesByDay->currentPage()); ?>/<?php echo e($absencesByDay->lastPage()); ?>
+
                 <?php else: ?>
                     <?php echo e($absencesGrouped->total()); ?> résultat(s) — page <?php echo e($absencesGrouped->currentPage()); ?>/<?php echo e($absencesGrouped->lastPage()); ?>
 
@@ -1062,14 +1041,82 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
             </table>
             </div>
 
+            
             <div style="padding:10px 20px;border-top:1px solid #f1f5f9;
-                        font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px;">
-                📅 <strong style="color:#475569;"><?php echo e($absencesByDay->count()); ?></strong> jour(s) —
-                chaque ligne = 1 journée complète
-                <?php if($stats['total_heures_abs'] > 0): ?>
-                    &nbsp;·&nbsp; <strong style="color:#dc2626;"><?php echo e($stats['total_heures_abs']); ?>h</strong> cumulées
-                <?php endif; ?>
+                        font-size:11px;color:#94a3b8;display:flex;align-items:center;
+                        justify-content:space-between;flex-wrap:wrap;gap:8px;">
+
+                <span>
+                    📅 <strong style="color:#475569;"><?php echo e($absencesByDay->total()); ?></strong> jour(s) au total
+                    <?php if($stats['total_heures_abs'] > 0): ?>
+                        &nbsp;·&nbsp; <strong style="color:#dc2626;"><?php echo e($stats['total_heures_abs']); ?>h</strong> cumulées
+                    <?php endif; ?>
+                </span>
+
+                <span style="font-size:10px;color:#94a3b8;">
+                    Page <?php echo e($absencesByDay->currentPage()); ?> / <?php echo e($absencesByDay->lastPage()); ?>
+
+                </span>
             </div>
+
+            <?php if($absencesByDay->hasPages()): ?>
+            <div class="pagination-wrap">
+                <span style="font-size:11px;color:#94a3b8;">
+                    <?php echo e($absencesByDay->firstItem()); ?>–<?php echo e($absencesByDay->lastItem()); ?>
+
+                    sur <?php echo e($absencesByDay->total()); ?> jour(s)
+                </span>
+
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+
+                    
+                    <?php if($absencesByDay->onFirstPage()): ?>
+                        <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;
+                                     color:#cbd5e1;font-size:12px;font-weight:600;cursor:default;">←</span>
+                    <?php else: ?>
+                        <a href="<?php echo e($absencesByDay->previousPageUrl()); ?>"
+                           style="padding:6px 12px;border-radius:8px;background:white;
+                                  border:1.5px solid #e2e8f0;color:#475569;font-size:12px;
+                                  font-weight:600;text-decoration:none;transition:all .15s;"
+                           onmouseover="this.style.borderColor='var(--accent-bd)';this.style.color='var(--accent-tx)';"
+                           onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569';">←</a>
+                    <?php endif; ?>
+
+                    
+                    <?php $__currentLoopData = $absencesByDay->getUrlRange(
+                        max(1, $absencesByDay->currentPage() - 2),
+                        min($absencesByDay->lastPage(), $absencesByDay->currentPage() + 2)
+                    ); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $page => $url): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php if($page == $absencesByDay->currentPage()): ?>
+                            <span style="padding:6px 12px;border-radius:8px;
+                                         background:var(--accent-gr);color:white;
+                                         font-size:12px;font-weight:700;border:none;"><?php echo e($page); ?></span>
+                        <?php else: ?>
+                            <a href="<?php echo e($url); ?>"
+                               style="padding:6px 12px;border-radius:8px;background:white;
+                                      border:1.5px solid #e2e8f0;color:#475569;font-size:12px;
+                                      font-weight:600;text-decoration:none;transition:all .15s;"
+                               onmouseover="this.style.borderColor='var(--accent-bd)';this.style.color='var(--accent-tx)';"
+                               onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569';"><?php echo e($page); ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+                    
+                    <?php if($absencesByDay->hasMorePages()): ?>
+                        <a href="<?php echo e($absencesByDay->nextPageUrl()); ?>"
+                           style="padding:6px 12px;border-radius:8px;background:white;
+                                  border:1.5px solid #e2e8f0;color:#475569;font-size:12px;
+                                  font-weight:600;text-decoration:none;transition:all .15s;"
+                           onmouseover="this.style.borderColor='var(--accent-bd)';this.style.color='var(--accent-tx)';"
+                           onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569';">→</a>
+                    <?php else: ?>
+                        <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;
+                                     color:#cbd5e1;font-size:12px;font-weight:600;cursor:default;">→</span>
+                    <?php endif; ?>
+
+                </div>
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
 
     
@@ -1257,32 +1304,22 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 <?php if($rowSharedFile): ?>
                                     <a href="<?php echo e(Storage::url($rowSharedFile)); ?>" target="_blank"
                                        style="font-size:11px;font-weight:700;color:var(--accent);
-                                              text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:6px;">
+                                              text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:8px;">
                                         📎 Voir le justificatif
                                     </a><br>
                                 <?php else: ?>
-                                    <span class="badge badge-justifie" style="margin-bottom:6px;display:inline-flex;">✅ Toutes justifiées</span><br>
+                                    <span class="badge badge-justifie" style="margin-bottom:8px;display:inline-flex;">✅ Toutes justifiées</span><br>
                                 <?php endif; ?>
-                                <?php if($canJustify): ?>
-                                <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                                    <?php $__currentLoopData = $row->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
-                                        <div style="display:flex;align-items:center;gap:5px;">
-                                            <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
-                                                         background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
-                                                         border:1px solid <?php echo e($pc['border']); ?>;">
-                                                <?php echo e(strtoupper($abs->session_part)); ?>
 
-                                            </span>
-                                            <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
-                                                <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                                                <button type="submit" class="btn-toggle" style="font-size:9px;padding:2px 7px;">
-                                                    ↩ Annuler
-                                                </button>
-                                            </form>
-                                        </div>
+                                <?php if($canJustify): ?>
+                                <form method="POST" action="<?php echo e(route('absences.admin.bulk.unjustify')); ?>"
+                                      onsubmit="return confirm('Annuler la justification pour toutes les demi-séances ?')">
+                                    <?php echo csrf_field(); ?>
+                                    <?php $__currentLoopData = $allRowAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                </div>
+                                    <button type="submit" class="btn-toggle">↩ Annuler toutes</button>
+                                </form>
                                 <?php endif; ?>
 
                             
@@ -1368,25 +1405,13 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                     </form>
 
                                     
-                                    <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
-                                        <?php $__currentLoopData = $row->absences; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $abs): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                            <?php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; ?>
-                                            <div style="display:flex;align-items:center;gap:5px;">
-                                                <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;
-                                                             background:<?php echo e($pc['bg']); ?>;color:<?php echo e($pc['color']); ?>;
-                                                             border:1px solid <?php echo e($pc['border']); ?>;">
-                                                    <?php echo e(strtoupper($abs->session_part)); ?>
-
-                                                </span>
-                                                <form method="POST" action="<?php echo e(route('absences.justify', $abs)); ?>" style="display:inline;">
-                                                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                                                    <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
-                                                        ✓ Justifier
-                                                    </button>
-                                                </form>
-                                            </div>
+                                    <form method="POST" action="<?php echo e(route('absences.admin.bulk.justify')); ?>" style="margin-top:6px;">
+                                        <?php echo csrf_field(); ?>
+                                        <?php $__currentLoopData = $allRowAbsIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <input type="hidden" name="absence_ids[]" value="<?php echo e($id); ?>">
                                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                    </div>
+                                        <button type="submit" class="btn-accept">✓ Justifier toutes</button>
+                                    </form>
                                 <?php else: ?>
                                     <span style="font-size:10px;color:#94a3b8;">—</span>
                                 <?php endif; ?>

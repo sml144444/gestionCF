@@ -107,6 +107,7 @@ class ModuleController extends Controller
             'name'               => 'required|string|max:150',
             'coefficience'       => 'required|numeric|min:0.5|max:10',
             'nbr_heure'          => 'required|integer|min:1|max:500',
+            'nbr_controles'      => 'nullable|integer|min:0|max:10',   // ✅ ADDED
             'id_user'            => 'required|exists:users,id',
             'type'               => 'required|in:regional,local',
             'annee'              => 'required|integer|in:1,2,3',
@@ -123,6 +124,11 @@ class ModuleController extends Controller
                 ->withInput();
         }
 
+        // Set default value if not provided
+        if (!isset($data['nbr_controles'])) {
+            $data['nbr_controles'] = 1;
+        }
+
         Module::create($data);
 
         return back()->with('success', 'Module « ' . $data['name'] . ' » créé avec succès.');
@@ -137,6 +143,7 @@ class ModuleController extends Controller
             'name'               => 'required|string|max:150',
             'coefficience'       => 'required|numeric|min:0.5|max:10',
             'nbr_heure'          => 'required|integer|min:1|max:500',
+            'nbr_controles'      => 'nullable|integer|min:0|max:10',   // ✅ ADDED
             'id_user'            => 'required|exists:users,id',
             'type'               => 'required|in:regional,local',
             'annee'              => 'required|integer|in:1,2,3',

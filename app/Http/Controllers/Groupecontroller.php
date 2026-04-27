@@ -2,128 +2,133 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\EmploiDuTemps;
 use App\Models\Filiere;
 use App\Models\Groupe;
-use App\Models\Module;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class GroupeController extends Controller
 {
-    // ─────────────────────────────────────────────────────────────────────────
-    // LIST
-    // ─────────────────────────────────────────────────────────────────────────
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('can:groupe-list');
+    }
 
-    public function index(Request $request)
+    // ── INDEX ─────────────────────────────────────────────
+    public function index(Request $request): View
     {
         $user        = Auth::user();
         $isFormateur = $user->role === 'formateur';
 
-        $filiereFilter   = $request->get('filiere');
-        $promoFilter     = $request->get('promo');
+        $filiereId = $request->get('filiere');
+        $promo     = $request->get('promo');
 
-        $filieres        = Filiere::orderBy('name')->get();
-        $selectedFiliere = $filiereFilter ? Filiere::find($filiereFilter) : null;
+        $filieres = Filiere::orderBy('name')->get();
+        $promos   = Groupe::select('promo')
+            ->distinct()
+            ->orderByDesc('promo')
+            ->pluck('promo');
 
-        // Build query
-        $query = Groupe::with('filiere')
-            ->withCount('stagiaires');
+        $groupes = Groupe::with(['filiere'])
+            ->withCount('stagiaires')
+            // ── Formateur: only groups that have at least one
+            //    emploi_du_temps linked to one of their modules ──
+            ->when($isFormateur, fn($q) => $q->whereHas(
+                'emploisDuTemps', fn($eq) =>
+                    $eq->whereHas('module', fn($mq) =>
+                        $mq->where('id_user', $user->id)
+                           ->orWhere('id_user_remplacant', $user->id)
+                    )
+            ))
+            ->when($filiereId, fn($q) => $q->where('id_filiere', $filiereId))
+            ->when($promo,     fn($q) => $q->where('promo', $promo))
+            ->get()
+            ->groupBy('id_filiere');
 
-        // ── Formateur scope: only groups where they teach ────────────────────
-        if ($isFormateur) {
-            // Step 1: get module IDs assigned to this formateur (principal or remplaçant)
-            $moduleIds = Module::where('id_user', $user->id)
-                ->orWhere('id_user_remplacant', $user->id)
-                ->pluck('id');
-
-            // Step 2: get group IDs from emplois_du_temps linked to those modules
-            $groupeIds = EmploiDuTemps::whereIn('id_module', $moduleIds)
-                ->pluck('id_groupe')
-                ->unique()
-                ->values();
-
-            $query->whereIn('id', $groupeIds);
-        }
-        // ─────────────────────────────────────────────────────────────────────
-
-        if ($filiereFilter) {
-            $query->where('id_filiere', $filiereFilter);
-        }
-
-        if ($promoFilter) {
-            $query->where('promo', $promoFilter);
-        }
-
-        // Group by filiere for the view
-        $groupes = $query->get()->groupBy('id_filiere');
-
-        // Distinct promos for filter dropdown
-        $promos = Groupe::whereNotNull('promo')
-            ->pluck('promo')
-            ->unique()
-            ->sort()
-            ->values();
+        $selectedFiliere = $filiereId ? Filiere::find($filiereId) : null;
 
         return view('groupes.index', compact(
-            'groupes', 'filieres', 'selectedFiliere', 'promos', 'isFormateur'
+            'groupes', 'filieres', 'promos',
+            'selectedFiliere', 'isFormateur'
         ));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // CREATE
-    // ─────────────────────────────────────────────────────────────────────────
-
-    public function store(Request $request)
+    // ── STORE ─────────────────────────────────────────────
+    public function store(Request $request): RedirectResponse
     {
+        $this->authorize('groupe-create');
+
         $data = $request->validate([
             'id_filiere' => 'required|exists:filieres,id',
             'name'       => 'required|string|max:100',
             'code'       => 'required|string|max:30|unique:groupes,code',
-            'nbr_limit'  => 'required|integer|min:1|max:500',
             'annee'      => 'required|integer|in:1,2,3',
+            'nbr_limit'  => 'required|integer|min:1|max:500',
             'promo'      => 'nullable|integer|min:2000|max:2099',
         ]);
 
+        $exists = Groupe::where('id_filiere', $data['id_filiere'])
+            ->where('name', $data['name'])
+            ->exists();
+
+        if ($exists) {
+            return back()
+                ->withErrors(['name' => 'Un groupe avec ce nom existe déjà dans cette filière.'])
+                ->withInput();
+        }
+
         Groupe::create($data);
 
-        return back()->with('success', 'Groupe créé avec succès.');
+        return back()->with('success', 'Groupe « ' . $data['name'] . ' » créé avec succès.');
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // UPDATE
-    // ─────────────────────────────────────────────────────────────────────────
-
-    public function update(Request $request, Groupe $groupe)
+    // ── UPDATE ─────────────────────────────────────────────
+    public function update(Request $request, Groupe $groupe): RedirectResponse
     {
+        $this->authorize('groupe-edit');
+
         $data = $request->validate([
             'name'      => 'required|string|max:100',
             'code'      => 'required|string|max:30|unique:groupes,code,' . $groupe->id,
-            'nbr_limit' => 'required|integer|min:1|max:500',
             'annee'     => 'required|integer|in:1,2,3',
+            'nbr_limit' => 'required|integer|min:1|max:500',
             'promo'     => 'nullable|integer|min:2000|max:2099',
         ]);
 
+        $exists = Groupe::where('id_filiere', $groupe->id_filiere)
+            ->where('name', $data['name'])
+            ->where('id', '!=', $groupe->id)
+            ->exists();
+
+        if ($exists) {
+            return back()
+                ->withErrors(['name' => 'Un groupe avec ce nom existe déjà dans cette filière.'])
+                ->withInput();
+        }
+
         $groupe->update($data);
 
-        return back()->with('success', 'Groupe "' . $groupe->name . '" modifié.');
+        return back()->with('success', 'Groupe « ' . $groupe->name . ' » mis à jour.');
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // DELETE
-    // ─────────────────────────────────────────────────────────────────────────
-
-    public function destroy(Groupe $groupe)
+    // ── DESTROY ────────────────────────────────────────────
+    public function destroy(Groupe $groupe): RedirectResponse
     {
-        if ($groupe->stagiaires()->count() > 0) {
+        $this->authorize('groupe-delete');
+
+        $stagiaireCount = $groupe->stagiaires()->count();
+        if ($stagiaireCount > 0) {
             return back()->with('error',
-                'Impossible de supprimer "' . $groupe->name . '" — ' .
-                $groupe->stagiaires()->count() . ' stagiaire(s) dans ce groupe. Désaffectez-les d\'abord.'
+                'Impossible de supprimer : ce groupe contient ' . $stagiaireCount . ' stagiaire(s). Désaffectez-les d\'abord.'
             );
         }
 
+        $name = $groupe->name;
         $groupe->delete();
 
-        return back()->with('success', 'Groupe "' . $groupe->name . '" supprimé.');
+        return back()->with('success', 'Groupe « ' . $name . ' » supprimé.');
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\WelcomeEduMail;
 use App\Models\Edu;
 use App\Models\EduImportLog;
 use App\Models\Filiere;
@@ -11,7 +10,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -152,7 +150,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // DELETE — ✅ cascade suppression stagiaire si compte actif
+    // DELETE — cascade suppression stagiaire si compte actif
     // ─────────────────────────────────────────────────────────
     public function destroy(Edu $edu): RedirectResponse
     {
@@ -161,8 +159,6 @@ class EduImportController extends Controller
         $name = "{$edu->prenom} {$edu->nom}";
         $deletedStagiaire = false;
 
-        // ✅ Si le stagiaire a créé son compte (used = true),
-        //    supprimer aussi le User stagiaire correspondant
         if ($edu->used) {
             $stagiaire = User::where('email', $edu->edu_email)
                              ->where('role', 'stagiaire')
@@ -202,7 +198,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // CONFIRM IMPORT
+    // CONFIRM IMPORT — ✅ NO EMAIL SENT
     // ─────────────────────────────────────────────────────────
     public function confirm(Request $request): RedirectResponse
     {
@@ -214,7 +210,6 @@ class EduImportController extends Controller
                 ->with('error', 'Aucune donnée à importer. Veuillez re-uploader le fichier.');
         }
 
-        // ✅ Créer le log EN PREMIER pour avoir son ID
         $log = EduImportLog::create([
             'id_user'  => auth()->id(),
             'filename' => session('edu_import_filename', 'fichier.xlsx'),
@@ -234,7 +229,7 @@ class EduImportController extends Controller
 
             $plainPassword = $row['plain_password'];
 
-            $edu = Edu::create([
+            Edu::create([
                 'edu_email'         => $row['edu_email'],
                 'password'          => Hash::make($plainPassword),
                 'nom'               => $row['nom'],
@@ -242,19 +237,12 @@ class EduImportController extends Controller
                 'filiere_code'      => $row['filiere_code'],
                 'groupe_code'       => $row['groupe_code'],
                 'used'              => false,
-                'edu_import_log_id' => $log->id, // ✅ lier au log
+                'edu_import_log_id' => $log->id,
             ]);
-
-            try {
-                Mail::to($edu->edu_email)->send(new WelcomeEduMail($edu, $plainPassword));
-            } catch (\Exception $e) {
-                \Log::error("Échec envoi email EDU ({$edu->edu_email}): " . $e->getMessage());
-            }
 
             $imported++;
         }
 
-        // ✅ Mettre à jour les compteurs réels
         $log->update(['imported' => $imported, 'skipped' => $skipped]);
 
         session()->forget(['edu_preview', 'edu_import_filename']);
@@ -268,7 +256,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // MANUAL ADD — ✅ vérification capacité groupe
+    // MANUAL ADD — ✅ password required, no email sent
     // ─────────────────────────────────────────────────────────
     public function manualStore(Request $request): RedirectResponse
     {
@@ -280,6 +268,7 @@ class EduImportController extends Controller
             'edu_email'    => 'required|email|unique:edu,edu_email',
             'filiere_code' => 'required|exists:filieres,code',
             'groupe_code'  => 'required|exists:groupes,code',
+            'password'     => 'required|string|min:6',
         ]);
 
         $groupeAppartient = Groupe::join('filieres', 'groupes.id_filiere', '=', 'filieres.id')
@@ -293,7 +282,7 @@ class EduImportController extends Controller
                 ->withInput();
         }
 
-        // ✅ Vérification capacité groupe
+        // Vérification capacité groupe
         $groupe = Groupe::where('code', $data['groupe_code'])
                         ->withCount('stagiaires')
                         ->first();
@@ -306,9 +295,6 @@ class EduImportController extends Controller
                 ->withInput();
         }
 
-        $plainPassword = $this->generateSecurePassword();
-
-        // ✅ Créer le log EN PREMIER
         $log = EduImportLog::create([
             'id_user'  => auth()->id(),
             'filename' => 'Ajout manuel',
@@ -317,25 +303,19 @@ class EduImportController extends Controller
             'errors'   => 0,
         ]);
 
-        $edu = Edu::create([
+        Edu::create([
             'nom'               => $data['nom'],
             'prenom'            => $data['prenom'],
             'edu_email'         => $data['edu_email'],
-            'password'          => Hash::make($plainPassword),
+            'password'          => Hash::make($data['password']),
             'filiere_code'      => $data['filiere_code'],
             'groupe_code'       => $data['groupe_code'],
             'used'              => false,
-            'edu_import_log_id' => $log->id, // ✅ lier au log
+            'edu_import_log_id' => $log->id,
         ]);
 
-        try {
-            Mail::to($edu->edu_email)->send(new WelcomeEduMail($edu, $plainPassword));
-        } catch (\Exception $e) {
-            \Log::error("Échec envoi email EDU manuel ({$edu->edu_email}): " . $e->getMessage());
-        }
-
         return redirect()->route('edu-import.index', ['tab' => 'accounts'])
-            ->with('success', "Stagiaire {$data['prenom']} {$data['nom']} ajouté avec succès. Les identifiants ont été envoyés par e-mail.");
+            ->with('success', "Stagiaire {$data['prenom']} {$data['nom']} ajouté avec succès.");
     }
 
     // ─────────────────────────────────────────────────────────
@@ -365,7 +345,7 @@ class EduImportController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // DOWNLOAD TEMPLATE — 5 colonnes (sans mot de passe)
+    // DOWNLOAD TEMPLATE — 6 colonnes AVEC mot de passe (obligatoire)
     // ─────────────────────────────────────────────────────────
     public function downloadTemplate()
     {
@@ -374,7 +354,8 @@ class EduImportController extends Controller
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
 
-        $headers = ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code'];
+        // ✅ 6 colonnes
+        $headers = ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code', 'password'];
 
         foreach ($headers as $col => $header) {
             $cell = chr(65 + $col) . '1';
@@ -384,12 +365,13 @@ class EduImportController extends Controller
                 'fill'      => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF1E293B']],
                 'alignment' => ['horizontal' => 'center'],
             ]);
-            $sheet->getColumnDimensionByColumn($col + 1)->setWidth(22);
+            $sheet->getColumnDimensionByColumn($col + 1)->setWidth(24);
         }
 
+        // ✅ Exemples avec codes réels du seeder et password obligatoire
         $examples = [
-            ['ahmed.alami@ofppt.ma',  'Alami',   'Ahmed', 'DEVDIG', 'DD-G1A'],
-            ['sara.idrissi@ofppt.ma', 'Idrissi', 'Sara',  'GI',     'GI-G1C'],
+            ['ahmed.alami@ofppt.ma',  'Alami',   'Ahmed', 'DEVDIG', 'TDEV-101', 'MonPass123!'],
+            ['sara.idrissi@ofppt.ma', 'Idrissi', 'Sara',  'GI',     'TGI-101',  'Sara2024!'],
         ];
 
         foreach ($examples as $ri => $row) {
@@ -423,7 +405,7 @@ class EduImportController extends Controller
     }
 
     /**
-     * Parse uploaded file — 5 colonnes (sans mot de passe).
+     * Parse uploaded file — 6 colonnes (password obligatoire).
      */
     private function parseFile($file): array
     {
@@ -439,11 +421,16 @@ class EduImportController extends Controller
                     $header = array_map('trim', $line);
                     continue;
                 }
-                if (count($line) >= 5) {
-                    $rows[] = array_combine(
-                        ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code'],
-                        array_slice(array_map('trim', $line), 0, 5)
-                    );
+                if (count($line) >= 6) {
+                    $mapped = array_map('trim', $line);
+                    $rows[] = [
+                        'edu_email'    => $mapped[0] ?? '',
+                        'nom'          => $mapped[1] ?? '',
+                        'prenom'       => $mapped[2] ?? '',
+                        'filiere_code' => $mapped[3] ?? '',
+                        'groupe_code'  => $mapped[4] ?? '',
+                        'password'     => $mapped[5] ?? '',
+                    ];
                 }
             }
             fclose($handle);
@@ -452,17 +439,21 @@ class EduImportController extends Controller
             $sheet       = $spreadsheet->getActiveSheet();
 
             for ($row = 2; $row <= $sheet->getHighestDataRow(); $row++) {
-                $data = [];
-                for ($col = 1; $col <= 5; $col++) {
-                    $data[] = trim((string) $sheet
+                $data6 = [];
+                for ($col = 1; $col <= 6; $col++) {
+                    $data6[] = trim((string) $sheet
                         ->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row)
                         ->getValue());
                 }
-                if (array_filter($data)) {
-                    $rows[] = array_combine(
-                        ['edu_email', 'nom', 'prenom', 'filiere_code', 'groupe_code'],
-                        $data
-                    );
+                if (array_filter($data6)) {
+                    $rows[] = [
+                        'edu_email'    => $data6[0],
+                        'nom'          => $data6[1],
+                        'prenom'       => $data6[2],
+                        'filiere_code' => $data6[3],
+                        'groupe_code'  => $data6[4],
+                        'password'     => $data6[5] ?? '',
+                    ];
                 }
             }
         }
@@ -471,8 +462,7 @@ class EduImportController extends Controller
     }
 
     /**
-     * Validate rows — mot de passe auto-généré par ligne valide.
-     * ✅ Vérification capacité groupe ajoutée.
+     * Validate rows — password OBLIGATOIRE.
      */
     private function validateRows(array $rows): array
     {
@@ -490,7 +480,6 @@ class EduImportController extends Controller
             ->pluck('filiere_code', 'groupe_code')
             ->toArray();
 
-        // ✅ Pré-charger les capacités et le nombre de stagiaires actuels par groupe
         $groupeCapacities = Groupe::withCount('stagiaires')
             ->get()
             ->keyBy('code')
@@ -500,9 +489,7 @@ class EduImportController extends Controller
             ])
             ->toArray();
 
-        // ✅ Compteur local pour les ajouts en cours d'import (même fichier)
         $groupeAddedCount = [];
-
         $seenEmails = [];
 
         foreach ($rows as $lineNum => $row) {
@@ -512,6 +499,7 @@ class EduImportController extends Controller
             $prenom = $row['prenom']       ?? '';
             $fc     = strtoupper(trim($row['filiere_code'] ?? ''));
             $gc     = trim($row['groupe_code'] ?? '');
+            $rawPassword = trim($row['password'] ?? '');
 
             if (empty($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors[] = "Ligne {$line} — Email invalide : «{$email}»";
@@ -546,7 +534,7 @@ class EduImportController extends Controller
                 continue;
             }
 
-            // ✅ Vérification capacité groupe (DB + ajouts du fichier en cours)
+            // ✅ Vérification capacité groupe
             if (isset($groupeCapacities[$gc])) {
                 $currentCount = $groupeCapacities[$gc]['count'] + ($groupeAddedCount[$gc] ?? 0);
                 $limit        = $groupeCapacities[$gc]['limit'];
@@ -561,12 +549,15 @@ class EduImportController extends Controller
             // ✅ Incrémenter le compteur local pour ce groupe
             $groupeAddedCount[$gc] = ($groupeAddedCount[$gc] ?? 0) + 1;
 
-            // ✅ Mot de passe généré ici — stocké temporairement en session pour l'envoi email
-            $plainPassword = $this->generateSecurePassword();
+            // ✅ Password OBLIGATOIRE
+            if ($rawPassword === '') {
+                $errors[] = "Ligne {$line} — Mot de passe manquant pour «{$email}»";
+                continue;
+            }
 
             $validRows[] = [
                 'edu_email'      => $email,
-                'plain_password' => $plainPassword,
+                'plain_password' => $rawPassword,
                 'nom'            => $nom,
                 'prenom'         => $prenom,
                 'filiere_code'   => $fc,
@@ -584,26 +575,5 @@ class EduImportController extends Controller
             'errors'      => $errors,
             'skipped'     => $skippedLines,
         ];
-    }
-
-    /**
-     * Mot de passe sécurisé aléatoire.
-     */
-    private function generateSecurePassword(int $length = 12): string
-    {
-        $upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-        $lower   = 'abcdefghjkmnpqrstuvwxyz';
-        $digits  = '23456789';
-        $special = '@#$%!&*';
-
-        $password  = substr(str_shuffle($upper),   0, 2);
-        $password .= substr(str_shuffle($lower),   0, 3);
-        $password .= substr(str_shuffle($digits),  0, 3);
-        $password .= substr(str_shuffle($special), 0, 2);
-
-        $all       = $upper . $lower . $digits . $special;
-        $password .= substr(str_shuffle(str_repeat($all, 3)), 0, $length - 10);
-
-        return str_shuffle($password);
     }
 }

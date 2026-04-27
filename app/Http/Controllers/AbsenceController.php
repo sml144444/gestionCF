@@ -143,7 +143,6 @@ class AbsenceController extends Controller
                         'formateurs'         => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
                         'is_justified'       => $group->every(fn($a) => $a->justifie),
                         'is_pending'         => $group->contains(fn($a) => !$a->justifie && !empty($a->file_justification)),
-                        // ✅ NEW: true when ALL records in this day-group are admin-validated
                         'is_admin_validated' => $group->every(fn($a) => $a->admin_validated),
                         'absences'           => $group,
                     ];
@@ -212,7 +211,6 @@ class AbsenceController extends Controller
                         'formateurs'         => $emplois->map(fn($e) => $e?->gestionnaire)->filter()->unique('id')->values(),
                         'is_justified'       => $group->every(fn($a) => $a->justifie),
                         'is_pending'         => $group->contains(fn($a) => !$a->justifie && !empty($a->file_justification)),
-                        // ✅ NEW
                         'is_admin_validated' => $group->every(fn($a) => $a->admin_validated),
                         'absences'           => $group,
                     ];
@@ -233,7 +231,7 @@ class AbsenceController extends Controller
                      : $keys->first(fn($k) => $k > $dayStr);
         }
 
-        // ── Stagiaire day-grouped view ─────────────────────────
+        // ── Stagiaire day-grouped view (PAGINATED) ─────────────
         $absencesByDay = collect();
         if (!$canViewAll) {
             $dayQ = AbsenceRetard::with([
@@ -256,7 +254,7 @@ class AbsenceController extends Controller
                 $dayQ->where('session_part', $request->session_part);
             }
 
-            $absencesByDay = $dayQ->orderByDesc('date_event')->get()
+            $grouped = $dayQ->orderByDesc('date_event')->get()
                 ->groupBy(fn($a) => $a->date_event?->format('Y-m-d') ?? 'x')
                 ->map(function ($group) {
                     $first   = $group->first();
@@ -279,6 +277,17 @@ class AbsenceController extends Controller
                 })
                 ->sortByDesc(fn($d) => $d->date?->timestamp)
                 ->values();
+
+            // ✅ Paginate the grouped collection (10 days per page)
+            $perPage       = 10;
+            $currentPage   = (int) $request->get('page', 1);
+            $absencesByDay = new \Illuminate\Pagination\LengthAwarePaginator(
+                $grouped->forPage($currentPage, $perPage),
+                $grouped->count(),
+                $perPage,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
         }
 
         return view('absences.index', compact(
@@ -530,5 +539,32 @@ class AbsenceController extends Controller
         }
 
         return back()->with('success', 'Justificatif retiré pour toute la journée.');
+    }
+
+    // ── BULK JUSTIFY ALL (one day, one student) ───────────────
+    public function adminBulkJustify(Request $request)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
+
+        $ids = $request->input('absence_ids', []);
+        AbsenceRetard::whereIn('id', $ids)->update([
+            'justifie'        => true,
+            'admin_validated' => false,
+        ]);
+
+        $count = count($ids);
+        return back()->with('success', "$count absence(s) justifiée(s) avec succès.");
+    }
+
+    // ── BULK UNJUSTIFY ALL (one day, one student) ────────────
+    public function adminBulkUnjustify(Request $request)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
+
+        $ids = $request->input('absence_ids', []);
+        AbsenceRetard::whereIn('id', $ids)->update(['justifie' => false]);
+
+        $count = count($ids);
+        return back()->with('success', "Justification annulée pour $count absence(s).");
     }
 }

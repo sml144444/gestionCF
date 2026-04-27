@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredStagiaireController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\ControleNotesController;
 use App\Http\Controllers\EduImportController;
 use App\Http\Controllers\EmploiDuTempsController;
 use App\Http\Controllers\FiliereController;
@@ -294,62 +295,32 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
 // ─────────────────────────────────────────────
 // RÉCLAMATIONS
 // ─────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────
-// Add these routes to your routes/web.php
-// ─────────────────────────────────────────────────────────────
-
-
-// ─────────────────────────────────────────────
-// RÉCLAMATIONS
-// ─────────────────────────────────────────────
-
 Route::middleware(['auth'])->group(function () {
 
-    // List (role-aware: admin sees all, stagiaire sees own, formateur sees assigned)
     Route::get('/reclamations', [ReclamationController::class, 'index'])
         ->name('reclamations.index');
 
-    // Stagiaire: create & submit
     Route::get('/reclamations/create', [ReclamationController::class, 'create'])
         ->name('reclamations.create');
     Route::post('/reclamations', [ReclamationController::class, 'store'])
         ->name('reclamations.store');
 
-    // Conversation thread (all authorized roles)
     Route::get('/reclamations/{reclamation}', [ReclamationController::class, 'show'])
         ->name('reclamations.show');
 
-    // Reply (all authorized roles)
     Route::post('/reclamations/{reclamation}/message', [ReclamationController::class, 'sendMessage'])
         ->name('reclamations.message');
 
-    // Admin: assign to formateur / gestionnaire
     Route::patch('/reclamations/{reclamation}/assign', [ReclamationController::class, 'assign'])
         ->name('reclamations.assign');
 
-    // Admin / Gestionnaire: change status
     Route::patch('/reclamations/{reclamation}/status', [ReclamationController::class, 'updateStatus'])
         ->name('reclamations.status');
 
-    // 👇 AJOUTER CETTE ROUTE POUR LA SUPPRESSION
     Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
 });
-
-// ─────────────────────────────────────────────────────────────
-// Add 'reclamation-view-assigned' to PermissionsSeeder
-// for the formateur role so assigned tickets are accessible:
-//
-//   $formateurRole->syncPermissions([
-//       ...existing permissions...
-//       'reclamation-view-assigned',  // ← new
-//   ]);
-//
-// And add to the $permissions array:
-//   'reclamation-view-assigned',
-// ─────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────
 // NEWS & ÉVÉNEMENTS
@@ -398,9 +369,6 @@ Route::middleware(['auth'])->group(function () {
 
 // ─────────────────────────────────────────────
 // ABSENCES
-
-// ─────────────────────────────────────────────
-// ABSENCES — replace the existing absences block in routes/web.php
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
 
@@ -409,7 +377,47 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.index')
         ->middleware('can:absence-view');
 
-    // ── ADMIN / GESTIONNAIRE ACTIONS ──────────────────────────
+    // ══════════════════════════════════════════════════════════
+    // IMPORTANT: All static /absences/admin/... and
+    // /absences/stagiaire/... routes MUST come BEFORE the
+    // wildcard /{absence} routes to avoid routing conflicts.
+    // ══════════════════════════════════════════════════════════
+
+    // ── ADMIN: upload one file for ALL absences of a day ──────
+    Route::post('/absences/admin/upload-jour', [AbsenceController::class, 'adminUploadFichierJour'])
+        ->name('absences.admin.fichier.jour')
+        ->middleware('can:absence-justify');
+
+    // ── ADMIN: autoriser sans justificatif ────────────────────
+    Route::post('/absences/admin/valider-sans-justificatif', [AbsenceController::class, 'adminValiderSansJustificatif'])
+        ->name('absences.admin.valider')
+        ->middleware('can:absence-justify');
+
+    // ── ADMIN: annuler l'autorisation ─────────────────────────
+    Route::post('/absences/admin/annuler-validation', [AbsenceController::class, 'adminAnnulerValidation'])
+        ->name('absences.admin.annuler')
+        ->middleware('can:absence-justify');
+
+    // ── ADMIN: bulk justify ALL sessions of a day ─────────────
+    Route::post('/absences/admin/bulk-justify', [AbsenceController::class, 'adminBulkJustify'])
+        ->name('absences.admin.bulk.justify')
+        ->middleware('can:absence-justify');
+
+    // ── ADMIN: bulk unjustify ALL sessions of a day ───────────
+    Route::post('/absences/admin/bulk-unjustify', [AbsenceController::class, 'adminBulkUnjustify'])
+        ->name('absences.admin.bulk.unjustify')
+        ->middleware('can:absence-justify');
+
+    // ── STAGIAIRE SELF-SERVICE (whole day) ────────────────────
+    Route::post('/absences/stagiaire/upload-jour', [AbsenceController::class, 'stagiaireUploadFichierJour'])
+        ->name('absences.stagiaire.fichier.jour')
+        ->middleware('can:absence-view');
+
+    Route::delete('/absences/stagiaire/delete-jour', [AbsenceController::class, 'stagiaireDeleteFichierJour'])
+        ->name('absences.stagiaire.fichier.jour.delete')
+        ->middleware('can:absence-view');
+
+    // ── WILDCARD: single absence actions ─────────────────────
     Route::patch('/absences/{absence}/justification', [AbsenceController::class, 'toggleJustification'])
         ->name('absences.justify')
         ->middleware('can:absence-justify');
@@ -430,22 +438,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.fichier.delete')
         ->middleware('can:absence-justify');
 
-    // ── ADMIN upload one file for ALL absences of a stagiaire's day ──
-    // NOTE: static segments (/admin/...) must come BEFORE wildcard routes ({absence})
-    Route::post('/absences/admin/upload-jour', [AbsenceController::class, 'adminUploadFichierJour'])
-        ->name('absences.admin.fichier.jour')
-        ->middleware('can:absence-justify');
-
-    // ✅ NEW — Autoriser sans justificatif (sets admin_validated = true)
-    Route::post('/absences/admin/valider-sans-justificatif', [AbsenceController::class, 'adminValiderSansJustificatif'])
-        ->name('absences.admin.valider')
-        ->middleware('can:absence-justify');
-
-    // ✅ NEW — Annuler l'autorisation (resets admin_validated = false)
-    Route::post('/absences/admin/annuler-validation', [AbsenceController::class, 'adminAnnulerValidation'])
-        ->name('absences.admin.annuler')
-        ->middleware('can:absence-justify');
-
     // ── STAGIAIRE SELF-SERVICE (single absence) ───────────────
     Route::post('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireUploadFichier'])
         ->name('absences.stagiaire.fichier')
@@ -453,15 +445,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::delete('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireDeleteFichier'])
         ->name('absences.stagiaire.fichier.delete')
-        ->middleware('can:absence-view');
-
-    // ── STAGIAIRE SELF-SERVICE (whole day) ────────────────────
-    Route::post('/absences/stagiaire/upload-jour', [AbsenceController::class, 'stagiaireUploadFichierJour'])
-        ->name('absences.stagiaire.fichier.jour')
-        ->middleware('can:absence-view');
-
-    Route::delete('/absences/stagiaire/delete-jour', [AbsenceController::class, 'stagiaireDeleteFichierJour'])
-        ->name('absences.stagiaire.fichier.jour.delete')
         ->middleware('can:absence-view');
 });
 
@@ -473,4 +456,30 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
+});
+
+// ─────────────────────────────────────────────
+// CONTRÔLES & NOTES
+// ─────────────────────────────────────────────
+Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+
+    Route::get('/controles', [ControleNotesController::class, 'index'])
+        ->name('controles.index');
+
+    Route::get('/controles/{module}', [ControleNotesController::class, 'notes'])
+        ->name('controles.notes');
+
+    Route::post('/controles/{module}/save', [ControleNotesController::class, 'save'])
+        ->name('controles.save');
+
+    Route::patch('/controles/{module}/nbr', [ControleNotesController::class, 'updateNbr'])
+        ->name('controles.update-nbr');
+});
+
+// ─────────────────────────────────────────────
+// MES NOTES — stagiaire (read-only)
+// ─────────────────────────────────────────────
+Route::middleware(['auth', 'role:stagiaire'])->group(function () {
+    Route::get('/mes-notes', [ControleNotesController::class, 'myNotes'])
+        ->name('controles.my-notes');
 });

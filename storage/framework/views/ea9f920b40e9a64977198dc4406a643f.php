@@ -37,6 +37,10 @@
             'icon'  => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v2h5M7 20v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z',
             'color' => '#16a34a', 'bg' => '#f0fdf4',
             'perms' => [
+                'user-list'                => '📋 Voir les utilisateurs',
+                'user-create'              => '➕ Créer un utilisateur',
+                'user-edit'                => '✏️ Modifier un utilisateur',
+                'user-delete'              => '🗑️ Supprimer un utilisateur',
                 'user-manage-formateur'    => '🎓 Gérer les comptes formateurs',
                 'user-manage-gestionnaire' => '🏢 Gérer les comptes gestionnaires',
             ]
@@ -57,10 +61,10 @@
             'icon'  => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
             'color' => '#9333ea', 'bg' => '#fdf4ff',
             'perms' => [
-                'groupe-list'   => '📋 Voir les groupes',
-                'groupe-create' => '➕ Créer un groupe',
-                'groupe-edit'   => '✏️ Modifier un groupe',
-                'groupe-delete' => '🗑️ Supprimer un groupe',
+                'groupe-list'   => '📋 Voir les groupes & filières',
+                'groupe-create' => '➕ Créer un groupe / filière',
+                'groupe-edit'   => '✏️ Modifier un groupe / filière',
+                'groupe-delete' => '🗑️ Supprimer un groupe / filière',
             ]
         ],
         'salle' => [
@@ -79,8 +83,8 @@
             'icon'  => 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
             'color' => '#ea580c', 'bg' => '#fff7ed',
             'perms' => [
-                'edu-import' => '📥 Importer des données EDU',
                 'edu-view'   => '📋 Voir les imports',
+                'edu-import' => '📥 Importer des données EDU',
             ]
         ],
         'role' => [
@@ -108,9 +112,9 @@
             'icon'  => 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
             'color' => '#0f766e', 'bg' => '#f0fdfa',
             'perms' => [
-                'reclamation-create' => '📝 Soumettre une réclamation',
-                'reclamation-list'   => '📋 Voir ses réclamations',
-                'reclamation-manage' => '⚙️ Gérer toutes les réclamations',
+                'reclamation-create'        => '📝 Soumettre une réclamation',
+                'reclamation-list'          => '📋 Voir ses réclamations',
+                'reclamation-manage'        => '⚙️ Gérer toutes les réclamations',
                 'reclamation-view-assigned' => '👁️ Voir les réclamations assignées',
             ]
         ],
@@ -151,23 +155,23 @@
     --accent-sh: <?php echo e($p['shadow']); ?>;
     --accent-gr: <?php echo e($p['gradient']); ?>;
 }
+* { box-sizing:border-box; }
 .rc-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:900px; margin:0 auto; }
-.rc-back { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#64748b; text-decoration:none; padding:8px 14px; border-radius:10px; background:white; border:1.5px solid #e2e8f0; margin-bottom:20px; transition:all .15s; }
+.rc-back { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#64748b; text-decoration:none; margin-bottom:16px; padding:6px 12px; border-radius:8px; background:white; border:1px solid #e2e8f0; transition:all .15s; }
 .rc-back:hover { color:var(--accent-tx); border-color:var(--accent-bd); background:var(--accent-lt); }
-.rc-hero { background:var(--accent-gr); border-radius:20px; padding:24px 28px; margin-bottom:24px; display:flex; align-items:center; gap:16px; position:relative; overflow:hidden; }
-.rc-hero::after { content:''; position:absolute; right:-30px; top:-30px; width:160px; height:160px; border-radius:50%; background:rgba(255,255,255,0.06); pointer-events:none; }
-.rc-hero-icon { width:48px; height:48px; border-radius:15px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rc-hero { display:flex; align-items:center; gap:16px; margin-bottom:20px; padding:20px 24px; background:var(--accent-gr); border-radius:16px; }
+.rc-hero-icon { width:48px; height:48px; border-radius:14px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .rc-hero-title { font-size:18px; font-weight:800; color:white; margin:0; }
-.rc-hero-sub { font-size:11px; color:rgba(255,255,255,0.75); margin-top:2px; }
-.rc-system-badge { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); color:white; font-size:10px; font-weight:700; padding:5px 12px; border-radius:99px; margin-left:auto; }
-.rc-card { background:white; border-radius:20px; border:1px solid #e2e8f0; overflow:hidden; }
-.rc-name-field { padding:24px 24px 16px; border-bottom:1px solid #f1f5f9; }
-.rc-label { display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:8px; }
-.rc-input { width:100%; padding:10px 14px; border-radius:12px; border:1.5px solid #e2e8f0; font-size:13px; font-weight:500; color:#1e293b; outline:none; transition:border .15s; }
-.rc-input:focus { border-color:var(--accent-bd); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent); }
+.rc-hero-sub { font-size:12px; color:rgba(255,255,255,0.75); margin:3px 0 0; text-transform:capitalize; }
+.rc-system-badge { margin-left:auto; font-size:11px; font-weight:700; padding:6px 12px; border-radius:99px; background:rgba(255,255,255,0.2); color:white; white-space:nowrap; }
+.rc-card { background:white; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden; }
+.rc-name-field { padding:20px 24px; border-bottom:1px solid #f1f5f9; }
+.rc-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+.rc-input { width:100%; height:44px; padding:0 14px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:14px; color:#1e293b; outline:none; transition:border-color .15s; }
+.rc-input:focus { border-color:var(--accent); background:white; box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 8%,transparent); }
 .rc-perm-group { border-bottom:1px solid #f1f5f9; }
-.rc-perm-group:last-child { border-bottom:none; }
-.rc-perm-group-header { padding:14px 24px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; transition:background .1s; }
+.rc-perm-group:last-of-type { border-bottom:none; }
+.rc-perm-group-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; cursor:pointer; transition:background .12s; }
 .rc-perm-group-header:hover { background:#fafafa; }
 .rc-perm-group-label { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; }
 .rc-perm-group-icon { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -209,7 +213,7 @@
         </div>
         <div>
             <h1 class="rc-hero-title">Modifier le rôle</h1>
-            <p class="rc-hero-sub" style="text-transform:capitalize;"><?php echo e($role->name); ?></p>
+            <p class="rc-hero-sub"><?php echo e($role->name); ?></p>
         </div>
         <?php if($isSystem): ?>
             <span class="rc-system-badge">🔒 Rôle système</span>
@@ -223,32 +227,32 @@
             
             <div class="rc-name-field">
                 <label class="rc-label" for="name">Nom du rôle <span style="color:#dc2626">*</span></label>
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    class="rc-input"
+                <input type="text" id="name" name="name" class="rc-input"
                     value="<?php echo e(old('name', $role->name)); ?>"
-                    style="max-width:400px;"
-                    <?php echo e($isSystem ? 'readonly style="max-width:400px;background:#f8fafc;color:#94a3b8;"' : ''); ?>
-
-                    required>
+                    style="max-width:400px;<?php echo e($isSystem ? 'background:#f8fafc;color:#94a3b8;' : ''); ?>"
+                    <?php echo e($isSystem ? 'readonly' : ''); ?> required>
                 <?php if($isSystem): ?>
-                    <p style="font-size:11px;color:#f59e0b;margin-top:6px;">⚠️ Le nom d'un rôle système ne peut pas être modifié, mais ses permissions oui.</p>
+                    <p style="font-size:11px;color:#f59e0b;margin-top:6px;">
+                        ⚠️ Le nom d'un rôle système ne peut pas être modifié, mais ses permissions oui.
+                    </p>
                 <?php endif; ?>
             </div>
 
             
             <div style="padding:20px 24px 8px;">
                 <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px;">Permissions</div>
-                <div style="font-size:11px;color:#94a3b8;"><?php echo e($role->permissions->count()); ?> permission(s) actuellement assignée(s)</div>
+                <div style="font-size:11px;color:#94a3b8;">
+                    <?php echo e($role->permissions->count()); ?> permission(s) actuellement assignée(s)
+                </div>
             </div>
 
             <?php $__currentLoopData = $groupLabels; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $groupKey => $group): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <?php
-                    $groupPerms = isset($permissions[$groupKey]) ? $permissions[$groupKey] : collect();
+                    // Count how many perms in this group are currently active on the role
+                    $activeCount = collect($group['perms'])->keys()
+                        ->filter(fn($p) => in_array($p, old('permission', $rolePermissions)))
+                        ->count();
                 ?>
-                <?php if($groupPerms->isNotEmpty() || !empty($group['perms'])): ?>
                 <div class="rc-perm-group">
                     <div class="rc-perm-group-header" onclick="toggleGroup('<?php echo e($groupKey); ?>')">
                         <div class="rc-perm-group-label">
@@ -258,53 +262,54 @@
                                 </svg>
                             </div>
                             <span style="color:<?php echo e($group['color']); ?>;"><?php echo e($group['label']); ?></span>
-                            <?php
-                                $activeCount = 0;
-                                foreach($group['perms'] as $pn => $pl) {
-                                    if(in_array($pn, $rolePermissions)) $activeCount++;
-                                }
-                            ?>
                             <?php if($activeCount > 0): ?>
-                                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:<?php echo e($group['bg']); ?>;color:<?php echo e($group['color']); ?>;"><?php echo e($activeCount); ?> actif</span>
+                                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:<?php echo e($group['bg']); ?>;color:<?php echo e($group['color']); ?>;">
+                                    <?php echo e($activeCount); ?> actif
+                                </span>
                             <?php endif; ?>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <button type="button" class="rc-select-all" onclick="event.stopPropagation();selectAll('<?php echo e($groupKey); ?>', true)">Tout</button>
-                            <button type="button" class="rc-select-all" onclick="event.stopPropagation();selectAll('<?php echo e($groupKey); ?>', false)">Aucun</button>
-                            <svg id="chevron-<?php echo e($groupKey); ?>" width="16" height="16" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" style="transition:.2s;transform:rotate(<?php echo e($activeCount > 0 ? '180' : '0'); ?>deg);">
+                            <button type="button" class="rc-select-all"
+                                onclick="event.stopPropagation();selectAll('<?php echo e($groupKey); ?>', true)">Tout</button>
+                            <button type="button" class="rc-select-all"
+                                onclick="event.stopPropagation();selectAll('<?php echo e($groupKey); ?>', false)">Aucun</button>
+                            <svg id="chevron-<?php echo e($groupKey); ?>" width="16" height="16" fill="none" stroke="#94a3b8"
+                                viewBox="0 0 24 24"
+                                style="transition:.2s;transform:rotate(<?php echo e($activeCount > 0 ? '180' : '0'); ?>deg);">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </div>
                     </div>
-                    <div id="group-<?php echo e($groupKey); ?>" class="rc-perm-group-body" style="<?php echo e($activeCount === 0 ? 'display:none;' : ''); ?>">
+                    
+                    <div id="group-<?php echo e($groupKey); ?>" class="rc-perm-group-body"
+                        style="<?php echo e($activeCount === 0 ? 'display:none;' : ''); ?>">
                         <?php $__currentLoopData = $group['perms']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $permName => $permLabel): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <?php
-                                $exists = $groupPerms->where('name', $permName)->isNotEmpty();
                                 $isChecked = in_array($permName, old('permission', $rolePermissions));
                                 $cbId = 'cb-' . str_replace(['-', '.', ' '], '_', $permName);
                             ?>
-                            <?php if($exists): ?>
-                                <div class="rc-perm-item <?php echo e($isChecked ? 'active' : ''); ?>" onclick="toggleCheck('<?php echo e($cbId); ?>')">
-                                    <input type="checkbox"
-                                        id="<?php echo e($cbId); ?>"
-                                        name="permission[]"
-                                        value="<?php echo e($permName); ?>"
-                                        data-group="<?php echo e($groupKey); ?>"
-                                        <?php echo e($isChecked ? 'checked' : ''); ?>>
-                                    <label for="<?php echo e($cbId); ?>"><?php echo e($permLabel); ?></label>
-                                </div>
-                            <?php endif; ?>
+                            <div class="rc-perm-item <?php echo e($isChecked ? 'active' : ''); ?>"
+                                onclick="toggleCheck('<?php echo e($cbId); ?>')">
+                                <input type="checkbox"
+                                    id="<?php echo e($cbId); ?>"
+                                    name="permission[]"
+                                    value="<?php echo e($permName); ?>"
+                                    data-group="<?php echo e($groupKey); ?>"
+                                    <?php echo e($isChecked ? 'checked' : ''); ?>>
+                                <label for="<?php echo e($cbId); ?>"><?php echo e($permLabel); ?></label>
+                            </div>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
                 </div>
-                <?php endif; ?>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
             
             <div class="rc-footer">
                 <a href="<?php echo e(route('roles.index')); ?>" class="btn-outline">Annuler</a>
                 <button type="submit" class="btn-primary">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
                     Enregistrer
                 </button>
             </div>
@@ -314,7 +319,7 @@
 
 <script>
 function toggleGroup(key) {
-    const body = document.getElementById('group-' + key);
+    const body    = document.getElementById('group-' + key);
     const chevron = document.getElementById('chevron-' + key);
     const isHidden = body.style.display === 'none';
     body.style.display = isHidden ? 'flex' : 'none';
