@@ -105,4 +105,56 @@ class ProfileController extends Controller
 
         return back()->with('success', 'Photo de profil mise à jour.');
     }
+
+
+    public function updateEmail(Request $request)
+{
+    $request->validate([
+        'edu_email'    => ['required', 'email'],
+        'edu_password' => ['required', 'string'],
+        'new_email'    => ['required', 'email', 'unique:users,email,' . Auth::id()],
+    ]);
+
+    $user = Auth::user();
+
+    // Vérifier que c'est bien un stagiaire
+    if (! $user->isStagiaire()) {
+        return back()->withErrors(['edu_email' => 'Cette action est réservée aux stagiaires.']);
+    }
+
+    // Trouver l'entrée EDU liée à cet utilisateur
+    $edu = \App\Models\Edu::where('edu_email', $request->edu_email)
+        ->where('used', true)
+        ->first();
+
+    if (! $edu) {
+        return back()->withErrors(['edu_email' => 'Email EDU introuvable.'])
+            ->with('open_email_modal', true);
+    }
+
+    if (! \Illuminate\Support\Facades\Hash::check($request->edu_password, $edu->password)) {
+        return back()->withErrors(['edu_password' => 'Mot de passe EDU incorrect.'])
+            ->with('open_email_modal', true);
+    }
+
+$user->update([
+    'email'    => $request->new_email,
+    'password' => $edu->password,
+]);
+
+// Mail
+try {
+    Mail::to($request->new_email)->send(new \App\Mail\WelcomeStagiaireMail($user, $request->edu_password));
+} catch (\Throwable $e) {
+    logger()->warning('Email notification failed: ' . $e->getMessage());
+}
+
+// Logout APRÈS tout
+Auth::logout();
+$request->session()->invalidate();
+$request->session()->regenerateToken();   // ← c'est ça qui causait le 419
+
+return redirect()->route('login')
+    ->with('status', 'Email mis à jour ! Connectez-vous avec votre nouvel email et votre mot de passe EDU.');
+}
 }

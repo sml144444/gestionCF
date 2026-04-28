@@ -24,6 +24,7 @@
             'text'   => 'text-slate-700',
             'border' => 'border-slate-300',
             'badge'  => 'bg-slate-100 text-slate-700',
+
         ],
         'formateur'    => [
             'bg'     => 'bg-[#1a4f8a]',
@@ -63,11 +64,11 @@
 
 {{-- ─────────────────────────────────────────────────────────────────────────
      ROOT Alpine scope
-     FIX: `preview` and helpers live here — no nested x-data on modal divs
 ───────────────────────────────────────────────────────────────────────── --}}
 <div x-data="{
     editModal:     {{ $errors->has('name') || $errors->has('email') || $errors->has('phone') || $errors->has('cin') || $errors->has('date_naissance') ? 'true' : 'false' }},
     passwordModal: {{ $errors->has('current_password') || $errors->has('password') || session('open_password_modal') ? 'true' : 'false' }},
+    emailModal:    {{ $errors->hasAny(['edu_email','edu_password','new_email']) || session('open_email_modal') ? 'true' : 'false' }},
     photoModal:    false,
     preview:       null,
     openPhoto()  { this.preview = null; this.photoModal = true; },
@@ -123,6 +124,18 @@
                         </svg>
                         Mot de passe
                     </button>
+                    @if(Auth::user()->isStagiaire())
+                    <button @click="emailModal = true"
+                            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl
+                                   border border-slate-200 bg-white text-slate-600
+                                   hover:border-slate-300 hover:bg-slate-50 transition-all shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Changer email
+                    </button>
+                    @endif
                     <button @click="editModal = true"
                             class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl
                                    {{ $rc['bg'] }} text-white hover:opacity-90 transition-all shadow-sm">
@@ -301,14 +314,22 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('profile.update') }}" class="px-6 py-5 space-y-4">
+            <form method="POST" action="{{ route('profile.update') }}" class="px-6 py-5 space-y-4" data-submit-once>
                 @csrf @method('PUT')
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        <x-form-field name="name"  label="Nom complet" :value="old('name', $user->name)" required />
-                    </div>
-                    <div class="col-span-2">
-                        <x-form-field name="email" label="Email" type="email" :value="old('email', $user->email)" required />
+                        @if($user->isStagiaire())
+                            {{-- Read-only pour stagiaire --}}
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+                                Nom complet
+                            </label>
+                            <div class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed select-none">
+                                {{ $user->name }}
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Le nom ne peut pas être modifié. Contactez l'administration.</p>
+                        @else
+                            <x-form-field name="name" label="Nom complet" :value="old('name', $user->name)" required />
+                        @endif
                     </div>
                     <div>
                         <x-form-field name="phone" label="Téléphone" :value="old('phone', $user->phone)" />
@@ -377,7 +398,7 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('profile.password') }}" class="px-6 py-5 space-y-4">
+            <form method="POST" action="{{ route('profile.password') }}" class="px-6 py-5 space-y-4" data-submit-once>
                 @csrf @method('PUT')
 
                 <div>
@@ -424,11 +445,112 @@
     </div>
 
     {{-- ══════════════════════════════════════════════════════════════════════
+         MODAL — Change Email (stagiaire only)
+    ══════════════════════════════════════════════════════════════════════ --}}
+    @if(Auth::user()->isStagiaire())
+    <div x-show="emailModal" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="emailModal = false"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+
+        <div x-show="emailModal"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-end="opacity-0 scale-95"
+             @click.outside="emailModal = false"
+             class="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800">Changer l'email personnel</h3>
+                <button @click="emailModal = false"
+                        class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('profile.email') }}" class="px-6 py-5 space-y-4" data-submit-once>
+                @csrf @method('PUT')
+
+                {{-- Info hint --}}
+                <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
+                    <svg class="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-xs text-blue-600 leading-relaxed">
+                        Vérification EDU requise avant de changer votre email personnel.
+                    </p>
+                </div>
+
+                {{-- EDU Email --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+                        Email EDU
+                    </label>
+                    <input type="email" name="edu_email" value="{{ old('edu_email') }}"
+                           placeholder="votre.email@ofppt.ma"
+                           class="w-full px-3 py-2.5 text-sm border rounded-xl transition-colors
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                                  @error('edu_email') border-red-400 bg-red-50 @else border-slate-200 @enderror">
+                    @error('edu_email')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- EDU Password --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+                        Mot de passe EDU
+                    </label>
+                    <input type="password" name="edu_password"
+                           placeholder="••••••••"
+                           class="w-full px-3 py-2.5 text-sm border rounded-xl transition-colors
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                                  @error('edu_password') border-red-400 bg-red-50 @else border-slate-200 @enderror">
+                    @error('edu_password')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- New Email --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+                        Nouvel email personnel
+                    </label>
+                    <input type="email" name="new_email" value="{{ old('new_email') }}"
+                           placeholder="nouveau@gmail.com"
+                           class="w-full px-3 py-2.5 text-sm border rounded-xl transition-colors
+                                  focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                                  @error('new_email') border-red-400 bg-red-50 @else border-slate-200 @enderror">
+                    @error('new_email')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="flex gap-3 pt-1">
+                    <button type="button" @click="emailModal = false"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="flex-1 px-4 py-2.5 rounded-xl {{ $rc['bg'] }} text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm">
+                        Mettre à jour
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════════════════════════════════════════════════════════════
          MODAL — Change Photo
-         KEY FIXES:
-         1. No nested x-data — `preview` lives in root scope above
-         2. openPhoto() resets preview to null on every open
-         3. x-show instead of x-if for the preview img (avoids DOM thrash)
     ══════════════════════════════════════════════════════════════════════ --}}
     <div x-show="photoModal" x-cloak
          x-transition:enter="transition ease-out duration-200"
@@ -459,7 +581,7 @@
             </div>
 
             <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data"
-                  class="px-6 py-5 space-y-4">
+                  class="px-6 py-5 space-y-4" data-submit-once>
                 @csrf
 
                 <div class="flex flex-col items-center gap-3">
@@ -514,4 +636,26 @@
     </div>
 
 </div>{{-- /root x-data --}}
+
+{{-- ══════════════════════════════════════════════════════════════════════
+     Prevent double-submit on all forms with data-submit-once
+══════════════════════════════════════════════════════════════════════ --}}
+<script>
+document.querySelectorAll('form[data-submit-once]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+        form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor  = 'not-allowed';
+            btn.innerHTML =
+                '<svg class="animate-spin w-4 h-4 inline mr-1.5" fill="none" viewBox="0 0 24 24">'
+                + '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>'
+                + '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>'
+                + '</svg>'
+                + 'Traitement…';
+        });
+    });
+});
+</script>
+
 @endsection

@@ -509,28 +509,6 @@
 <?php unset($__componentOriginal460a283b8831bc43d8ca37a2ac46781c); ?>
 <?php endif; ?>
 
-    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('absence-view-all')): ?>
-    <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => '#','label' => 'Saisir absences','icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
-<?php $component->withName('nav-item'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
-<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['route' => '#','label' => 'Saisir absences','icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z']); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal6cced52613a484e7295a90162a92d81b)): ?>
-<?php $attributes = $__attributesOriginal6cced52613a484e7295a90162a92d81b; ?>
-<?php unset($__attributesOriginal6cced52613a484e7295a90162a92d81b); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
-<?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
-<?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
-<?php endif; ?>
-    <?php endif; ?>
 
     
     <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('groupe-list')): ?>

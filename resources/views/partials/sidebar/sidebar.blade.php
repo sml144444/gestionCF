@@ -155,10 +155,6 @@
     @if($hasSaisieItems)
     <x-nav-section label="Saisie" />
 
-    @can('absence-view-all')
-    <x-nav-item route="#" label="Saisir absences"
-        icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    @endcan
 
     {{-- Contrôles & Notes — formateur sees only his modules (scoped in controller) --}}
     @can('groupe-list')

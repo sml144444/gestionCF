@@ -293,6 +293,7 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // RÉCLAMATIONS
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
@@ -310,6 +311,16 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/reclamations/{reclamation}/message', [ReclamationController::class, 'sendMessage'])
         ->name('reclamations.message');
+
+    // ✅ ADD THIS
+    Route::post('/reclamations/{reclamation}/seen', [ReclamationController::class, 'markSeen'])
+        ->name('reclamations.seen');
+
+    // ✅ ADD THESE TOO (also missing)
+    Route::delete('/reclamations/{reclamation}/message/{message}', [ReclamationController::class, 'deleteMessage'])
+        ->name('reclamations.message.delete');
+    Route::patch('/reclamations/{reclamation}/message/{message}', [ReclamationController::class, 'editMessage'])
+        ->name('reclamations.message.edit');
 
     Route::patch('/reclamations/{reclamation}/assign', [ReclamationController::class, 'assign'])
         ->name('reclamations.assign');
@@ -455,6 +466,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile',          [ProfileController::class, 'show'])          ->name('profile.show');
     Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::put('/profile/email',    [ProfileController::class, 'updateEmail'])   ->name('profile.email'); // ✅ NEW
     Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
 });
 
