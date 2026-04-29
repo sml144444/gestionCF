@@ -88,10 +88,10 @@
 .btn-action-edit:hover { background:#dbeafe; }
 .btn-action-delete { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:8px; border:1.5px solid #fecdd3; background:#fff1f2; color:#dc2626; font-size:10px; font-weight:700; cursor:pointer; transition:all .15s; }
 .btn-action-delete:hover { background:#fee2e2; }
-/* ✅ 7-column format table (with promo) */
-.fmt-header { display:grid; grid-template-columns:repeat(7,1fr); background:var(--accent); }
-.fmt-row-a  { display:grid; grid-template-columns:repeat(7,1fr); background:var(--accent-lt); }
-.fmt-row-b  { display:grid; grid-template-columns:repeat(7,1fr); }
+/* ✅ 6-column format table (without promo column) */
+.fmt-header { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent); }
+.fmt-row-a  { display:grid; grid-template-columns:repeat(6,1fr); background:var(--accent-lt); }
+.fmt-row-b  { display:grid; grid-template-columns:repeat(6,1fr); }
 .fmt-cell { padding:7px 10px; font-size:9px; font-weight:700; border-right:1px solid rgba(255,255,255,0.12); }
 .fmt-header .fmt-cell { color:rgba(255,255,255,0.85); text-transform:uppercase; }
 .fmt-row-a  .fmt-cell,.fmt-row-b .fmt-cell { font-size:10px; font-weight:500; }
@@ -272,27 +272,24 @@
                 <div>
                     <p class="edu-card-title">Format attendu</p>
                     
-                    <p class="edu-card-sub">7 colonnes — le mot de passe est <strong>obligatoire</strong>, la promo est <strong>optionnelle</strong></p>
+                    <p class="edu-card-sub">6 colonnes — le mot de passe est <strong>obligatoire</strong>, la promo est déduite automatiquement du groupe</p>
                 </div>
             </div>
             <div class="edu-card-body">
                 <div style="border-radius:12px;overflow:hidden;margin-bottom:12px;border:1px solid var(--accent-bd);">
                     <div class="fmt-header">
-                        <?php $__currentLoopData = ['edu_email','nom','prenom','filiere_code','groupe_code','password','promo (optionnel)']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $h): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php $__currentLoopData = ['edu_email','nom','prenom','filiere_code','groupe_code','password']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $h): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="fmt-cell"><?php echo e($h); ?></div>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
                     <div class="fmt-row-a">
-                        <?php $__currentLoopData = ['m.alami@ofppt.ma','Alami','Mohammed','DEVDIG','TDEV-101','MonPass123!','2025']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $v): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php $__currentLoopData = ['m.alami@ofppt.ma','Alami','Mohammed','DEVDIG','TDEV-101-26','MonPass123!']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $v): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="fmt-cell"><?php echo e($v); ?></div>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
                     <div class="fmt-row-b">
-                        <?php $__currentLoopData = ['s.idrissi@ofppt.ma','Idrissi','Sara','GI','TGI-101','Sara2024!','']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $v): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <div class="fmt-cell" style="<?php echo e($v==='' ? 'color:#94a3b8;font-style:italic;' : ''); ?>">
-                                <?php echo e($v !== '' ? $v : 'auto-généré'); ?>
-
-                            </div>
+                        <?php $__currentLoopData = ['s.idrissi@ofppt.ma','Idrissi','Sara','GI','TGI-101-26','Sara2024!']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $v): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <div class="fmt-cell"><?php echo e($v); ?></div>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
                 </div>
@@ -301,8 +298,8 @@
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1 v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                     </svg>
-                    Le <strong>password</strong> est obligatoire. La colonne <strong>promo</strong> est
-                    <strong>optionnelle</strong> — si fournie, elle doit correspondre à la promo du groupe.
+                    Le <strong>password</strong> est obligatoire. La <strong>promo</strong> est déduite
+                    automatiquement depuis le code groupe (ex: TDEV-101-26 → promo 2026).
                     Aucun email n'est envoyé automatiquement.
                 </div>
 
@@ -504,7 +501,6 @@
                             <th>Filière</th>
                             <th>Groupe</th>
                             <th>Statut</th>
-                            <th>Importé le</th>
                             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('edu-import')): ?>
                             <th>Actions</th>
                             <?php endif; ?>
@@ -522,7 +518,7 @@
                                     <div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:var(--accent-lt);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--accent-tx);"><?php echo e($initials); ?></div>
                                     <div style="font-weight:700;color:#0f172a;font-size:12px;"><?php echo e($edu->prenom ?? ''); ?> <?php echo e($edu->nom ?? ''); ?></div>
                                 </div>
-                            </td>
+                             </td>
                             <td style="color:#1e40af;font-weight:600;"><?php echo e($edu->edu_email); ?></td>
                             <td>
                                 <?php if($edu->filiere_code): ?>
@@ -530,25 +526,21 @@
                                 <?php else: ?>
                                     <span style="color:#94a3b8;">—</span>
                                 <?php endif; ?>
-                            </td>
+                             </td>
                             <td>
                                 <?php if($edu->groupe_code): ?>
                                     <span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;"><?php echo e($edu->groupe_code); ?></span>
                                 <?php else: ?>
                                     <span style="color:#94a3b8;">—</span>
                                 <?php endif; ?>
-                            </td>
+                             </td>
                             <td>
                                 <?php if($edu->used): ?>
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;"><span style="width:5px;height:5px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Compte créé</span>
                                 <?php else: ?>
                                     <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;"><span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> En attente</span>
                                 <?php endif; ?>
-                            </td>
-                            <td>
-                                <div style="font-size:11px;font-weight:600;color:#334155;"><?php echo e($edu->created_at->format('d M Y')); ?></div>
-                                <div style="font-size:9px;color:#94a3b8;"><?php echo e($edu->created_at->format('H:i')); ?></div>
-                            </td>
+                             </td>
                             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('edu-import')): ?>
                             <td>
                                 <div style="display:flex;gap:6px;align-items:center;">
@@ -569,7 +561,7 @@
                                         </button>
                                     </form>
                                 </div>
-                            </td>
+                             </td>
                             <?php endif; ?>
                         </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -625,7 +617,7 @@
                             <td style="white-space:nowrap;">
                                 <div style="font-weight:600;color:#334155;"><?php echo e($log->created_at->format('d M Y')); ?></div>
                                 <div style="font-size:10px;color:#94a3b8;"><?php echo e($log->created_at->format('H:i')); ?></div>
-                            </td>
+                             </td>
                             <td>
                                 <div style="display:flex;align-items:center;gap:8px;">
                                     <div class="imp-avatar" style="background:<?php echo e($avatarBg); ?>;"><?php echo e($importerInitials); ?></div>
@@ -634,7 +626,7 @@
                                         <div style="font-size:9px;text-transform:capitalize;color:<?php echo e($avatarBg); ?>;font-weight:600;"><?php echo e($importerRole); ?></div>
                                     </div>
                                 </div>
-                            </td>
+                             </td>
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--accent);font-size:11px;">
                                     <?php if($log->filename === 'Ajout manuel'): ?>
@@ -645,7 +637,7 @@
                                     <?php echo e($log->filename); ?>
 
                                 </span>
-                            </td>
+                             </td>
                             <td><span style="font-size:14px;font-weight:800;color:#15803d;"><?php echo e($log->imported); ?></span></td>
                             <td><span style="font-size:14px;font-weight:800;color:#b45309;"><?php echo e($log->skipped); ?></span></td>
                             <td><span style="font-size:14px;font-weight:800;color:#dc2626;"><?php echo e($log->errors); ?></span></td>
@@ -657,7 +649,7 @@
                                 <?php else: ?>
                                     <span style="font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fff1f2;color:#dc2626;border:1px solid #fecdd3;">✕ Erreurs</span>
                                 <?php endif; ?>
-                            </td>
+                             </td>
                             <td onclick="event.stopPropagation()">
                                 <button onclick="openLogModal(<?php echo e($log->id); ?>)" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--accent-bd);background:var(--accent-lt);color:var(--accent-tx);font-size:10px;font-weight:700;cursor:pointer;">
                                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -666,8 +658,8 @@
                                     </svg>
                                     Voir détails
                                 </button>
-                            </td>
-                        </tr>
+                             </td>
+                         </>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
@@ -699,7 +691,7 @@
             <div id="modal-loading" style="padding:48px;text-align:center;color:#94a3b8;font-size:13px;">Chargement…</div>
             <div id="modal-table-wrap" style="display:none;">
                 <table class="edu-table" style="width:100%;">
-                    <thead><tr><th>#</th><th>Nom complet</th><th>Email EDU</th><th>Filière</th><th>Groupe</th><th>Statut</th></tr></thead>
+                    <thead><tr><th>#</th><th>Nom complet</th><th>Email EDU</th><th>Filière</th><th>Groupe</th><th>Statut</th></thead>
                     <tbody id="modal-tbody"></tbody>
                 </table>
                 <div id="modal-empty" style="display:none;padding:48px;text-align:center;color:#94a3b8;font-size:13px;">Aucun compte lié à cet import<p style="font-size:11px;margin-top:6px;">(Les imports effectués avant cette mise à jour n'ont pas de liaison enregistrée)</p></div>
@@ -715,7 +707,7 @@
         <div class="edu-card-head">
             <div>
                 <p class="edu-card-title">Ajouter un stagiaire manuellement</p>
-                <p class="edu-card-sub">Pour les inscriptions exceptionnelles hors fichier Excel</p>
+                <p class="edu-card-sub">Pour les inscriptions exceptionnelles hors fichier Excel (promo déduite automatiquement du groupe)</p>
             </div>
         </div>
         <div class="edu-card-body">
@@ -739,32 +731,9 @@ endif;
 unset($__errorArgs, $__bag); ?>
                 </div>
 
-                
-                <div>
-                    <label class="edu-label">Promo <span style="color:#94a3b8;font-weight:400;">(optionnelle)</span></label>
-                    <select name="promo" id="manual-promo" class="edu-input edu-select">
-                        <option value="">— Automatique —</option>
-                        <?php $__currentLoopData = $anneesScolaires; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $annee): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <?php $year = (int) explode('/', $annee)[0]; ?>
-                            <option value="<?php echo e($year); ?>" <?php echo e(old('promo') == $year ? 'selected' : ''); ?>><?php echo e($annee); ?> (promo <?php echo e($year); ?>)</option>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </select>
-                    <p style="font-size:10px;color:#64748b;margin-top:4px;">
-                        Si vide, la promo sera celle du groupe sélectionné.
-                    </p>
-                    <?php $__errorArgs = ['promo'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?><p style="font-size:11px;color:#dc2626;margin-top:4px;"><?php echo e($message); ?></p><?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                </div>
-
                 <div class="info-notice blue">
                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1 v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-                    <span>Le mot de passe est obligatoire. La promo est optionnelle — si fournie, elle sera vérifiée par rapport au groupe sélectionné. Aucun email n'est envoyé automatiquement.</span>
+                    <span>Le mot de passe est obligatoire. La promo est déduite automatiquement du groupe sélectionné. Aucun email n'est envoyé automatiquement.</span>
                 </div>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -798,7 +767,7 @@ unset($__errorArgs, $__bag); ?>
                 </div>
                 <div class="info-notice green">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Le stagiaire utilisera cet email et ce mot de passe pour créer son compte.
+                    Le stagiaire utilisera cet email et ce mot de passe pour créer son compte. La promo du groupe sera automatiquement appliquée.
                 </div>
                 <div style="display:flex;gap:10px;padding-top:4px;">
                     <button type="reset" class="btn-ghost" style="flex:1;">Réinitialiser</button>
@@ -927,21 +896,15 @@ function filterGroups(fc) {
     const sel = document.getElementById('manual-groupe');
     if(!sel) return;
     const anneeLabels = {1:'An.1',2:'An.2',3:'An.3'};
-    // ✅ Get selected promo value
-    const selectedPromo = parseInt(document.getElementById('manual-promo')?.value) || null;
     
     sel.innerHTML = '<option value="">— Sélectionner —</option>';
     
-    // ✅ Filter by filiere, annee, and promo
     allGroupes
-        .filter(g => (!fc || g.filiere_code === fc) && 
-                     g.annee === selectedAnnee &&
-                     (!selectedPromo || g.promo === selectedPromo))
+        .filter(g => (!fc || g.filiere_code === fc) && g.annee === selectedAnnee)
         .forEach(g => {
             const o = document.createElement('option');
             o.value = g.code;
-            // ✅ Show promo in the option text
-            o.textContent = g.code + ' — ' + g.name + ' (' + anneeLabels[g.annee] + (g.promo ? ', promo ' + g.promo : '') + ')';
+            o.textContent = g.code + ' — ' + g.name + ' (' + anneeLabels[g.annee] + (g.promo ? ' - promo ' + g.promo : '') + ')';
             sel.appendChild(o);
         });
     
@@ -953,19 +916,10 @@ function filterGroups(fc) {
     }
 }
 
-// ✅ Add event listener for promo change to re-filter groups
 document.addEventListener('DOMContentLoaded', function() {
     selectAnnee(selectedAnnee);
     const filiereSelect = document.getElementById('filter-filiere');
     if(filiereSelect && filiereSelect.value) updateGroupeOptions(filiereSelect.value);
-    
-    const promoSelect = document.getElementById('manual-promo');
-    if(promoSelect) {
-        promoSelect.addEventListener('change', function() {
-            const fc = document.getElementById('manual-filiere')?.value;
-            filterGroups(fc);
-        });
-    }
 });
 
 let modalData = [];
@@ -993,7 +947,7 @@ function openLogModal(logId) {
         tbody.innerHTML = modalData.map((acc,i) => {
             const initials = (acc.prenom?.[0] ?? '?').toUpperCase() + (acc.nom?.[0] ?? '?').toUpperCase();
             const statusBadge = acc.used ? '<span style="padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">✓ Compte créé</span>' : '<span style="padding:3px 10px;border-radius:99px;font-size:9px;font-weight:700;background:#fffbeb;color:#92400e;border:1px solid #fde68a;">⏳ En attente</span>';
-            return `<tr><td style="color:#94a3b8;font-size:10px;">${acc.id}</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:8px;flex-shrink:0;background:var(--accent-lt);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--accent-tx);">${initials}</div><span style="font-weight:700;color:#0f172a;font-size:12px;">${acc.prenom ?? ''} ${acc.nom ?? ''}</span></div></td><td style="color:#1e40af;font-weight:600;font-size:11px;">${acc.edu_email}</td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">${acc.filiere_code ?? '—'}</span></td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">${acc.groupe_code ?? '—'}</span></td><td>${statusBadge}</td></td>`;
+            return `<tr><td style="color:#94a3b8;font-size:10px;">${acc.id}</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:8px;flex-shrink:0;background:var(--accent-lt);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--accent-tx);">${initials}</div><span style="font-weight:700;color:#0f172a;font-size:12px;">${acc.prenom ?? ''} ${acc.nom ?? ''}</span></div></td><td style="color:#1e40af;font-weight:600;font-size:11px;">${acc.edu_email}</td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:var(--accent-lt);color:var(--accent-tx);">${acc.filiere_code ?? '—'}</span></td><td><span style="padding:2px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#f1f5f9;color:#334155;">${acc.groupe_code ?? '—'}</span></td><td>${statusBadge}</td></tr>`;
         }).join('');
     }).catch(() => { document.getElementById('modal-loading').textContent = 'Erreur de chargement.'; });
 }

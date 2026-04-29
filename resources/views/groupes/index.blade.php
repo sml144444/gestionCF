@@ -66,7 +66,6 @@
 .flash-err { background:var(--danger-light);  border:1px solid #fecdd3; color:#be123c; }
 .radio-card { display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 14px; border-radius:10px; border:1.5px solid var(--gray-200); background:white; transition:all .15s; }
 
-/* ── NEW: card footer link ── */
 .grp-card-footer {
     padding:10px 16px;
     border-top:1px solid var(--gray-100);
@@ -114,11 +113,13 @@
                     <option value="{{ $f->id }}" {{ request('filiere')==$f->id?'selected':'' }}>{{ $f->name }}</option>
                 @endforeach
             </select>
-            <select name="promo" onchange="this.form.submit()" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;">
+            <select name="promo" class="f-input" style="width:auto;font-size:12px;height:38px;cursor:pointer;" onchange="this.form.submit()">
                 <option value="">— Toutes les promos —</option>
-                @foreach ($promos as $p)
-                    <option value="{{ $p }}" {{ request('promo') == $p ? 'selected' : '' }}>Promo {{ $p }}</option>
-                @endforeach
+                @for($y = date('Y') + 2; $y >= 2019; $y--)
+                    <option value="{{ $y }}" {{ request('promo') == $y ? 'selected' : '' }}>
+                        {{ $y - 1 }}–{{ $y }}
+                    </option>
+                @endfor
             </select>
         </form>
         @if($canCreate)
@@ -154,7 +155,6 @@
                 <span style="font-size:10px;color:var(--gray-500);margin-left:8px;">{{ $grpList->count() }} groupe(s) · {{ $grpList->sum('stagiaires_count') }} stagiaires</span>
             </div>
             <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-                {{-- ✅ NEW: link to all stagiaires of this filiere --}}
                 <a href="{{ route('stagiaire.index', ['filiere_id' => $filiereId]) }}"
                    style="font-size:10px;font-weight:700;color:var(--accent);background:var(--light);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:4px 10px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
@@ -198,7 +198,6 @@
                                     <div style="font-size:9px;font-weight:700;background:var(--light);color:var(--atext);padding:2px 8px;border-radius:99px;display:inline-block;">
                                         {{ $groupe->promo_label }}
                                     </div>
-                                    {{-- ✅ COMPLET badge --}}
                                     @if($isFull)
                                     <div style="font-size:9px;font-weight:800;background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:99px;display:inline-block;border:1px solid #fca5a5;">
                                         ⛔ COMPLET
@@ -209,7 +208,7 @@
                             <div style="display:flex;gap:5px;">
                                 @if($canEdit)
                                 <button class="btn-g" style="padding:5px 8px;background:#fef3c7;color:#92400e;font-size:11px;"
-                                        onclick="openEditGroupe({{ $groupe->id }},'{{ addslashes($groupe->name??'') }}','{{ addslashes($groupe->code??'') }}',{{ $groupe->annee }},{{ $groupe->nbr_limit }},{{ $groupe->id_filiere }},'{{ addslashes($filiere->name??'') }}',{{ $groupe->promo ?? date('Y') }})">✎</button>
+                                        onclick="openEditGroupe({{ $groupe->id }},'{{ addslashes($groupe->name??'') }}','{{ addslashes($groupe->code??'') }}',{{ $groupe->annee }},{{ $groupe->nbr_limit }},{{ $groupe->id_filiere }},'{{ addslashes($filiere->name??'') }}',{{ $groupe->promo ?? date('Y')+1 }})">✎</button>
                                 @endif
                                 @if($canDelete)
                                 <button class="btn-g" style="padding:5px 8px;background:#fee2e2;color:#dc2626;font-size:11px;"
@@ -233,7 +232,6 @@
                         </div>
                     </div>
 
-                    {{-- ✅ NEW: card footer with link to group's stagiaires --}}
                     <div class="grp-card-footer">
                         <span style="font-size:10px;color:var(--gray-500);">
                             {{ $groupe->nbr_limit - $groupe->stagiaires_count }} place(s) libre(s)
@@ -295,10 +293,10 @@
                     <div>
                         <label class="f-label">Code groupe <span style="color:#ef4444;">*</span></label>
                         <input type="text" name="code" id="create-grp-code" class="f-input" required
-                               placeholder="DD-G1A" maxlength="30" value="{{ old('code') }}"
+                               placeholder="DD-G1A-26" maxlength="30" value="{{ old('code') }}"
                                style="font-family:monospace;font-weight:700;letter-spacing:.5px;text-transform:uppercase;"
                                oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9\-_]/g,'')">
-                        <div class="f-code-hint">⚠️ Unique, immuable après import. Ex : <strong>DD-G1A</strong></div>
+                        <div class="f-code-hint">⚠️ Unique, immuable après import. Ex : <strong>DD-G1A-26</strong></div>
                     </div>
                 </div>
 
@@ -326,9 +324,15 @@
                 </div>
 
                 <div class="f-row">
-                    <label class="f-label">Année de promotion (début)</label>
-                    <input type="number" name="promo" value="{{ old('promo', date('Y')) }}" min="2000" max="2099" placeholder="ex: 2024" class="f-input" />
-                    <small class="f-hint">Année de début (ex: 2024 → 2024–2026)</small>
+                    <label class="f-label">Promotion <span style="color:#ef4444;">*</span></label>
+                    <select name="promo" id="create-grp-promo" class="f-input" style="cursor:pointer;" onchange="autoUpdateCodeOnPromo()">
+                        @for($y = date('Y') + 2; $y >= 2019; $y--)
+                            <option value="{{ $y }}" {{ old('promo', date('Y')) == $y ? 'selected' : '' }}>
+                                {{ $y - 1 }}–{{ $y }}
+                            </option>
+                        @endfor
+                    </select>
+                    <small class="f-hint">Année de fin de promotion (ex: 2026 = 2025–2026)</small>
                 </div>
             </div>
             <div class="m-ft">
@@ -397,9 +401,13 @@
                 </div>
 
                 <div class="f-row">
-                    <label class="f-label">Année de promotion (début)</label>
-                    <input type="number" name="promo" id="edit-grp-promo" min="2000" max="2099" placeholder="ex: 2024" class="f-input warn" />
-                    <small class="f-hint">Année de début (ex: 2024 → 2024–2026)</small>
+                    <label class="f-label">Promotion</label>
+                    <select name="promo" id="edit-grp-promo" class="f-input warn" style="cursor:pointer;">
+                        @for($y = date('Y') + 2; $y >= 2019; $y--)
+                            <option value="{{ $y }}">{{ $y - 1 }}–{{ $y }}</option>
+                        @endfor
+                    </select>
+                    <small class="f-hint">Modifier la promotion du groupe</small>
                 </div>
             </div>
             <div class="m-ft">
@@ -448,16 +456,26 @@ const LIGHT  = '{{ $light }}';
 function openGrpModal(t)  { document.getElementById('modal-' + (t==='create'?'create-grp':t+'-grp')).classList.add('open');    }
 function closeGrpModal(t) { document.getElementById('modal-' + (t==='create'?'create-grp':t+'-grp')).classList.remove('open'); }
 
-function openCreateForFiliere(filiereId, filiereName, filiereCode) {
-    const sel = document.getElementById('create-grp-filiere');
-    if (sel) sel.value = filiereId;
-    const sub = document.getElementById('create-grp-sub');
-    if (sub) sub.textContent = 'Filière : ' + filiereName;
+// Retourne "-26" pour promo 2026, "-29" pour 2029, etc.
+function getPromoSuffix() {
+    const promoSel = document.getElementById('create-grp-promo');
+    if (!promoSel || !promoSel.value) return '';
+    return '-' + String(promoSel.value).slice(-2);
+}
+
+function autoUpdateCodeOnPromo() {
+    const nameInput = document.getElementById('create-grp-name');
+    if (nameInput) autoGroupeCode(nameInput);
+}
+
+function autoGroupeCode(nameInput) {
     const codeInput = document.getElementById('create-grp-code');
-    if (codeInput && !codeInput.dataset.touched && filiereCode) {
-        codeInput.value = filiereCode + '-';
-    }
-    document.getElementById('modal-create-grp').classList.add('open');
+    if (!codeInput || codeInput.dataset.touched) return;
+    const sel    = document.getElementById('create-grp-filiere');
+    const fCode  = sel?.options[sel.selectedIndex]?.dataset.code || '';
+    const gCode  = nameInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0, 10);
+    const suffix = getPromoSuffix();
+    codeInput.value = (fCode ? fCode + '-' : '') + gCode + suffix;
 }
 
 function onFiliereChange(sel) {
@@ -466,27 +484,33 @@ function onFiliereChange(sel) {
     const nameInput = document.getElementById('create-grp-name');
     const codeInput = document.getElementById('create-grp-code');
     if (codeInput && !codeInput.dataset.touched && fCode) {
-        const gName = nameInput?.value.toUpperCase().replace(/[^A-Z0-9]/g,'') || '';
-        codeInput.value = fCode + (gName ? '-' + gName : '-');
+        const gName  = nameInput?.value.toUpperCase().replace(/[^A-Z0-9]/g,'') || '';
+        const suffix = getPromoSuffix();
+        codeInput.value = fCode + (gName ? '-' + gName : '-') + suffix;
     }
 }
 
-function autoGroupeCode(nameInput) {
+function openCreateForFiliere(filiereId, filiereName, filiereCode) {
+    const sel = document.getElementById('create-grp-filiere');
+    if (sel) sel.value = filiereId;
+    const sub = document.getElementById('create-grp-sub');
+    if (sub) sub.textContent = 'Filière : ' + filiereName;
     const codeInput = document.getElementById('create-grp-code');
-    if (!codeInput || codeInput.dataset.touched) return;
-    const sel   = document.getElementById('create-grp-filiere');
-    const fCode = sel?.options[sel.selectedIndex]?.dataset.code || '';
-    const gCode = nameInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0, 10);
-    codeInput.value = (fCode ? fCode + '-' : '') + gCode;
+    if (codeInput && !codeInput.dataset.touched && filiereCode) {
+        const suffix = getPromoSuffix();
+        codeInput.value = filiereCode + '-' + suffix;
+    }
+    document.getElementById('modal-create-grp').classList.add('open');
 }
 
 function openEditGroupe(id, name, code, annee, limit, filiereId, filiereName, promo) {
-    document.getElementById('edit-grp-form').action         = '/groupes/' + id;
-    document.getElementById('edit-grp-name').value          = name;
-    document.getElementById('edit-grp-code').value          = code;
-    document.getElementById('edit-grp-limit').value         = limit;
-    document.getElementById('edit-grp-promo').value         = promo || new Date().getFullYear();
-    document.getElementById('edit-grp-sub').textContent     = name + ' — ' + filiereName;
+    document.getElementById('edit-grp-form').action = '/groupes/' + id;
+    document.getElementById('edit-grp-name').value  = name;
+    document.getElementById('edit-grp-code').value  = code;
+    document.getElementById('edit-grp-limit').value = limit;
+    const promoSel = document.getElementById('edit-grp-promo');
+    if (promoSel) promoSel.value = promo || (new Date().getFullYear() + 1);
+    document.getElementById('edit-grp-sub').textContent = name + ' — ' + filiereName;
     document.getElementById('edit-grp-filiere-info').textContent = 'Filière : ' + filiereName + ' (non modifiable)';
     document.getElementById('edit-r1').checked = annee == 1;
     document.getElementById('edit-r2').checked = annee == 2;
@@ -535,7 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sel.value = {{ $selectedFiliere->id }};
         const codeInput = document.getElementById('create-grp-code');
         if (codeInput && !codeInput.dataset.touched) {
-            codeInput.value = '{{ addslashes($selectedFiliere->code ?? '') }}-';
+            const suffix = getPromoSuffix();
+            codeInput.value = '{{ addslashes($selectedFiliere->code ?? '') }}-' + suffix;
         }
     }
     @endif

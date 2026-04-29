@@ -24,7 +24,7 @@ class GroupeController extends Controller
         $isFormateur = $user->role === 'formateur';
 
         $filiereId = $request->get('filiere');
-        $promo     = $request->get('promo');
+        $promo = $request->get('promo', (int) date('Y'));
 
         $filieres = Filiere::orderBy('name')->get();
         $promos   = Groupe::select('promo')
@@ -70,13 +70,17 @@ class GroupeController extends Controller
             'promo'      => 'nullable|integer|min:2000|max:2099',
         ]);
 
+        // ✅ Valeur par défaut: année prochaine
+        $data['promo'] = $data['promo'] ?? (int) date('Y') + 1;
+
         $exists = Groupe::where('id_filiere', $data['id_filiere'])
             ->where('name', $data['name'])
+            ->where('promo', $data['promo'])
             ->exists();
 
         if ($exists) {
             return back()
-                ->withErrors(['name' => 'Un groupe avec ce nom existe déjà dans cette filière.'])
+                ->withErrors(['name' => 'Un groupe « '.$data['name'].' » existe déjà dans cette filière pour la promo '.$data['promo'].'.'])
                 ->withInput();
         }
 
@@ -98,14 +102,18 @@ class GroupeController extends Controller
             'promo'     => 'nullable|integer|min:2000|max:2099',
         ]);
 
+        // ✅ Garder la valeur existante ou utiliser l'année prochaine
+        $data['promo'] = $data['promo'] ?? $groupe->promo ?? (int) date('Y') + 1;
+
         $exists = Groupe::where('id_filiere', $groupe->id_filiere)
             ->where('name', $data['name'])
+            ->where('promo', $data['promo'])
             ->where('id', '!=', $groupe->id)
             ->exists();
 
         if ($exists) {
             return back()
-                ->withErrors(['name' => 'Un groupe avec ce nom existe déjà dans cette filière.'])
+                ->withErrors(['name' => 'Un groupe « '.$data['name'].' » existe déjà dans cette filière pour la promo '.$data['promo'].'.'])
                 ->withInput();
         }
 

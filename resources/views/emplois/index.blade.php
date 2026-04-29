@@ -55,9 +55,17 @@
     }
 
     $today = \Carbon\Carbon::today();
+    
+    // Get available promos for the dropdown
+    $availablePromos = \App\Models\Groupe::where('annee', $year)
+        ->whereNotNull('promo')
+        ->distinct()
+        ->orderBy('promo', 'desc')
+        ->pluck('promo');
 @endphp
 
 <style>
+/* ... (tout le CSS reste identique) ... */
 .tt-wrap { font-family: 'Segoe UI', system-ui, sans-serif; }
 
 .tt-scroll {
@@ -286,6 +294,46 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-tab.inactive:hover { background: #f8fafc; color: #1e293b; }
 .tt-tab.disabled { color: #cbd5e1; cursor: not-allowed; opacity: 0.55; background: #f8fafc; pointer-events: none; }
 
+/* ── Promo Selector ── */
+.promo-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 4px 8px 4px 14px;
+}
+.promo-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+.promo-select {
+    height: 34px;
+    padding: 0 24px 0 10px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    background: white;
+    font-size: 12px;
+    font-weight: 600;
+    color: {{ $accentColor }};
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    appearance: none;
+}
+.promo-select:focus {
+    border-color: {{ $accentColor }};
+}
+.promo-select option {
+    color: #1e293b;
+}
+
 /* ── Modal / Form ── */
 .mode-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; }
 .mode-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; border: none; background: white; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -407,7 +455,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     @if($tab1Disabled)
         <span class="tt-tab disabled" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 1 &nbsp;🔒</span>
     @else
-        <a href="{{ route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()]) }}"
+        <a href="{{ route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString(), 'promo' => $promo]) }}"
            class="tt-tab {{ $year === 1 ? 'active' : 'inactive' }}"
            style="{{ $year === 1 ? 'background:'.$accentYear1.';' : '' }}">
             Année 1
@@ -420,7 +468,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     @if($tab2Disabled)
         <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 2 / 2.5 &nbsp;🔒</span>
     @else
-        <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()]) }}"
+        <a href="{{ route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString(), 'promo' => $promo]) }}"
            class="tt-tab {{ $year === 2 ? 'active' : 'inactive' }}"
            style="{{ $year === 2 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
             Année 2
@@ -433,7 +481,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     @if($tab3Disabled)
         <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en {{ $stagiaireYear }}ème année">Année 3 &nbsp;🔒</span>
     @else
-        <a href="{{ route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString()]) }}"
+        <a href="{{ route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString(), 'promo' => $promo]) }}"
            class="tt-tab {{ $year === 3 ? 'active' : 'inactive' }}"
            style="{{ $year === 3 ? 'background:'.$accentYear1.';' : '' }} border-left:1.5px solid #e2e8f0;">
             Année 3
@@ -444,6 +492,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     @endif
 </div>
 
+{{-- Promo selector --}}
+<div class="promo-selector">
+    <span class="promo-label">Promotion</span>
+    <select id="promo-select" class="promo-select" onchange="changePromo(this.value)">
+        @foreach($availablePromos as $pVal)
+            <option value="{{ $pVal }}" {{ $promo == $pVal ? 'selected' : '' }}>Promo {{ $pVal }}</option>
+        @endforeach
+    </select>
+</div>
+
     {{-- Week nav --}}
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <div style="font-size:11px; color:#64748b;">
@@ -451,10 +509,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             &nbsp;–&nbsp;
             <strong style="color:#334155;">{{ $weekEnd->translatedFormat('d M Y') }}</strong>
         </div>
-        <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString()]) }}" class="tt-nav-btn">
+        <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString(), 'promo' => $promo]) }}" class="tt-nav-btn">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         </a>
-        <a href="{{ route('emplois.index', ['year' => $year]) }}" class="tt-nav-btn today-btn">Aujourd'hui</a>
+        <a href="{{ route('emplois.index', ['year' => $year, 'promo' => $promo]) }}" class="tt-nav-btn today-btn">Aujourd'hui</a>
 
         @php
             $semaineSuivante = $weekStart->copy()->addWeek();
@@ -464,7 +522,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
         @endphp
         @if($peutNaviguerSuivante)
-            <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()]) }}" class="tt-nav-btn">
+            <a href="{{ route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString(), 'promo' => $promo]) }}" class="tt-nav-btn">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </a>
         @else
@@ -473,7 +531,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </span>
         @endif
 
-        <a href="{{ route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
+        <a href="{{ route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString(), 'promo' => $promo]) }}"
            class="tt-nav-btn" title="Télécharger PDF"
            style="color:#dc2626; border-color:#fecdd3; background:#fff1f2;">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,7 +542,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
         @if($canSeeDraft && $canCreate)
         <form method="POST"
-              action="{{ route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()]) }}"
+              action="{{ route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString(), 'promo' => $promo]) }}"
               style="display:inline;"
               onsubmit="return confirm('Publier toutes les séances en brouillon de cette semaine ?')">
             @csrf
@@ -874,7 +932,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     @empty
         <tr>
             <td colspan="25" style="padding:48px; text-align:center; font-size:13px; color:#64748b;">
-                Aucun groupe pour cette année.
+                Aucun groupe pour cette année et cette promotion.
             </td>
         </tr>
     @endforelse
@@ -1364,6 +1422,12 @@ let _currentMode   = 'presentiel';
 
 let _allFormateurs = @json($formateurs->map(fn($f) => ['id'=>$f->id,'name'=>$f->name]));
 let _allSalles     = @json($salles->map(fn($s) => ['id'=>$s->id,'name'=>$s->name,'capacity'=>$s->capacity]));
+
+function changePromo(promoValue) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('promo', promoValue);
+    window.location.href = currentUrl.toString();
+}
 
 function setMode(mode) {
     _currentMode = mode;

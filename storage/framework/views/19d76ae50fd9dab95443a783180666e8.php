@@ -53,9 +53,17 @@
     }
 
     $today = \Carbon\Carbon::today();
+    
+    // Get available promos for the dropdown
+    $availablePromos = \App\Models\Groupe::where('annee', $year)
+        ->whereNotNull('promo')
+        ->distinct()
+        ->orderBy('promo', 'desc')
+        ->pluck('promo');
 ?>
 
 <style>
+/* ... (tout le CSS reste identique) ... */
 .tt-wrap { font-family: 'Segoe UI', system-ui, sans-serif; }
 
 .tt-scroll {
@@ -284,6 +292,46 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 .tt-tab.inactive:hover { background: #f8fafc; color: #1e293b; }
 .tt-tab.disabled { color: #cbd5e1; cursor: not-allowed; opacity: 0.55; background: #f8fafc; pointer-events: none; }
 
+/* ── Promo Selector ── */
+.promo-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 4px 8px 4px 14px;
+}
+.promo-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+.promo-select {
+    height: 34px;
+    padding: 0 24px 0 10px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    background: white;
+    font-size: 12px;
+    font-weight: 600;
+    color: <?php echo e($accentColor); ?>;
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    appearance: none;
+}
+.promo-select:focus {
+    border-color: <?php echo e($accentColor); ?>;
+}
+.promo-select option {
+    color: #1e293b;
+}
+
 /* ── Modal / Form ── */
 .mode-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; }
 .mode-btn { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; border: none; background: white; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -406,7 +454,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     <?php if($tab1Disabled): ?>
         <span class="tt-tab disabled" title="Vous êtes inscrit en <?php echo e($stagiaireYear); ?>ème année">Année 1 &nbsp;🔒</span>
     <?php else: ?>
-        <a href="<?php echo e(route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString()])); ?>"
+        <a href="<?php echo e(route('emplois.index', ['year' => 1, 'week' => $weekStart->toDateString(), 'promo' => $promo])); ?>"
            class="tt-tab <?php echo e($year === 1 ? 'active' : 'inactive'); ?>"
            style="<?php echo e($year === 1 ? 'background:'.$accentYear1.';' : ''); ?>">
             Année 1
@@ -419,7 +467,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     <?php if($tab2Disabled): ?>
         <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en <?php echo e($stagiaireYear); ?>ème année">Année 2 / 2.5 &nbsp;🔒</span>
     <?php else: ?>
-        <a href="<?php echo e(route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString()])); ?>"
+        <a href="<?php echo e(route('emplois.index', ['year' => 2, 'week' => $weekStart->toDateString(), 'promo' => $promo])); ?>"
            class="tt-tab <?php echo e($year === 2 ? 'active' : 'inactive'); ?>"
            style="<?php echo e($year === 2 ? 'background:'.$accentYear1.';' : ''); ?> border-left:1.5px solid #e2e8f0;">
             Année 2
@@ -432,7 +480,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     <?php if($tab3Disabled): ?>
         <span class="tt-tab disabled" style="border-left:1.5px solid #e2e8f0;" title="Vous êtes inscrit en <?php echo e($stagiaireYear); ?>ème année">Année 3 &nbsp;🔒</span>
     <?php else: ?>
-        <a href="<?php echo e(route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString()])); ?>"
+        <a href="<?php echo e(route('emplois.index', ['year' => 3, 'week' => $weekStart->toDateString(), 'promo' => $promo])); ?>"
            class="tt-tab <?php echo e($year === 3 ? 'active' : 'inactive'); ?>"
            style="<?php echo e($year === 3 ? 'background:'.$accentYear1.';' : ''); ?> border-left:1.5px solid #e2e8f0;">
             Année 3
@@ -443,6 +491,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     <?php endif; ?>
 </div>
 
+
+<div class="promo-selector">
+    <span class="promo-label">Promotion</span>
+    <select id="promo-select" class="promo-select" onchange="changePromo(this.value)">
+        <?php $__currentLoopData = $availablePromos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pVal): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <option value="<?php echo e($pVal); ?>" <?php echo e($promo == $pVal ? 'selected' : ''); ?>>Promo <?php echo e($pVal); ?></option>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+    </select>
+</div>
+
     
     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <div style="font-size:11px; color:#64748b;">
@@ -450,10 +508,10 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             &nbsp;–&nbsp;
             <strong style="color:#334155;"><?php echo e($weekEnd->translatedFormat('d M Y')); ?></strong>
         </div>
-        <a href="<?php echo e(route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString()])); ?>" class="tt-nav-btn">
+        <a href="<?php echo e(route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->subWeek()->toDateString(), 'promo' => $promo])); ?>" class="tt-nav-btn">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
         </a>
-        <a href="<?php echo e(route('emplois.index', ['year' => $year])); ?>" class="tt-nav-btn today-btn">Aujourd'hui</a>
+        <a href="<?php echo e(route('emplois.index', ['year' => $year, 'promo' => $promo])); ?>" class="tt-nav-btn today-btn">Aujourd'hui</a>
 
         <?php
             $semaineSuivante = $weekStart->copy()->addWeek();
@@ -463,7 +521,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
         ?>
         <?php if($peutNaviguerSuivante): ?>
-            <a href="<?php echo e(route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString()])); ?>" class="tt-nav-btn">
+            <a href="<?php echo e(route('emplois.index', ['year' => $year, 'week' => $weekStart->copy()->addWeek()->toDateString(), 'promo' => $promo])); ?>" class="tt-nav-btn">
                 <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
             </a>
         <?php else: ?>
@@ -472,7 +530,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             </span>
         <?php endif; ?>
 
-        <a href="<?php echo e(route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString()])); ?>"
+        <a href="<?php echo e(route('emplois.pdf', ['year' => $year, 'week' => $weekStart->toDateString(), 'promo' => $promo])); ?>"
            class="tt-nav-btn" title="Télécharger PDF"
            style="color:#dc2626; border-color:#fecdd3; background:#fff1f2;">
             <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -483,7 +541,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
         <?php if($canSeeDraft && $canCreate): ?>
         <form method="POST"
-              action="<?php echo e(route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString()])); ?>"
+              action="<?php echo e(route('emplois.publish', ['year' => $year, 'week' => $weekStart->toDateString(), 'promo' => $promo])); ?>"
               style="display:inline;"
               onsubmit="return confirm('Publier toutes les séances en brouillon de cette semaine ?')">
             <?php echo csrf_field(); ?>
@@ -880,7 +938,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
         <tr>
             <td colspan="25" style="padding:48px; text-align:center; font-size:13px; color:#64748b;">
-                Aucun groupe pour cette année.
+                Aucun groupe pour cette année et cette promotion.
             </td>
         </tr>
     <?php endif; ?>
@@ -1370,6 +1428,12 @@ let _currentMode   = 'presentiel';
 
 let _allFormateurs = <?php echo json_encode($formateurs->map(fn($f) => ['id'=>$f->id, 'name'=>$f->name]), 512) ?>;
 let _allSalles     = <?php echo json_encode($salles->map(fn($s) => ['id'=>$s->id, 'name'=>$s->name, 'capacity'=>$s->capacity])) ?>;
+
+function changePromo(promoValue) {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('promo', promoValue);
+    window.location.href = currentUrl.toString();
+}
 
 function setMode(mode) {
     _currentMode = mode;

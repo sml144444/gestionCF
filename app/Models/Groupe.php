@@ -24,15 +24,11 @@ class Groupe extends Model
      * Returns "2024–2026" using filière duration.
      * Usage: $groupe->promo_label
      */
-    public function getPromoLabelAttribute(): string
-    {
-        if (! $this->promo) return '—';
-
-        $duree = $this->filiere?->duree ?? 2;
-        $end   = $this->promo + $duree;
-
-        return $this->promo . '–' . $end;
-    }
+public function getPromoLabelAttribute(): string
+{
+    if (! $this->promo) return '—';
+    return ($this->promo - 1) . '–' . $this->promo;
+}
 
     // ─────────────────────────────────────────────────────────────────────────
     // RELATIONS
