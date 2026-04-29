@@ -34,13 +34,13 @@
 .tab-pill .badge { font-size:9px; padding:1px 7px; border-radius:99px; font-weight:800; }
 .tab-pill.active .badge { background:rgba(255,255,255,0.25); color:white; }
 .tab-pill:not(.active) .badge { background:{{ $light }}; color:{{ $text }}; }
-/* Accept modal */
 .rp-modal-overlay { position:fixed; inset:0; z-index:60; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; }
 .rp-modal-overlay.open { display:flex; }
 .rp-modal-box { background:white; border-radius:20px; width:100%; max-width:460px; margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18); }
 .rp-modal-input { width:100%; height:42px; padding:0 12px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; color:#1e293b; outline:none; transition:all .15s; box-sizing:border-box; }
 .rp-modal-input:focus { border-color:#16a34a; background:white; }
 .rp-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; }
+@keyframes slideIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
 </style>
 
 <div class="rp-wrap">
@@ -70,15 +70,15 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <div style="padding:10px 16px;border-radius:12px;text-align:center;background:#fff7ed;border:1px solid #fde68a;">
-            <div style="font-size:22px;font-weight:800;color:#92400e;">{{ $counts['en_attente'] }}</div>
+            <div data-count="en_attente" style="font-size:22px;font-weight:800;color:#92400e;">{{ $counts['en_attente'] }}</div>
             <div style="font-size:9px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.5px;">En attente</div>
         </div>
         <div style="padding:10px 16px;border-radius:12px;text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;">
-            <div style="font-size:22px;font-weight:800;color:#15803d;">{{ $counts['valide'] }}</div>
+            <div data-count="valide" style="font-size:22px;font-weight:800;color:#15803d;">{{ $counts['valide'] }}</div>
             <div style="font-size:9px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px;">Acceptées</div>
         </div>
         <div style="padding:10px 16px;border-radius:12px;text-align:center;background:#fff1f2;border:1px solid #fecdd3;">
-            <div style="font-size:22px;font-weight:800;color:#dc2626;">{{ $counts['refuse'] }}</div>
+            <div data-count="refuse" style="font-size:22px;font-weight:800;color:#dc2626;">{{ $counts['refuse'] }}</div>
             <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;">Refusées</div>
         </div>
     </div>
@@ -90,7 +90,9 @@
     <a href="{{ route('reportations.index', array_merge(request()->except('status','page'), ['status'=>$val])) }}"
        class="tab-pill {{ $status === $val ? 'active' : '' }}">
         {{ $icon }} {{ $label }}
-        <span class="badge">{{ $val === '' ? array_sum($counts) : ($counts[$val] ?? 0) }}</span>
+        <span class="badge" @if($val !== '') data-tab="{{ $val }}" @endif>
+            {{ $val === '' ? array_sum($counts) : ($counts[$val] ?? 0) }}
+        </span>
     </a>
     @endforeach
 
@@ -105,12 +107,12 @@
 @forelse($reportations as $rp)
 @php $emploi = $rp->emploiDuTemps; @endphp
 
-<div class="rp-card">
+<div class="rp-card" data-rp-id="{{ $rp->id }}">
     {{-- Header --}}
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:12px;">
             @php
-                $name = $rp->formateur?->name ?? 'Inconnu';
+                $name     = $rp->formateur?->name ?? 'Inconnu';
                 $initials = strtoupper(substr($name,0,1)) . strtoupper(substr(explode(' ',$name.' ')[1]??'',0,1));
             @endphp
             <div style="width:38px;height:38px;border-radius:10px;background:{{ $light }};border:1px solid {{ $accent }}30;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:{{ $text }};flex-shrink:0;">
@@ -166,7 +168,7 @@
             @endif
         </div>
 
-        {{-- Reason + accepted date (if validated) --}}
+        {{-- Reason + accepted date --}}
         <div>
             <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Raison du formateur</div>
             <div style="padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #7c3aed;font-size:11px;color:#334155;line-height:1.6;">
@@ -188,6 +190,33 @@
         </div>
     </div>
 
+    {{-- Assign + Chat --}}
+    <div style="padding:12px 20px;border-top:1px solid #f1f5f9;background:#fafafa;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            {{-- Assign gestionnaire --}}
+            <form method="POST" action="{{ route('reportations.assign', $rp) }}" style="display:flex;gap:6px;align-items:center;">
+                @csrf
+                @php $gestionnaires = \App\Models\User::role('gestionnaire')->get(); @endphp
+                <select name="assigned_to" class="rp-input" style="width:200px;">
+                    <option value="">— Assigner un gestionnaire —</option>
+                    @foreach($gestionnaires as $g)
+                        <option value="{{ $g->id }}" {{ $rp->assigned_to == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                    @endforeach
+                </select>
+                <button type="submit" class="rp-btn ghost">✔ Assigner</button>
+            </form>
+
+            {{-- Chat button --}}
+            <button class="rp-btn ghost"
+                    onclick="openChat({{ $rp->id }}, '{{ addslashes($rp->formateur?->name ?? 'Conversation') }}')">
+                💬 Chat
+                <span id="chat-count-{{ $rp->id }}" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">
+                    {{ $rp->messages?->count() ?? 0 }}
+                </span>
+            </button>
+        </div>
+    </div>
+
     {{-- Actions — only for pending --}}
     @if($rp->status === 'en_attente' && $emploi)
     <div style="padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fafafa;">
@@ -195,7 +224,6 @@
             Choisissez la nouvelle date ou refusez :
         </span>
 
-        {{-- Accept — opens modal for admin to pick date --}}
         <button class="rp-btn green"
                 onclick="openAcceptModal(
                     {{ $rp->id }},
@@ -209,7 +237,6 @@
             Accepter & Choisir la date
         </button>
 
-        {{-- Delete session --}}
         <form method="POST" action="{{ route('reportations.delete-session', $rp) }}"
               onsubmit="return confirm('Supprimer définitivement la séance ?')">
             @csrf
@@ -219,7 +246,6 @@
             </button>
         </form>
 
-        {{-- Refuse --}}
         <form method="POST" action="{{ route('reportations.refuse', $rp) }}"
               onsubmit="return confirm('Refuser cette demande ?')">
             @csrf
@@ -239,7 +265,7 @@
 @empty
 <div style="padding:64px;text-align:center;background:white;border-radius:16px;border:1px solid #e2e8f0;">
     <div style="font-size:36px;margin-bottom:12px;">📋</div>
-    <p style="font-size:14px;font-weight:700;color:#334155;margin:0 0 4px;">Aucune demande {{ $status === 'en_attente' ? 'en attente' : ($status === 'valide' ? 'acceptée' : ($status === 'refuse' ? 'refusée' : '')) }}</p>
+    <p style="font-size:14px;font-weight:700;color:#334155;margin:0 0 4px;">Aucune demande</p>
     <p style="font-size:12px;color:#94a3b8;margin:0;">Les demandes des formateurs apparaîtront ici.</p>
 </div>
 @endforelse
@@ -248,7 +274,7 @@
     <div style="margin-top:16px;display:flex;justify-content:center;">{{ $reportations->links() }}</div>
 @endif
 
-{{-- ════ MODAL ACCEPT — admin picks new date ════ --}}
+{{-- ════ MODAL ACCEPT ════ --}}
 <div id="accept-modal" class="rp-modal-overlay" onclick="if(event.target===this)closeAcceptModal()">
     <div class="rp-modal-box">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #16a34a;">
@@ -263,18 +289,12 @@
             </div>
             <button onclick="closeAcceptModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
-
-        {{-- Current session reference --}}
-        <div id="accept-current-info"
-             style="padding:10px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fde68a;margin-bottom:16px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
+        <div id="accept-current-info" style="padding:10px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fde68a;margin-bottom:16px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span>Séance actuelle : <strong id="accept-current-date"></strong></span>
         </div>
-
         <form id="accept-form" method="POST" style="display:flex;flex-direction:column;gap:14px;">
             @csrf
-            <input type="hidden" name="_method" value="POST">
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div>
                     <label class="rp-label">Nouvelle date et heure de début</label>
@@ -285,23 +305,17 @@
                     <input type="datetime-local" name="nouvelle_date_fin" id="accept-fin" required class="rp-modal-input">
                 </div>
             </div>
-
             <div style="padding:10px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:11px;color:#15803d;display:flex;align-items:flex-start;gap:8px;">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Le système vérifiera automatiquement les conflits de groupe, formateur et salle sur ce créneau.
             </div>
-
             <div style="display:flex;gap:10px;margin-top:4px;">
                 <button type="button" onclick="closeAcceptModal()"
-                        style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;"
-                        onmouseover="this.style.background='#f8fafc'"
-                        onmouseout="this.style.background='white'">
+                        style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
                     Annuler
                 </button>
                 <button type="submit"
-                        style="flex:2;height:44px;border-radius:12px;border:none;background:#16a34a;font-size:13px;font-weight:700;color:white;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,0.3);display:flex;align-items:center;justify-content:center;gap:6px;"
-                        onmouseover="this.style.opacity='.9'"
-                        onmouseout="this.style.opacity='1'">
+                        style="flex:2;height:44px;border-radius:12px;border:none;background:#16a34a;font-size:13px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
                     <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     Confirmer le déplacement
                 </button>
@@ -310,28 +324,190 @@
     </div>
 </div>
 
+{{-- ════ CHAT MODAL ════ --}}
+<div id="chat-modal" style="position:fixed;inset:0;z-index:70;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeChat()">
+    <div style="background:white;border-radius:20px;width:100%;max-width:480px;margin:16px;display:flex;flex-direction:column;height:520px;box-shadow:0 24px 60px rgba(0,0,0,0.18);">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:14px;font-weight:800;color:#1e293b;" id="chat-title">💬 Conversation</div>
+            <button onclick="closeChat()" style="border:none;background:#f1f5f9;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:16px;">×</button>
+        </div>
+        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;">
+            <input id="chat-input" type="text" placeholder="Votre message…" maxlength="1000"
+                   style="flex:1;height:40px;padding:0 12px;border-radius:10px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;"
+                   onkeydown="if(event.key==='Enter')sendChatMsg()">
+            <button onclick="sendChatMsg()" style="height:40px;padding:0 16px;border-radius:10px;border:none;background:#16a34a;color:white;font-weight:700;font-size:13px;cursor:pointer;">Envoyer</button>
+        </div>
+    </div>
+</div>
+
 </div>
 
 <script>
+let currentReportationId = null;
+
+// ══════════════════════════════════════════════
+// REAL-TIME: new reportations
+// ══════════════════════════════════════════════
+if (window.Echo) {
+    window.Echo.channel('reportations')
+        .listen('ReportationCreated', (e) => {
+            injectNewCard(e);
+            updateCountBadge('en_attente', +1);
+        });
+}
+
+function updateCountBadge(status, delta) {
+    const box = document.querySelector(`[data-count="${status}"]`);
+    if (box) box.textContent = parseInt(box.textContent) + delta;
+    const tab = document.querySelector(`[data-tab="${status}"]`);
+    if (tab) tab.textContent = parseInt(tab.textContent) + delta;
+}
+
+function injectNewCard(e) {
+    const currentStatus = '{{ $status }}';
+    if (currentStatus !== 'en_attente' && currentStatus !== '') return;
+
+    const initials = (e.formateur || 'IN').split(' ').slice(0,2).map(w => w[0]?.toUpperCase() || '').join('');
+    const card = document.createElement('div');
+    card.className = 'rp-card';
+    card.style.animation = 'slideIn .3s ease';
+    card.setAttribute('data-id', e.id);
+    card.innerHTML = `
+        <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:{{ $light }};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:{{ $text }};">${escapeHtml(initials)}</div>
+                <div>
+                    <div style="font-size:13px;font-weight:700;color:#0f172a;">${escapeHtml(e.formateur)}</div>
+                    <div style="font-size:10px;color:#64748b;">${escapeHtml(e.created_at)}</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="status-pill attente">⏳ En attente</span>
+                <span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:99px;font-weight:700;">🔴 Nouveau</span>
+            </div>
+        </div>
+        <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+                <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Séance concernée</div>
+                <div style="padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
+                    <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:5px;">${escapeHtml(e.module)}</div>
+                    <div style="font-size:10px;color:#475569;margin-bottom:3px;">👥 ${escapeHtml(e.groupe)} · ${escapeHtml(e.filiere)}</div>
+                    <div style="font-size:10px;color:#475569;margin-bottom:3px;">📅 ${escapeHtml(e.date_debut)}</div>
+                    <div style="font-size:10px;color:#475569;">🕐 ${escapeHtml(e.heure_debut)} → ${escapeHtml(e.heure_fin)}</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Raison</div>
+                <div style="padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #7c3aed;font-size:11px;color:#334155;line-height:1.6;">${escapeHtml(e.raison)}</div>
+            </div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid #f1f5f9;background:#fffbeb;">
+            <div style="font-size:11px;color:#92400e;font-weight:600;">⚡ Nouvelle demande — rechargez la page pour les actions complètes.</div>
+        </div>`;
+
+    const firstCard = document.querySelector('.rp-card');
+    const wrap = document.querySelector('.rp-wrap');
+    if (firstCard) {
+        wrap.insertBefore(card, firstCard);
+    } else {
+        const empty = wrap.querySelector('div[style*="text-align:center"]');
+        if (empty) empty.remove();
+        wrap.appendChild(card);
+    }
+    showToast('📋 Nouvelle demande de ' + e.formateur);
+}
+
+// ══════════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════════
+function openChat(id, name) {
+    currentReportationId = id;
+    document.getElementById('chat-title').textContent = '💬 ' + name;
+    document.getElementById('chat-messages').innerHTML =
+        '<div style="text-align:center;font-size:12px;color:#94a3b8;">Chargement…</div>';
+    document.getElementById('chat-modal').style.display = 'flex';
+
+    fetch(`/reportations/${id}/messages`)
+        .then(r => r.json())
+        .then(msgs => {
+            const box = document.getElementById('chat-messages');
+            box.innerHTML = msgs.length === 0
+                ? '<div style="text-align:center;font-size:12px;color:#94a3b8;">Aucun message pour l\'instant.</div>'
+                : '';
+            msgs.forEach(appendMsg);
+            box.scrollTop = box.scrollHeight;
+        });
+}
+
+function closeChat() {
+    document.getElementById('chat-modal').style.display = 'none';
+    currentReportationId = null;
+}
+
+function appendMsg(msg) {
+    const me = {{ auth()->id() }};
+    const isMe = msg.user_id == me;
+    const box = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:2px;`;
+    div.innerHTML = `
+        <div style="font-size:9px;color:#94a3b8;">${escapeHtml(msg.user_name)} · ${escapeHtml(msg.created_at)}</div>
+        <div style="max-width:75%;padding:8px 12px;border-radius:${isMe?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${isMe?'#16a34a':'#f1f5f9'};color:${isMe?'white':'#1e293b'};font-size:12px;line-height:1.5;">${escapeHtml(msg.message)}</div>`;
+    box.appendChild(div);
+}
+
+function sendChatMsg() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg || !currentReportationId) return;
+    input.value = '';
+    input.focus();
+
+    const socketId = window.Echo?.socketId() ?? null;
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    };
+    if (socketId) headers['X-Socket-ID'] = socketId;
+
+    const rpId = currentReportationId;
+
+    fetch(`/reportations/${rpId}/message`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ message: msg })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (currentReportationId === rpId) {
+            const box = document.getElementById('chat-messages');
+            const empty = box.querySelector('div[style*="text-align:center"]');
+            if (empty) empty.remove();
+            appendMsg(data);
+            box.scrollTop = 99999;
+        }
+        const badge = document.getElementById('chat-count-' + rpId);
+        if (badge) badge.textContent = parseInt(badge.textContent || '0') + 1;
+    })
+    .catch(() => showToast('❌ Erreur envoi du message'));
+}
+
+// ══════════════════════════════════════════════
+// ACCEPT MODAL
+// ══════════════════════════════════════════════
 function openAcceptModal(reportationId, formateurName, moduleName, currentDate, heureDebut, heureFin) {
     document.getElementById('accept-session-label').textContent = formateurName + ' — ' + moduleName;
-    document.getElementById('accept-current-date').textContent  =
-        currentDate + ' · ' + heureDebut + ' → ' + heureFin;
-
-    // Pre-fill: same time next week
+    document.getElementById('accept-current-date').textContent  = currentDate + ' · ' + heureDebut + ' → ' + heureFin;
     const [y, m, d] = currentDate.split('-').map(Number);
     const base = new Date(y, m - 1, d + 7);
     const pad  = n => String(n).padStart(2, '0');
     const fmt  = (dt, h, mi) => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(h)}:${pad(mi)}`;
-
     const [dh, dm] = heureDebut.split(':').map(Number);
     const [fh, fm] = heureFin.split(':').map(Number);
-
     document.getElementById('accept-debut').value = fmt(base, dh, dm);
     document.getElementById('accept-fin').value   = fmt(base, fh, fm);
-
     document.getElementById('accept-form').action = `/reportations/${reportationId}/accept`;
-
     document.getElementById('accept-modal').classList.add('open');
 }
 
@@ -339,14 +515,12 @@ function closeAcceptModal() {
     document.getElementById('accept-modal').classList.remove('open');
 }
 
-// Auto-update fin when debut changes (keep same duration)
 document.getElementById('accept-debut').addEventListener('change', function() {
     const debut = new Date(this.value);
     if (!debut || isNaN(debut)) return;
     const fin = document.getElementById('accept-fin');
     const oldFin = new Date(fin.value);
     if (!oldFin || isNaN(oldFin)) return;
-    // Keep same duration
     const durMs = oldFin - new Date(this._prevValue || this.value);
     this._prevValue = this.value;
     if (durMs > 0) {
@@ -355,6 +529,50 @@ document.getElementById('accept-debut').addEventListener('change', function() {
         fin.value = `${newFin.getFullYear()}-${pad(newFin.getMonth()+1)}-${pad(newFin.getDate())}T${pad(newFin.getHours())}:${pad(newFin.getMinutes())}`;
     }
 });
+
+// ══════════════════════════════════════════════
+// GLOBAL ECHO — wait for Echo to be ready then subscribe
+// ══════════════════════════════════════════════
+function subscribeAll() {
+    if (!window.Echo) {
+        setTimeout(subscribeAll, 300);
+        return;
+    }
+    @foreach($reportations as $rp)
+    window.Echo.channel('reportation.{{ $rp->id }}')
+.listen('.message.sent', function(e) {
+                const rpId = {{ $rp->id }};
+            if (currentReportationId === rpId) {
+                const box = document.getElementById('chat-messages');
+                const empty = box.querySelector('div[style*="text-align:center"]');
+                if (empty) empty.remove();
+                appendMsg(e);
+                box.scrollTop = 99999;
+            }
+            const badge = document.getElementById('chat-count-' + rpId);
+            if (badge) badge.textContent = parseInt(badge.textContent || '0') + 1;
+        });
+    @endforeach
+}
+subscribeAll();
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99;padding:14px 20px;background:#1e293b;color:white;border-radius:14px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,0.2);transition:opacity .3s;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
 </script>
 
 @endsection

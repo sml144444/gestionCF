@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Reportation extends Model
 {
-    protected $fillable = [
-        'id_emplois_du_temps', 'id_user',
-        'nouvelle_date_debut', 'nouvelle_date_fin',
-        'raison', 'status', 'valide_by',
-    ];
+protected $fillable = [
+    'id_emplois_du_temps', 'id_user',
+    'nouvelle_date_debut', 'nouvelle_date_fin',
+    'raison', 'status', 'valide_by', 'assigned_to',
+];
 
     protected $casts = [
         'nouvelle_date_debut' => 'datetime',
@@ -31,4 +31,14 @@ class Reportation extends Model
     {
         return $this->belongsTo(User::class, 'valide_by');
     }
+
+    public function assignedTo()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+
+public function messages()
+{
+    return $this->hasMany(ReportationMessage::class)->oldest();
+}
 }

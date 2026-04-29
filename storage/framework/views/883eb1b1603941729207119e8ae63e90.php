@@ -1,9 +1,9 @@
-{{-- resources/views/reportations/my.blade.php --}}
-@extends('layouts.app')
-@section('title', 'Mes reportations')
-@section('page-title', 'Mes reportations')
 
-@section('content')
+
+<?php $__env->startSection('title', 'Mes reportations'); ?>
+<?php $__env->startSection('page-title', 'Mes reportations'); ?>
+
+<?php $__env->startSection('content'); ?>
 <style>
 .rp-wrap { font-family:'Segoe UI',system-ui,sans-serif; }
 .rp-card { background:white; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.05); overflow:hidden; margin-bottom:14px; }
@@ -24,19 +24,21 @@
 
 <div class="rp-wrap">
 
-{{-- FLASH --}}
-@if(session('success'))
-    <div style="margin-bottom:16px;padding:12px 16px;border-radius:12px;font-size:13px;display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
-        ✓ {{ session('success') }}
-    </div>
-@endif
-@if(session('error'))
-    <div style="margin-bottom:16px;padding:12px 16px;border-radius:12px;font-size:13px;background:#fff1f2;border:1px solid #fecdd3;color:#dc2626;">
-        ✕ {{ session('error') }}
-    </div>
-@endif
 
-{{-- HEADER --}}
+<?php if(session('success')): ?>
+    <div style="margin-bottom:16px;padding:12px 16px;border-radius:12px;font-size:13px;display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
+        ✓ <?php echo e(session('success')); ?>
+
+    </div>
+<?php endif; ?>
+<?php if(session('error')): ?>
+    <div style="margin-bottom:16px;padding:12px 16px;border-radius:12px;font-size:13px;background:#fff1f2;border:1px solid #fecdd3;color:#dc2626;">
+        ✕ <?php echo e(session('error')); ?>
+
+    </div>
+<?php endif; ?>
+
+
 <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
     <div>
         <h1 style="font-size:20px;font-weight:800;color:#0f172a;margin:0;">Mes reportations</h1>
@@ -44,140 +46,146 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <div style="padding:10px 16px;border-radius:12px;text-align:center;background:#fff7ed;border:1px solid #fde68a;">
-            <div style="font-size:22px;font-weight:800;color:#92400e;">{{ $counts['en_attente'] }}</div>
+            <div style="font-size:22px;font-weight:800;color:#92400e;"><?php echo e($counts['en_attente']); ?></div>
             <div style="font-size:9px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.5px;">En attente</div>
         </div>
         <div style="padding:10px 16px;border-radius:12px;text-align:center;background:#f0fdf4;border:1px solid #bbf7d0;">
-            <div style="font-size:22px;font-weight:800;color:#15803d;">{{ $counts['valide'] }}</div>
+            <div style="font-size:22px;font-weight:800;color:#15803d;"><?php echo e($counts['valide']); ?></div>
             <div style="font-size:9px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px;">Acceptées</div>
         </div>
         <div style="padding:10px 16px;border-radius:12px;text-align:center;background:#fff1f2;border:1px solid #fecdd3;">
-            <div style="font-size:22px;font-weight:800;color:#dc2626;">{{ $counts['refuse'] }}</div>
+            <div style="font-size:22px;font-weight:800;color:#dc2626;"><?php echo e($counts['refuse']); ?></div>
             <div style="font-size:9px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;">Refusées</div>
         </div>
     </div>
 </div>
 
-{{-- STATUS TABS --}}
+
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
-    @foreach([['','📋','Toutes'],['en_attente','⏳','En attente'],['valide','✓','Acceptées'],['refuse','✕','Refusées']] as [$val,$icon,$label])
-    <a href="{{ route('reportations.my', ['status' => $val]) }}"
-       class="tab-pill {{ $status === $val ? 'active' : '' }}">
-        {{ $icon }} {{ $label }}
-        <span class="badge">{{ $val === '' ? array_sum($counts) : ($counts[$val] ?? 0) }}</span>
+    <?php $__currentLoopData = [['','📋','Toutes'],['en_attente','⏳','En attente'],['valide','✓','Acceptées'],['refuse','✕','Refusées']]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as [$val,$icon,$label]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    <a href="<?php echo e(route('reportations.my', ['status' => $val])); ?>"
+       class="tab-pill <?php echo e($status === $val ? 'active' : ''); ?>">
+        <?php echo e($icon); ?> <?php echo e($label); ?>
+
+        <span class="badge"><?php echo e($val === '' ? array_sum($counts) : ($counts[$val] ?? 0)); ?></span>
     </a>
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 </div>
 
-{{-- CARDS --}}
-@forelse($reportations as $rp)
-@php $emploi = $rp->emploiDuTemps; @endphp
 
-<div class="rp-card" data-rp-id="{{ $rp->id }}">
-    {{-- Header --}}
+<?php $__empty_1 = true; $__currentLoopData = $reportations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+<?php $emploi = $rp->emploiDuTemps; ?>
+
+<div class="rp-card" data-rp-id="<?php echo e($rp->id); ?>">
+    
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div style="font-size:11px;color:#64748b;">
-            Demande envoyée le <strong style="color:#334155;">{{ $rp->created_at->translatedFormat('d M Y à H:i') }}</strong>
+            Demande envoyée le <strong style="color:#334155;"><?php echo e($rp->created_at->translatedFormat('d M Y à H:i')); ?></strong>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-            @if($rp->status === 'en_attente')
+            <?php if($rp->status === 'en_attente'): ?>
                 <span class="status-pill attente">⏳ En attente de décision</span>
-            @elseif($rp->status === 'valide')
+            <?php elseif($rp->status === 'valide'): ?>
                 <span class="status-pill valide">✓ Acceptée</span>
-            @else
+            <?php else: ?>
                 <span class="status-pill refuse">✕ Refusée</span>
-            @endif
-            @if($rp->validePar)
-                <span style="font-size:10px;color:#64748b;">par <strong>{{ $rp->validePar->name }}</strong></span>
-            @endif
+            <?php endif; ?>
+            <?php if($rp->validePar): ?>
+                <span style="font-size:10px;color:#64748b;">par <strong><?php echo e($rp->validePar->name); ?></strong></span>
+            <?php endif; ?>
         </div>
     </div>
 
     <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
 
-        {{-- Session info --}}
+        
         <div>
             <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Séance concernée</div>
-            @if($emploi)
+            <?php if($emploi): ?>
             <div style="padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
-                <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:5px;">{{ $emploi->module?->name ?? '— Module non défini' }}</div>
-                <div style="font-size:10px;color:#475569;margin-bottom:3px;">👥 {{ $emploi->groupe?->name ?? '—' }} · {{ $emploi->groupe?->filiere?->name ?? '' }}</div>
-                <div style="font-size:10px;color:#475569;margin-bottom:3px;">📅 {{ $emploi->date_debut->translatedFormat('l d M Y') }}</div>
-                <div style="font-size:10px;color:#475569;">🕐 {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}</div>
+                <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:5px;"><?php echo e($emploi->module?->name ?? '— Module non défini'); ?></div>
+                <div style="font-size:10px;color:#475569;margin-bottom:3px;">👥 <?php echo e($emploi->groupe?->name ?? '—'); ?> · <?php echo e($emploi->groupe?->filiere?->name ?? ''); ?></div>
+                <div style="font-size:10px;color:#475569;margin-bottom:3px;">📅 <?php echo e($emploi->date_debut->translatedFormat('l d M Y')); ?></div>
+                <div style="font-size:10px;color:#475569;">🕐 <?php echo e($emploi->date_debut->format('H:i')); ?> → <?php echo e($emploi->date_fin->format('H:i')); ?></div>
             </div>
-            @else
+            <?php else: ?>
                 <div style="font-size:11px;color:#94a3b8;font-style:italic;padding:12px 14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
                     Séance supprimée par l'administration.
                 </div>
-            @endif
+            <?php endif; ?>
         </div>
 
-        {{-- Reason + result --}}
+        
         <div>
             <div style="font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Votre raison</div>
             <div style="padding:12px 14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #7c3aed;font-size:11px;color:#334155;line-height:1.6;">
-                {{ $rp->raison }}
+                <?php echo e($rp->raison); ?>
+
             </div>
 
-            @if($rp->status === 'valide' && $rp->nouvelle_date_debut)
+            <?php if($rp->status === 'valide' && $rp->nouvelle_date_debut): ?>
             <div style="margin-top:10px;padding:12px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;">
                 <div style="font-size:9px;font-weight:800;color:#15803d;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">✓ Nouvelle date fixée par l'admin</div>
                 <div style="font-size:13px;font-weight:700;color:#15803d;">
-                    {{ \Carbon\Carbon::parse($rp->nouvelle_date_debut)->translatedFormat('l d M Y') }}
+                    <?php echo e(\Carbon\Carbon::parse($rp->nouvelle_date_debut)->translatedFormat('l d M Y')); ?>
+
                 </div>
                 <div style="font-size:11px;color:#15803d;">
-                    🕐 {{ \Carbon\Carbon::parse($rp->nouvelle_date_debut)->format('H:i') }}
-                    → {{ \Carbon\Carbon::parse($rp->nouvelle_date_fin)->format('H:i') }}
+                    🕐 <?php echo e(\Carbon\Carbon::parse($rp->nouvelle_date_debut)->format('H:i')); ?>
+
+                    → <?php echo e(\Carbon\Carbon::parse($rp->nouvelle_date_fin)->format('H:i')); ?>
+
                 </div>
             </div>
-            @elseif($rp->status === 'refuse')
+            <?php elseif($rp->status === 'refuse'): ?>
             <div style="margin-top:10px;padding:12px 14px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;font-size:11px;color:#dc2626;">
                 ✕ Votre demande a été refusée. La séance reste à la date initiale.
             </div>
-            @elseif($rp->status === 'en_attente')
+            <?php elseif($rp->status === 'en_attente'): ?>
             <div style="margin-top:10px;padding:12px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fde68a;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 En attente de décision — l'admin choisira la nouvelle date si accepté.
             </div>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 
-    {{-- Footer --}}
+    
     <div style="padding:10px 20px;border-top:1px solid #f1f5f9;background:#fafafa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        {{-- Chat button --}}
+        
         <button class="rp-btn ghost"
-                onclick="openChat({{ $rp->id }}, '{{ addslashes($rp->emploiDuTemps?->module?->name ?? 'Support') }}')">
+                onclick="openChat(<?php echo e($rp->id); ?>, '<?php echo e(addslashes($rp->emploiDuTemps?->module?->name ?? 'Support')); ?>')">
             💬 Chat
-            <span id="chat-count-{{ $rp->id }}" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">
-                {{ $rp->messages?->count() ?? 0 }}
+            <span id="chat-count-<?php echo e($rp->id); ?>" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">
+                <?php echo e($rp->messages?->count() ?? 0); ?>
+
             </span>
         </button>
 
-        @if($emploi)
-        <a href="{{ route('emplois.index', ['week' => $emploi->date_debut->toDateString(), 'year' => $emploi->groupe->annee ?? 1]) }}"
+        <?php if($emploi): ?>
+        <a href="<?php echo e(route('emplois.index', ['week' => $emploi->date_debut->toDateString(), 'year' => $emploi->groupe->annee ?? 1])); ?>"
            style="font-size:11px;color:#1e40af;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;">
             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             Voir la semaine de cette séance
         </a>
-        @endif
+        <?php endif; ?>
     </div>
 </div>
-@empty
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
 <div style="padding:64px;text-align:center;background:white;border-radius:16px;border:1px solid #e2e8f0;">
     <div style="font-size:36px;margin-bottom:12px;">📋</div>
     <p style="font-size:14px;font-weight:700;color:#334155;margin:0 0 4px;">Aucune demande</p>
     <p style="font-size:12px;color:#94a3b8;margin:0;">Vos demandes de report apparaîtront ici. Utilisez le bouton <strong>📋 Reporter</strong> sur une séance.</p>
 </div>
-@endforelse
+<?php endif; ?>
 
-@if($reportations->hasPages())
-    <div style="margin-top:16px;display:flex;justify-content:center;">{{ $reportations->links() }}</div>
-@endif
+<?php if($reportations->hasPages()): ?>
+    <div style="margin-top:16px;display:flex;justify-content:center;"><?php echo e($reportations->links()); ?></div>
+<?php endif; ?>
 
 </div>
 
-{{-- ════ CHAT MODAL ════ --}}
+
 <div id="chat-modal" style="position:fixed;inset:0;z-index:70;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeChat()">
     <div style="background:white;border-radius:20px;width:100%;max-width:480px;margin:16px;display:flex;flex-direction:column;height:520px;box-shadow:0 24px 60px rgba(0,0,0,0.18);">
         <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
@@ -222,7 +230,7 @@ function closeChat() {
 }
 
 function appendMsg(msg) {
-    const me = {{ auth()->id() }};
+    const me = <?php echo e(auth()->id()); ?>;
     const isMe = msg.user_id == me;
     const box = document.getElementById('chat-messages');
     const div = document.createElement('div');
@@ -243,7 +251,7 @@ function sendChatMsg() {
     const socketId = window.Echo?.socketId() ?? null;
     const headers = {
         'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
     };
     if (socketId) headers['X-Socket-ID'] = socketId;
 
@@ -277,10 +285,10 @@ function subscribeAll() {
         setTimeout(subscribeAll, 300);
         return;
     }
-    @foreach($reportations as $rp)
-    window.Echo.channel('reportation.{{ $rp->id }}')
+    <?php $__currentLoopData = $reportations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    window.Echo.channel('reportation.<?php echo e($rp->id); ?>')
 .listen('.message.sent', function(e) {
-                const rpId = {{ $rp->id }};
+                const rpId = <?php echo e($rp->id); ?>;
             if (currentReportationId === rpId) {
                 const box = document.getElementById('chat-messages');
                 const empty = box.querySelector('div[style*="text-align:center"]');
@@ -291,7 +299,7 @@ function subscribeAll() {
             const badge = document.getElementById('chat-count-' + rpId);
             if (badge) badge.textContent = parseInt(badge.textContent || '0') + 1;
         });
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 }
 subscribeAll();
 
@@ -303,4 +311,5 @@ function escapeHtml(text) {
 }
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/reportations/my.blade.php ENDPATH**/ ?>

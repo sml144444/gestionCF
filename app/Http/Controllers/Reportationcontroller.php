@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EmploiDuTemps;
 use App\Models\Reportation;
+use App\Models\ReportationMessage;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ class ReportationController extends Controller
                 'emploiDuTemps.salle',
                 'formateur',
                 'validePar',
+                'messages',
+                'messages.user',
             ])
             ->when($status !== '', fn($q) => $q->where('status', $status))
             ->when($search !== '', fn($q) => $q->whereHas('formateur', fn($u) =>
@@ -58,6 +61,8 @@ class ReportationController extends Controller
                 'emploiDuTemps.module',
                 'emploiDuTemps.salle',
                 'validePar',
+                'messages',
+                'messages.user',
             ])
             ->where('id_user', auth()->id())
             ->when($status !== '', fn($q) => $q->where('status', $status))
@@ -88,25 +93,27 @@ class ReportationController extends Controller
 
         $emploi = EmploiDuTemps::findOrFail($data['id_emplois_du_temps']);
 
-        // Formateur can only report their own sessions
         if ($emploi->id_user !== auth()->id()) {
             abort(403, 'Vous ne pouvez reporter que vos propres séances.');
         }
 
-        // Prevent duplicate pending request for same session
         if (Reportation::where('id_emplois_du_temps', $emploi->id)->where('status', 'en_attente')->exists()) {
             return back()->with('error', 'Une demande de report est déjà en attente pour cette séance.');
         }
 
-        Reportation::create([
+        $reportation = Reportation::create([
             'id_emplois_du_temps' => $emploi->id,
             'id_user'             => auth()->id(),
             'raison'              => $data['raison'],
-            // No date yet — admin will choose
             'nouvelle_date_debut' => null,
             'nouvelle_date_fin'   => null,
             'status'              => 'en_attente',
         ]);
+
+        // Broadcast new reportation in real-time
+        if (class_exists(\App\Events\ReportationCreated::class)) {
+            broadcast(new \App\Events\ReportationCreated($reportation));
+        }
 
         $week = Carbon::parse($emploi->date_debut)->toDateString();
         $year = $emploi->groupe->annee ?? 1;
@@ -132,11 +139,10 @@ class ReportationController extends Controller
             'nouvelle_date_fin'   => 'required|date|after:nouvelle_date_debut',
         ]);
 
-        $emploi      = $reportation->emploiDuTemps;
-        $newDebut    = Carbon::parse($data['nouvelle_date_debut']);
-        $newFin      = Carbon::parse($data['nouvelle_date_fin']);
+        $emploi   = $reportation->emploiDuTemps;
+        $newDebut = Carbon::parse($data['nouvelle_date_debut']);
+        $newFin   = Carbon::parse($data['nouvelle_date_fin']);
 
-        // Check for conflicts on the new slot
         $overlap = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
             ->where('id', '!=', $emploi->id)
             ->where('date_debut', '<', $newFin)
@@ -155,7 +161,6 @@ class ReportationController extends Controller
             return back()->with('error', 'Conflit détecté sur ce créneau (groupe, formateur ou salle déjà occupé). Choisissez une autre date.');
         }
 
-        // Apply new dates
         $emploi->update([
             'date_debut' => $newDebut,
             'date_fin'   => $newFin,
@@ -214,5 +219,80 @@ class ReportationController extends Controller
         return redirect()
             ->route('reportations.index')
             ->with('success', 'Séance supprimée suite à la demande de report.');
+    }
+
+    // ── ASSIGN gestionnaire ────────────────────────────────
+    public function assign(Request $request, Reportation $reportation): RedirectResponse
+    {
+        if (! auth()->user()->hasPermissionTo('reportation-manage')) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'assigned_to' => 'nullable|exists:users,id',
+        ]);
+
+        $reportation->update(['assigned_to' => $data['assigned_to'] ?: null]);
+
+        return back()->with('success', 'Gestionnaire assigné avec succès.');
+    }
+
+    // ── SEND MESSAGE ───────────────────────────────────────
+    public function sendMessage(Request $request, Reportation $reportation): \Illuminate\Http\JsonResponse
+    {
+        $user = auth()->user();
+
+        $allowed = $reportation->id_user === $user->id
+            || $reportation->assigned_to === $user->id
+            || $user->hasPermissionTo('reportation-manage');
+
+        if (! $allowed) abort(403);
+
+        $data = $request->validate(['message' => 'required|string|max:1000']);
+
+        $msg = ReportationMessage::create([
+            'reportation_id' => $reportation->id,
+            'user_id'        => $user->id,
+            'message'        => $data['message'],
+        ]);
+
+        $msg->load('user');
+
+        // toOthers() excludes the sender (requires X-Socket-ID header from frontend)
+        if (class_exists(\App\Events\ReportationMessageSent::class)) {
+            broadcast(new \App\Events\ReportationMessageSent($msg))->toOthers();
+        }
+
+        return response()->json([
+            'id'         => $msg->id,
+            'message'    => $msg->message,
+            'user_id'    => $msg->user_id,
+            'user_name'  => $msg->user->name,
+            'created_at' => $msg->created_at->format('H:i'),
+        ]);
+    }
+
+    // ── GET MESSAGES ───────────────────────────────────────
+    public function getMessages(Reportation $reportation): \Illuminate\Http\JsonResponse
+    {
+        $user = auth()->user();
+
+        $allowed = $reportation->id_user === $user->id
+            || $reportation->assigned_to === $user->id
+            || $user->hasPermissionTo('reportation-manage');
+
+        if (! $allowed) abort(403);
+
+        $reportation->load('messages.user');
+
+        return response()->json(
+            $reportation->messages->map(fn($m) => [
+                'id'         => $m->id,
+                'message'    => $m->message,
+                'user_id'    => $m->user_id,
+                'user_name'  => $m->user->name,
+                'created_at' => $m->created_at->format('H:i'),
+            ])
+        );
     }
 }

@@ -195,6 +195,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // REPORTATIONS
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
@@ -221,6 +222,17 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
     Route::post('/reportations/{reportation}/delete-session', [ReportationController::class, 'deleteSession'])
         ->name('reportations.delete-session')
         ->middleware('can:reportation-manage');
+
+    // ── NEW: assign + chat ──────────────────────────────────
+    Route::post('/reportations/{reportation}/assign', [ReportationController::class, 'assign'])
+        ->name('reportations.assign')
+        ->middleware('can:reportation-manage');
+
+    Route::get('/reportations/{reportation}/messages', [ReportationController::class, 'getMessages'])
+        ->name('reportations.messages');
+
+    Route::post('/reportations/{reportation}/message', [ReportationController::class, 'sendMessage'])
+        ->name('reportations.message');
 });
 
 // ─────────────────────────────────────────────
