@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AbsenceRetard;
 use App\Models\Controle;
 use App\Models\Note;
 use Illuminate\Support\Collection;
@@ -25,7 +26,7 @@ class BulletinService
         $cc = null;
 
         if ($controles->isNotEmpty()) {
-            $ccValues = [];
+            $ccValues  = [];
             $allFilled = true;
 
             foreach ($controles as $ctrl) {
@@ -35,19 +36,15 @@ class BulletinService
 
                 if ($note === null) {
                     $allFilled = false;
-                    break; // no need to continue
+                    break;
                 }
 
                 $ccValues[] = (float) $note;
             }
 
             if ($allFilled && count($ccValues) > 0) {
-                $cc = round(
-                    array_sum($ccValues) / count($ccValues),
-                    2
-                );
+                $cc = round(array_sum($ccValues) / count($ccValues), 2);
             }
-            // if any controle is missing → cc stays null
         }
 
         // ── 2. EFM ────────────────────────────────────────────────────────
@@ -64,24 +61,17 @@ class BulletinService
         }
 
         // ── 3. Module grade — only if BOTH cc AND efm are present ─────────
-        // Special case: module has 0 controles (nbr_controles = 0)
-        //   → cc is null by design but we still allow grade = EFM alone
-        $moduleGrade = null;
-
+        $moduleGrade    = null;
         $hasNoControles = $controles->isEmpty();
 
         if ($hasNoControles) {
-            // No controles configured → grade = EFM only (if EFM filled)
             if ($efmNote !== null) {
                 $moduleGrade = round($efmNote, 2);
             }
         } else {
-            // Normal case: need BOTH cc (all controles filled) AND efm
             if ($cc !== null && $efmNote !== null) {
                 $moduleGrade = round(($cc + $efmNote) / 2, 2);
             }
-            // if cc is null (some controle missing) → moduleGrade stays null
-            // if efmNote is null → moduleGrade stays null
         }
 
         return [
@@ -92,13 +82,41 @@ class BulletinService
     }
 
     /**
-     * General average across all modules that have a moduleGrade.
+     * Discipline note for one stagiaire.
+     *
+     * Rules:
+     *   - Only count absences where justifie = false (unjustified),
+     *     regardless of admin_validated value.
+     *   - penalty = total_absence_hours / 5
+     *   - discipline_note = max(0, 20 - penalty)
+     */
+    public function calculateDisciplineNote(int $stagiaireId): float
+    {
+        $totalHours = AbsenceRetard::where('id_user', $stagiaireId)
+            ->where('type',     'absence')
+            ->where('justifie', false)       // only unjustified absences
+            ->sum('duree');
+
+        $penalty = (float) $totalHours / 5;
+
+        return round(max(0, 20 - $penalty), 2);
+    }
+
+    /**
+     * General average across all modules that have a moduleGrade,
+     * plus an optional discipline note (coefficient = 1).
+     *
      * Weighted by coefficient.
      *
-     * @param  array  $items  each: ['module' => Module, 'moduleGrade' => float|null]
+     * @param  array       $items            each: ['module' => Module, 'moduleGrade' => float|null]
+     * @param  float|null  $disciplineNote   pass null to exclude discipline from average
+     * @param  int         $disciplineCoeff  coefficient for discipline row (default 1)
      */
-    public function calculateGeneralAverage(array $items): ?float
-    {
+    public function calculateGeneralAverage(
+        array  $items,
+        ?float $disciplineNote  = null,
+        int    $disciplineCoeff = 1
+    ): ?float {
         $weightedSum    = 0;
         $coefficientSum = 0;
 
@@ -110,6 +128,12 @@ class BulletinService
             $coeff           = (float) ($item['module']->coefficience ?? 1);
             $weightedSum    += $item['moduleGrade'] * $coeff;
             $coefficientSum += $coeff;
+        }
+
+        // Include discipline note in the weighted average
+        if ($disciplineNote !== null) {
+            $weightedSum    += $disciplineNote * $disciplineCoeff;
+            $coefficientSum += $disciplineCoeff;
         }
 
         if ($coefficientSum === 0) {

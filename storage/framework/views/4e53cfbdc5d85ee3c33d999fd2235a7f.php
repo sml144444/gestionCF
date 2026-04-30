@@ -194,6 +194,9 @@
         <?php if($selectedGroupe): ?>
             <input type="hidden" name="groupe_id" value="<?php echo e($selectedGroupe->id); ?>">
         <?php endif; ?>
+        <?php if($promoFilter): ?>
+            <input type="hidden" name="promo" value="<?php echo e($promoFilter); ?>">
+        <?php endif; ?>
         <div>
             <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">
                 Nbre contrôles
@@ -215,21 +218,42 @@
 <div class="groupe-selector">
     <form method="GET" action="<?php echo e(route('controles.notes', $module->id)); ?>"
           style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+
+        
+        <div>
+            <label class="grp-label">Promotion</label>
+            <select id="promo-select" name="promo" class="grp-select" style="max-width:180px;"
+                    onchange="filterGroupesByPromo()">
+                <option value="">🎓 Toutes promos</option>
+                <?php $__currentLoopData = $promos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pr): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <option value="<?php echo e($pr); ?>" <?php echo e($promoFilter == $pr ? 'selected' : ''); ?>>
+                        Promo <?php echo e($pr); ?>
+
+                    </option>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </select>
+        </div>
+
         <div style="flex:1;">
             <label class="grp-label">Sélectionner un groupe</label>
-            <select name="groupe_id" class="grp-select">
+            <select name="groupe_id" id="groupe-select" class="grp-select">
                 <option value="">— Choisir un groupe —</option>
                 <?php $__empty_1 = true; $__currentLoopData = $groupes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $g): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                    <option value="<?php echo e($g->id); ?>" <?php echo e(optional($selectedGroupe)->id == $g->id ? 'selected' : ''); ?>>
+                    <option value="<?php echo e($g->id); ?>"
+                            data-promo="<?php echo e($g->promo); ?>"
+                            <?php echo e(optional($selectedGroupe)->id == $g->id ? 'selected' : ''); ?>>
                         <?php echo e($g->name); ?>
 
-                        (<?php echo e($g->stagiaires()->count()); ?> stagiaire<?php echo e($g->stagiaires()->count() > 1 ? 's' : ''); ?>)
+                        <?php if($g->promo): ?> (<?php echo e($g->promo); ?>) <?php endif; ?>
+                        · <?php echo e($g->stagiaires()->count()); ?> stagiaire<?php echo e($g->stagiaires()->count() > 1 ? 's' : ''); ?>
+
                     </option>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <option disabled>Aucun groupe pour cette filière / année</option>
                 <?php endif; ?>
             </select>
         </div>
+
         <button type="submit" class="n-btn n-btn-primary">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             Afficher
@@ -240,6 +264,18 @@
         </a>
         <?php endif; ?>
     </form>
+
+    
+    <?php if($promoFilter): ?>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:#0369a1;">
+        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+        Groupes filtrés par promo <strong><?php echo e($promoFilter); ?></strong>
+        <a href="<?php echo e(route('controles.notes', $module->id)); ?>"
+           style="margin-left:4px;color:#dc2626;font-weight:700;text-decoration:none;">
+           × Réinitialiser
+        </a>
+    </div>
+    <?php endif; ?>
 </div>
 
 
@@ -294,6 +330,9 @@
         <form method="POST" action="<?php echo e(route('controles.save', $module->id)); ?>" id="notes-form">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="groupe_id" value="<?php echo e($selectedGroupe->id); ?>">
+            <?php if($promoFilter): ?>
+            <input type="hidden" name="promo" value="<?php echo e($promoFilter); ?>">
+            <?php endif; ?>
 
             
             <div id="js-config"
@@ -584,6 +623,40 @@ document.querySelectorAll('.note-input').forEach(i => {
 window.addEventListener('beforeunload', function(e) {
     if (changed) { e.preventDefault(); e.returnValue = ''; }
 });
+// ── Promo filter for groupe dropdown ────────────────────────
+function filterGroupesByPromo() {
+    const promo  = document.getElementById('promo-select')?.value || '';
+    const select = document.getElementById('groupe-select');
+    if (!select) return;
+
+    let visibleCount = 0;
+    [...select.options].forEach(opt => {
+        if (!opt.value) return; // keep the placeholder
+        const match = !promo || opt.dataset.promo === promo;
+        opt.style.display = match ? '' : 'none';
+        opt.disabled      = !match;
+        if (match) visibleCount++;
+        // Deselect hidden options
+        if (!match && opt.selected) {
+            opt.selected  = false;
+            select.value  = '';
+        }
+    });
+
+    // Update placeholder text
+    const placeholder = select.options[0];
+    if (placeholder && !placeholder.value) {
+        placeholder.text = visibleCount === 0
+            ? '— Aucun groupe pour cette promo —'
+            : '— Choisir un groupe —';
+    }
+}
+
+// Run on page load to apply server-side promo filter visually
+document.addEventListener('DOMContentLoaded', function () {
+    filterGroupesByPromo();
+});
+
 document.getElementById('notes-form')?.addEventListener('submit', function() {
     changed = false;
 });

@@ -23,6 +23,7 @@ use App\Http\Controllers\ReclamationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BulletinController;
+
 // ─────────────────────────────────────────────
 // GUEST
 // ─────────────────────────────────────────────
@@ -473,33 +474,45 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// CONTRÔLES & NOTES
+// CONTRÔLES & NOTES (UPDATED WITH PERMISSIONS)
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
 
     Route::get('/controles', [ControleNotesController::class, 'index'])
-        ->name('controles.index');
+        ->name('controles.index')
+        ->middleware('can:controle-view');
 
     Route::get('/controles/{module}', [ControleNotesController::class, 'notes'])
-        ->name('controles.notes');
+        ->name('controles.notes')
+        ->middleware('can:controle-view');
 
     Route::post('/controles/{module}/save', [ControleNotesController::class, 'save'])
-        ->name('controles.save');
+        ->name('controles.save')
+        ->middleware('can:controle-save');
 
     Route::patch('/controles/{module}/nbr', [ControleNotesController::class, 'updateNbr'])
-        ->name('controles.update-nbr');
+        ->name('controles.update-nbr')
+        ->middleware('can:controle-save');
 });
 
 // ─────────────────────────────────────────────
-// MES NOTES — stagiaire (read-only)
+// MES NOTES — stagiaire (read-only) (UPDATED WITH PERMISSIONS)
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:stagiaire'])->group(function () {
     Route::get('/mes-notes', [ControleNotesController::class, 'myNotes'])
-        ->name('controles.my-notes');
+        ->name('controles.my-notes')
+        ->middleware('can:mes-notes-view');
 });
 
-
+// ─────────────────────────────────────────────
+// BULLETINS DE NOTES (UPDATED WITH PERMISSIONS)
+// ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
-    Route::get('/bulletin',                    [BulletinController::class, 'index']) ->name('bulletin.index');
-    Route::get('/bulletin/{stagiaire}',        [BulletinController::class, 'show'])  ->name('bulletin.show');
+    Route::get('/bulletin', [BulletinController::class, 'index'])
+        ->name('bulletin.index')
+        ->middleware('can:bulletin-view');
+
+    Route::get('/bulletin/{stagiaire}', [BulletinController::class, 'show'])
+        ->name('bulletin.show')
+        ->middleware('can:bulletin-view');
 });

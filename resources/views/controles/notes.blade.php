@@ -191,6 +191,9 @@
         @if($selectedGroupe)
             <input type="hidden" name="groupe_id" value="{{ $selectedGroupe->id }}">
         @endif
+        @if($promoFilter)
+            <input type="hidden" name="promo" value="{{ $promoFilter }}">
+        @endif
         <div>
             <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">
                 Nbre contrôles
@@ -212,20 +215,39 @@
 <div class="groupe-selector">
     <form method="GET" action="{{ route('controles.notes', $module->id) }}"
           style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+
+        {{-- ── PROMO FILTER (new) ── --}}
+        <div>
+            <label class="grp-label">Promotion</label>
+            <select id="promo-select" name="promo" class="grp-select" style="max-width:180px;"
+                    onchange="filterGroupesByPromo()">
+                <option value="">🎓 Toutes promos</option>
+                @foreach($promos as $pr)
+                    <option value="{{ $pr }}" {{ $promoFilter == $pr ? 'selected' : '' }}>
+                        Promo {{ $pr }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
         <div style="flex:1;">
             <label class="grp-label">Sélectionner un groupe</label>
-            <select name="groupe_id" class="grp-select">
+            <select name="groupe_id" id="groupe-select" class="grp-select">
                 <option value="">— Choisir un groupe —</option>
                 @forelse($groupes as $g)
-                    <option value="{{ $g->id }}" {{ optional($selectedGroupe)->id == $g->id ? 'selected' : '' }}>
+                    <option value="{{ $g->id }}"
+                            data-promo="{{ $g->promo }}"
+                            {{ optional($selectedGroupe)->id == $g->id ? 'selected' : '' }}>
                         {{ $g->name }}
-                        ({{ $g->stagiaires()->count() }} stagiaire{{ $g->stagiaires()->count() > 1 ? 's' : '' }})
+                        @if($g->promo) ({{ $g->promo }}) @endif
+                        · {{ $g->stagiaires()->count() }} stagiaire{{ $g->stagiaires()->count() > 1 ? 's' : '' }}
                     </option>
                 @empty
                     <option disabled>Aucun groupe pour cette filière / année</option>
                 @endforelse
             </select>
         </div>
+
         <button type="submit" class="n-btn n-btn-primary">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             Afficher
@@ -236,6 +258,18 @@
         </a>
         @endif
     </form>
+
+    {{-- Promo filter active badge --}}
+    @if($promoFilter)
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:#0369a1;">
+        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+        Groupes filtrés par promo <strong>{{ $promoFilter }}</strong>
+        <a href="{{ route('controles.notes', $module->id) }}"
+           style="margin-left:4px;color:#dc2626;font-weight:700;text-decoration:none;">
+           × Réinitialiser
+        </a>
+    </div>
+    @endif
 </div>
 
 {{-- ── NOTES TABLE ── --}}
@@ -289,6 +323,9 @@
         <form method="POST" action="{{ route('controles.save', $module->id) }}" id="notes-form">
             @csrf
             <input type="hidden" name="groupe_id" value="{{ $selectedGroupe->id }}">
+            @if($promoFilter)
+            <input type="hidden" name="promo" value="{{ $promoFilter }}">
+            @endif
 
             {{-- Pass expected counts to JS via data attributes --}}
             <div id="js-config"
@@ -578,6 +615,40 @@ document.querySelectorAll('.note-input').forEach(i => {
 window.addEventListener('beforeunload', function(e) {
     if (changed) { e.preventDefault(); e.returnValue = ''; }
 });
+// ── Promo filter for groupe dropdown ────────────────────────
+function filterGroupesByPromo() {
+    const promo  = document.getElementById('promo-select')?.value || '';
+    const select = document.getElementById('groupe-select');
+    if (!select) return;
+
+    let visibleCount = 0;
+    [...select.options].forEach(opt => {
+        if (!opt.value) return; // keep the placeholder
+        const match = !promo || opt.dataset.promo === promo;
+        opt.style.display = match ? '' : 'none';
+        opt.disabled      = !match;
+        if (match) visibleCount++;
+        // Deselect hidden options
+        if (!match && opt.selected) {
+            opt.selected  = false;
+            select.value  = '';
+        }
+    });
+
+    // Update placeholder text
+    const placeholder = select.options[0];
+    if (placeholder && !placeholder.value) {
+        placeholder.text = visibleCount === 0
+            ? '— Aucun groupe pour cette promo —'
+            : '— Choisir un groupe —';
+    }
+}
+
+// Run on page load to apply server-side promo filter visually
+document.addEventListener('DOMContentLoaded', function () {
+    filterGroupesByPromo();
+});
+
 document.getElementById('notes-form')?.addEventListener('submit', function() {
     changed = false;
 });

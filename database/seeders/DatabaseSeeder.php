@@ -84,6 +84,11 @@ class DatabaseSeeder extends Seeder
             'news-list', 'news-create', 'news-edit', 'news-delete',
             'news-comment', 'news-like',
             'absence-view', 'absence-view-all', 'absence-justify',
+            // NEW PERMISSIONS ADDED HERE
+            'controle-view',        // <── ADDED
+            'controle-save',        // <── ADDED
+            'mes-notes-view',       // <── ADDED
+            'bulletin-view',        // <── ADDED
         ];
 
         foreach ($permissions as $perm) {
@@ -106,6 +111,10 @@ class DatabaseSeeder extends Seeder
             'reclamation-manage',
             'news-list', 'news-create', 'news-edit', 'news-delete', 'news-comment', 'news-like',
             'absence-view', 'absence-view-all', 'absence-justify',
+            // NEW PERMISSIONS FOR GESTIONNAIRE
+            'controle-view',        // <── ADDED
+            'controle-save',        // <── ADDED
+            'bulletin-view',        // <── ADDED
         ]);
 
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
@@ -117,6 +126,9 @@ class DatabaseSeeder extends Seeder
             'news-list', 'news-comment', 'news-like',
             'absence-view', 'absence-view-all',
             'reclamation-view-assigned',
+            // NEW PERMISSIONS FOR FORMATEUR
+            'controle-view',        // <── ADDED
+            'controle-save',        // <── ADDED
         ]);
 
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
@@ -125,6 +137,8 @@ class DatabaseSeeder extends Seeder
             'reclamation-create', 'reclamation-list',
             'news-list', 'news-comment', 'news-like',
             'absence-view',
+            // NEW PERMISSION FOR STAGIAIRE
+            'mes-notes-view',       // <── ADDED
         ]);
 
         User::all()->each(fn(User $u) => $u->syncRoles([$u->role]));

@@ -141,11 +141,22 @@
         <option value="regional" {{ $typeFilter === 'regional' ? 'selected' : '' }}>Régional</option>
         <option value="local"    {{ $typeFilter === 'local'    ? 'selected' : '' }}>Local</option>
     </select>
+
+    {{-- ── PROMO FILTER (new) ── --}}
+    <select name="promo" class="cn-input" style="min-width:130px;" title="Filtrer les notes par promotion">
+        <option value="">🎓 Toutes promos</option>
+        @foreach($promos as $pr)
+            <option value="{{ $pr }}" {{ $promoFilter == $pr ? 'selected' : '' }}>
+                Promo {{ $pr }}
+            </option>
+        @endforeach
+    </select>
+
     <button type="submit" class="cn-btn cn-btn-primary">
         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         Filtrer
     </button>
-    @if($search || $filiereId || $typeFilter)
+    @if($search || $filiereId || $typeFilter || $promoFilter)
     <a href="{{ route('controles.index', $anneeFilter ? ['annee'=>$anneeFilter] : []) }}" class="cn-btn cn-btn-ghost">Réinitialiser</a>
     @endif
 </form>
@@ -221,7 +232,11 @@
 
                     {{-- Action --}}
                     <td style="text-align:right;">
-                        <a href="{{ route('controles.notes', $module->id) }}"
+                        @php
+                            $notesParams = ['module' => $module->id];
+                            if ($promoFilter) $notesParams['promo'] = $promoFilter;
+                        @endphp
+                        <a href="{{ route('controles.notes', $notesParams) }}"
                            class="cn-btn cn-btn-primary" style="font-size:11px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Entrer notes

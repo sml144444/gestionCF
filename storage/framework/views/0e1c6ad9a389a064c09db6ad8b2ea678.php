@@ -143,11 +143,23 @@
         <option value="regional" <?php echo e($typeFilter === 'regional' ? 'selected' : ''); ?>>Régional</option>
         <option value="local"    <?php echo e($typeFilter === 'local'    ? 'selected' : ''); ?>>Local</option>
     </select>
+
+    
+    <select name="promo" class="cn-input" style="min-width:130px;" title="Filtrer les notes par promotion">
+        <option value="">🎓 Toutes promos</option>
+        <?php $__currentLoopData = $promos; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pr): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <option value="<?php echo e($pr); ?>" <?php echo e($promoFilter == $pr ? 'selected' : ''); ?>>
+                Promo <?php echo e($pr); ?>
+
+            </option>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+    </select>
+
     <button type="submit" class="cn-btn cn-btn-primary">
         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         Filtrer
     </button>
-    <?php if($search || $filiereId || $typeFilter): ?>
+    <?php if($search || $filiereId || $typeFilter || $promoFilter): ?>
     <a href="<?php echo e(route('controles.index', $anneeFilter ? ['annee'=>$anneeFilter] : [])); ?>" class="cn-btn cn-btn-ghost">Réinitialiser</a>
     <?php endif; ?>
 </form>
@@ -227,7 +239,11 @@
 
                     
                     <td style="text-align:right;">
-                        <a href="<?php echo e(route('controles.notes', $module->id)); ?>"
+                        <?php
+                            $notesParams = ['module' => $module->id];
+                            if ($promoFilter) $notesParams['promo'] = $promoFilter;
+                        ?>
+                        <a href="<?php echo e(route('controles.notes', $notesParams)); ?>"
                            class="cn-btn cn-btn-primary" style="font-size:11px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Entrer notes

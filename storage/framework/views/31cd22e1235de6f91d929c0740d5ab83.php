@@ -17,6 +17,7 @@
     $shadow = $p['shadow'];
 
     // General average: only show if EVERY module has a moduleGrade
+    // (discipline is always calculated so it never blocks the average)
     $allGraded = $modulesWithNotes->isNotEmpty()
         && $modulesWithNotes->every(fn($m) => $m['moduleGrade'] !== null);
 ?>
@@ -42,6 +43,11 @@
 .bl-table tbody tr:hover td { background:#fafbff; }
 .bl-table tbody tr:hover td.col-module-cell { background:#fafbff; }
 
+/* Discipline row highlight */
+.discipline-row td { background:#fefce8 !important; border-top:2px solid #fde047 !important; }
+.discipline-row:hover td { background:#fef9c3 !important; }
+.discipline-row td.col-module-cell { background:#fefce8 !important; }
+
 /* Pills */
 .note-pill { display:inline-flex;align-items:center;justify-content:center;min-width:50px;height:28px;border-radius:8px;font-size:12px;font-weight:800;padding:0 6px; }
 .note-high  { background:#f0fdf4;color:#16a34a;border:1.5px solid #bbf7d0; }
@@ -60,6 +66,12 @@
 .moy-mid   { background:#fffbeb;color:#d97706;border:1.5px solid #fde68a; }
 .moy-low   { background:#fff1f2;color:#dc2626;border:1.5px solid #fecdd3; }
 .moy-none  { background:#f8fafc;color:#94a3b8;border:1.5px solid #e2e8f0; }
+
+/* Discipline note badge */
+.disc-badge { display:inline-flex;align-items:center;justify-content:center;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:800; }
+.disc-high  { background:#fefce8;color:#713f12;border:1.5px solid #fde047; }
+.disc-mid   { background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa; }
+.disc-low   { background:#fff1f2;color:#dc2626;border:1.5px solid #fecdd3; }
 
 .type-badge { display:inline-flex;font-size:9px;font-weight:800;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.5px; }
 .type-regional { background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe; }
@@ -82,11 +94,18 @@
 <div class="bls-wrap">
 
 
+<?php
+    $backParams = array_filter([
+        'groupe_id'  => $groupeId,
+        'filiere_id' => $filiereFilter ?? null,
+        'promo'      => $promoFilter ?? null,
+    ]);
+?>
 <div class="breadcrumb">
     <a href="<?php echo e(route('bulletin.index')); ?>">Bulletins</a>
     <span style="color:#cbd5e1;">›</span>
     <?php if($groupeId): ?>
-    <a href="<?php echo e(route('bulletin.index', ['groupe_id' => $groupeId])); ?>"><?php echo e($groupe?->name ?? 'Groupe'); ?></a>
+    <a href="<?php echo e(route('bulletin.index', $backParams)); ?>"><?php echo e($groupe?->name ?? 'Groupe'); ?></a>
     <span style="color:#cbd5e1;">›</span>
     <?php endif; ?>
     <span style="color:#1e293b;font-weight:600;"><?php echo e($stagiaire->name); ?></span>
@@ -107,7 +126,7 @@
         </div>
     </div>
     <?php if($groupeId): ?>
-    <a href="<?php echo e(route('bulletin.index', ['groupe_id' => $groupeId])); ?>"
+    <a href="<?php echo e(route('bulletin.index', $backParams)); ?>"
        style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:11px;font-weight:700;border-radius:10px;background:white;border:1.5px solid #e2e8f0;color:#475569;text-decoration:none;">
         ← Retour au groupe
     </a>
@@ -132,9 +151,13 @@
     $notedModules = $modulesWithNotes->filter(fn($m) => $m['moduleGrade'] !== null)->count();
     $gaColor = $generalAverage === null ? '#94a3b8' : ($generalAverage >= 10 ? '#16a34a' : '#dc2626');
     $gaBg    = $generalAverage === null ? '#f8fafc'  : ($generalAverage >= 10 ? '#f0fdf4'  : '#fff1f2');
+
+    // Discipline stats
+    $discClass = $disciplineNote === null ? 'disc-high'
+        : ($disciplineNote >= 15 ? 'disc-high' : ($disciplineNote >= 10 ? 'disc-mid' : 'disc-low'));
 ?>
 
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;">
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:22px;">
     <div class="stat-card">
         <div class="stat-icon" style="background:<?php echo e($light); ?>;">
             <svg width="20" height="20" fill="none" stroke="<?php echo e($accent); ?>" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -143,25 +166,36 @@
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:#eff6ff;">
-            <svg width="20" height="20" fill="none" stroke="#2563eb" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <svg width="20" height="20" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
         </div>
-        <div>
-            <div class="stat-val" style="color:#1e40af;"><?php echo e($notedModules); ?>/<?php echo e($totalModules); ?></div>
-            <div class="stat-lbl">Notes complètes</div>
-        </div>
+        <div><div class="stat-val"><?php echo e($notedModules); ?>/<?php echo e($totalModules); ?></div><div class="stat-lbl">Complétés</div></div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background:<?php echo e($allGraded ? $gaBg : '#fffbeb'); ?>;">
-            <svg width="20" height="20" fill="none" stroke="<?php echo e($allGraded ? $gaColor : '#d97706'); ?>" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+    <div class="stat-card" style="background:<?php echo e($gaBg); ?>;border-color:<?php echo e($generalAverage !== null && $generalAverage >= 10 ? '#bbf7d0' : ($generalAverage !== null ? '#fecdd3' : '#e2e8f0')); ?>;">
+        <div class="stat-icon" style="background:white;">
+            <svg width="20" height="20" fill="none" stroke="<?php echo e($gaColor); ?>" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
         </div>
         <div>
-            <div class="stat-val" style="color:<?php echo e($allGraded ? $gaColor : '#d97706'); ?>;">
-                <?php echo e($allGraded ? number_format($generalAverage, 2).'/20' : 'En attente'); ?>
+            <div class="stat-val" style="color:<?php echo e($gaColor); ?>;">
+                <?php echo e($generalAverage !== null ? number_format($generalAverage, 2) : '—'); ?>
 
             </div>
-            <div class="stat-lbl">Moyenne générale</div>
+            <div class="stat-lbl">Moy. générale</div>
         </div>
     </div>
+
+    
+    <?php if($disciplineNote !== null): ?>
+    <div class="stat-card" style="background:#fefce8;border-color:#fde047;">
+        <div class="stat-icon" style="background:white;font-size:18px;">🎓</div>
+        <div>
+            <div class="stat-val" style="color:#713f12;">
+                <?php echo e(number_format($disciplineNote, 2)); ?>
+
+            </div>
+            <div class="stat-lbl">Discipline</div>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 
@@ -174,6 +208,7 @@
             <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>≥ 15</span>
             <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block;"></span>10 – 14</span>
             <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span>< 10</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#eab308;display:inline-block;"></span>Discipline</span>
         </div>
     </div>
 
@@ -199,6 +234,8 @@
                 </tr>
             </thead>
             <tbody>
+
+            
             <?php $__currentLoopData = $modulesWithNotes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <?php
                 $module      = $item['module'];
@@ -278,6 +315,63 @@
                 </td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+            
+            <?php if($disciplineNote !== null): ?>
+            <?php
+                $discBadgeClass = $disciplineNote >= 15 ? 'disc-high'
+                    : ($disciplineNote >= 10 ? 'disc-mid' : 'disc-low');
+            ?>
+            <tr class="discipline-row">
+
+                
+                <td class="col-module-cell">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:16px;">🎓</span>
+                        <div>
+                            <div style="font-weight:800;color:#713f12;font-size:12px;">Discipline</div>
+                            <div style="font-size:10px;color:#92400e;margin-top:1px;">
+                                Absences non justifiées · pénalité 1pt / 5h
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                
+                <td>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;
+                                 background:#fef9c3;color:#713f12;border:1px solid #fde047;">
+                        Conduite
+                    </span>
+                </td>
+
+                
+                <td>
+                    <span class="info-chip" style="font-size:11px;font-weight:800;background:#fef9c3;color:#713f12;border-color:#fde047;">1</span>
+                </td>
+
+                
+                <?php for($i = 1; $i <= $maxControles; $i++): ?>
+                <td><span style="color:#e2e8f0;font-size:11px;">—</span></td>
+                <?php endfor; ?>
+
+                
+                <td><span style="color:#e2e8f0;font-size:11px;">—</span></td>
+
+                
+                <td><span style="color:#e2e8f0;font-size:11px;">—</span></td>
+
+                
+                <td>
+                    <span class="disc-badge <?php echo e($discBadgeClass); ?>">
+                        <?php echo e(number_format($disciplineNote, 2)); ?>
+
+                    </span>
+                </td>
+            </tr>
+            <?php endif; ?>
+            
+
             </tbody>
         </table>
     </div>
@@ -294,9 +388,16 @@
     <div>
         <div style="font-size:14px;font-weight:800;color:#0f172a;">Moyenne générale</div>
         <div style="font-size:11px;color:#64748b;margin-top:3px;">
-            <?php echo e($totalModules); ?> module<?php echo e($totalModules > 1 ? 's' : ''); ?> · pondérée par coefficient
+            <?php echo e($totalModules); ?> module<?php echo e($totalModules > 1 ? 's' : ''); ?> + discipline · pondérée par coefficient
             <?php if($groupe): ?> · <?php echo e($groupe->name); ?> <?php endif; ?>
         </div>
+        <?php if($disciplineNote !== null): ?>
+        <div style="font-size:10px;color:#92400e;margin-top:4px;
+                    display:inline-flex;align-items:center;gap:4px;
+                    background:#fef9c3;padding:2px 8px;border-radius:6px;border:1px solid #fde047;">
+            🎓 Discipline : <?php echo e(number_format($disciplineNote, 2)); ?> / 20 (coeff. 1)
+        </div>
+        <?php endif; ?>
     </div>
     <div style="font-size:38px;font-weight:800;color:<?php echo e($bannerClr); ?>;">
         <?php echo e(number_format($generalAverage, 2)); ?> <span style="font-size:18px;font-weight:600;opacity:.6;">/ 20</span>

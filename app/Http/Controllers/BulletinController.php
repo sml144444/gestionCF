@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Controle;
+use App\Models\Filiere;
 use App\Models\Groupe;
 use App\Models\Module;
 use App\Models\Note;
@@ -22,7 +23,24 @@ class BulletinController extends Controller
     // ── Step 1: choose groupe + stagiaire ────────────────────────
     public function index(Request $request): View
     {
-        $groupes        = Groupe::orderBy('name')->get();
+        $filiereFilter = $request->get('filiere_id');
+        $promoFilter   = $request->get('promo');
+
+        $filieres = Filiere::orderBy('name')->get();
+
+        $promos = Groupe::select('promo')
+            ->whereNotNull('promo')
+            ->distinct()
+            ->orderByDesc('promo')
+            ->pluck('promo');
+
+        $groupes = Groupe::withCount('stagiaires')
+            ->when($filiereFilter, fn($q) => $q->where('id_filiere', $filiereFilter))
+            ->when($promoFilter,   fn($q) => $q->where('promo', $promoFilter))
+            ->orderByDesc('promo')
+            ->orderBy('name')
+            ->get();
+
         $selectedGroupe = null;
         $stagiaires     = collect();
 
@@ -34,7 +52,8 @@ class BulletinController extends Controller
         }
 
         return view('bulletin.index', compact(
-            'groupes', 'selectedGroupe', 'stagiaires'
+            'groupes', 'selectedGroupe', 'stagiaires',
+            'filieres', 'promos', 'filiereFilter', 'promoFilter'
         ));
     }
 
@@ -43,13 +62,14 @@ class BulletinController extends Controller
     {
         abort_unless($stagiaire->role === 'stagiaire', 404);
 
-        $groupe = \App\Models\Groupe::whereHas(
+        $groupe = Groupe::whereHas(
             'stagiaires',
             fn($q) => $q->where('users.id', $stagiaire->id)
         )->first();
 
         $modulesWithNotes = collect();
         $generalAverage   = null;
+        $disciplineNote   = null;      // ← NEW
 
         if ($groupe) {
             $service = new BulletinService();
@@ -68,7 +88,7 @@ class BulletinController extends Controller
                     ->where('id_groupe', $groupe->id)
                     ->where('type', 'controle')
                     ->orderBy('variante')
-                    ->take(max(0, (int) ($module->nbr_controles ?? 1)))  // ← ADD THIS
+                    ->take(max(0, (int) ($module->nbr_controles ?? 1)))
                     ->get();
 
                 $efm = Controle::where('id_module', $module->id)
@@ -82,7 +102,6 @@ class BulletinController extends Controller
                     $stagiaire->id
                 );
 
-                // Raw notes keyed by controle id
                 $allIds = $controles->pluck('id')
                     ->when($efm, fn($c) => $c->push($efm->id))
                     ->filter();
@@ -105,15 +124,28 @@ class BulletinController extends Controller
                 $modulesWithNotes->push($item);
             }
 
-            $generalAverage = $service->calculateGeneralAverage($items);
+            // ── NEW: Discipline note ───────────────────────────────
+            // penalty = total_unjustified_absence_hours / 5
+            // discipline_note = max(0, 20 - penalty)
+            $disciplineNote = $service->calculateDisciplineNote($stagiaire->id);
+
+            // ── General average — includes discipline (coeff = 1) ──
+            $generalAverage = $service->calculateGeneralAverage(
+                $items,
+                $disciplineNote,    // ← pass discipline note
+                1                   // ← discipline coefficient
+            );
         }
 
-        // Pass back groupe_id so the breadcrumb can link back
-        $groupeId = $request->get('groupe_id', $groupe?->id);
+        $groupeId      = $request->get('groupe_id', $groupe?->id);
+        $filiereFilter = $request->get('filiere_id');
+        $promoFilter   = $request->get('promo');
 
         return view('bulletin.show', compact(
             'stagiaire', 'groupe', 'modulesWithNotes',
-            'generalAverage', 'groupeId'
+            'generalAverage', 'groupeId',
+            'filiereFilter', 'promoFilter',
+            'disciplineNote'        // ← NEW
         ));
     }
 }

@@ -27,6 +27,7 @@ class ControleNotesController extends Controller
         $typeFilter  = $request->get('type', '');
         $filiereId   = $request->get('filiere');
         $anneeFilter = $request->integer('annee', 0) ?: null;
+        $promoFilter = $request->get('promo');                       // ← NEW
 
         $isFormateur = Auth::user()->role === 'formateur';
 
@@ -44,6 +45,13 @@ class ControleNotesController extends Controller
 
         $filieres = \App\Models\Filiere::orderBy('name')->get();
 
+        // ── Distinct promos from the groupes table ── NEW
+        $promos = Groupe::select('promo')
+            ->whereNotNull('promo')
+            ->distinct()
+            ->orderByDesc('promo')
+            ->pluck('promo');
+
         $totalModules = $isFormateur
             ? Module::where('id_user', Auth::id())->count()
             : Module::count();
@@ -53,7 +61,8 @@ class ControleNotesController extends Controller
 
         return view('controles.index', compact(
             'modules', 'filieres', 'totalModules', 'totalHeures',
-            'search', 'typeFilter', 'filiereId', 'anneeFilter'
+            'search', 'typeFilter', 'filiereId', 'anneeFilter',
+            'promos', 'promoFilter'                               // ← NEW
         ));
     }
 
@@ -83,7 +92,6 @@ class ControleNotesController extends Controller
             $items = [];
 
             foreach ($modules as $module) {
-                // ── FIX: respect current nbr_controles so old DB rows are ignored ──
                 $controles = Controle::where('id_module', $module->id)
                     ->where('id_groupe', $groupe->id)
                     ->where('type', 'controle')
@@ -102,7 +110,6 @@ class ControleNotesController extends Controller
                     $stagiaire->id
                 );
 
-                // ── Fetch raw notes keyed by controle id ──────────────────
                 $allIds = $controles->pluck('id')
                     ->when($efm, fn($c) => $c->push($efm->id))
                     ->filter();
@@ -110,7 +117,6 @@ class ControleNotesController extends Controller
                 $notes = Note::where('id_user', $stagiaire->id)
                     ->whereIn('id_controle', $allIds)
                     ->pluck('note', 'id_controle');
-                // ─────────────────────────────────────────────────────────
 
                 $item = [
                     'module'      => $module,
@@ -144,8 +150,18 @@ class ControleNotesController extends Controller
             abort(403, 'Accès refusé : ce module ne vous appartient pas.');
         }
 
+        // ── Promo filter ── NEW
+        $promoFilter = $request->get('promo');
+        $promos = Groupe::select('promo')
+            ->whereNotNull('promo')
+            ->distinct()
+            ->orderByDesc('promo')
+            ->pluck('promo');
+
         $groupes = Groupe::where('id_filiere', $module->id_filiere)
-            ->when($module->annee, fn($q) => $q->where('annee', $module->annee))
+            ->when($module->annee,  fn($q) => $q->where('annee', $module->annee))
+            ->when($promoFilter,    fn($q) => $q->where('promo', $promoFilter))  // ← NEW
+            ->orderByDesc('promo')
             ->orderBy('name')
             ->get();
 
@@ -212,7 +228,8 @@ class ControleNotesController extends Controller
 
         return view('controles.notes', compact(
             'module', 'groupes', 'selectedGroupe',
-            'stagiaires', 'controles', 'efm', 'notesMap'
+            'stagiaires', 'controles', 'efm', 'notesMap',
+            'promos', 'promoFilter'                         // ← NEW
         ));
     }
 
@@ -229,10 +246,14 @@ class ControleNotesController extends Controller
 
         $module->update(['nbr_controles' => $data['nbr_controles']]);
 
-        $groupeId = $request->input('groupe_id');
+        $groupeId    = $request->input('groupe_id');
+        $promoFilter = $request->input('promo');             // ← NEW
+
+        $params = $groupeId ? ['groupe_id' => $groupeId] : [];
+        if ($promoFilter) $params['promo'] = $promoFilter;  // ← NEW
 
         return redirect()
-            ->to(route('controles.notes', $module->id) . ($groupeId ? '?groupe_id=' . $groupeId : ''))
+            ->to(route('controles.notes', array_merge(['module' => $module->id], $params)))
             ->with('success', 'Nombre de contrôles mis à jour.');
     }
 
@@ -243,10 +264,10 @@ class ControleNotesController extends Controller
             abort(403);
         }
 
-        $groupeId = $request->input('groupe_id');
-        $notes    = $request->input('notes', []);
+        $groupeId    = $request->input('groupe_id');
+        $promoFilter = $request->input('promo');             // ← NEW
+        $notes       = $request->input('notes', []);
 
-        // ── Step 1: collect every submitted controle ID as a plain integer ──
         $submittedIds = [];
         foreach ($notes as $stagiaireNotes) {
             foreach (array_keys($stagiaireNotes) as $cid) {
@@ -255,14 +276,12 @@ class ControleNotesController extends Controller
         }
         $submittedIds = array_values(array_unique($submittedIds));
 
-        // ── Step 2: ask the DB directly which IDs are EFM ──────────────────
         $efmIds = Controle::whereIn('id', $submittedIds)
             ->where('type', 'efm')
             ->pluck('id')
             ->map(fn($id) => (int) $id)
             ->toArray();
 
-        // ── Step 3: upsert every note ───────────────────────────────────────
         foreach ($notes as $stagiaireId => $controleNotes) {
             foreach ($controleNotes as $controleId => $raw) {
 
@@ -277,23 +296,23 @@ class ControleNotesController extends Controller
                 }
 
                 $input = max(0, (float) $raw);
-
                 $isEfm = in_array($cId, $efmIds);
-
-                $val = $isEfm
-                    ? round(min(20, $input / 2), 2)   // entered /40 → store /20
-                    : round(min(20, $input),     2);   // entered /20 → store /20
+                $val   = $isEfm
+                    ? round(min(20, $input / 2), 2)
+                    : round(min(20, $input),     2);
 
                 Note::updateOrCreate(
-                    ['id_user'     => $sId,
-                     'id_controle' => $cId],
-                    ['note'        => $val]
+                    ['id_user' => $sId, 'id_controle' => $cId],
+                    ['note'    => $val]
                 );
             }
         }
 
+        $params = $groupeId ? ['groupe_id' => $groupeId] : [];
+        if ($promoFilter) $params['promo'] = $promoFilter;  // ← NEW
+
         return redirect()
-            ->to(route('controles.notes', $module->id) . ($groupeId ? '?groupe_id=' . $groupeId : ''))
+            ->to(route('controles.notes', array_merge(['module' => $module->id], $params)))
             ->with('success', 'Notes enregistrées avec succès !');
     }
 }
