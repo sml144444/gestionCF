@@ -1,11 +1,11 @@
-{{-- resources/views/controles/notes.blade.php --}}
-@extends('layouts.app')
-@section('title', 'Notes — ' . $module->name)
-@section('page-title', 'Saisie des notes')
 
-@section('content')
 
-@php
+<?php $__env->startSection('title', 'Notes — ' . $module->name); ?>
+<?php $__env->startSection('page-title', 'Saisie des notes'); ?>
+
+<?php $__env->startSection('content'); ?>
+
+<?php
     $palettes = [
         'admin'        => ['primary' => '#0a6640', 'light' => '#e8f5ee', 'text' => '#065f38', 'shadow' => 'rgba(10,102,64,0.2)'],
         'gestionnaire' => ['primary' => '#1e293b', 'light' => '#f1f5f9', 'text' => '#1e293b', 'shadow' => 'rgba(30,41,59,0.2)'],
@@ -15,14 +15,14 @@
     $light  = $p['light'];
     $text   = $p['text'];
     $shadow = $p['shadow'];
-@endphp
+?>
 
 <style>
 .notes-wrap { font-family:'Segoe UI',system-ui,sans-serif; }
 
 /* ── Breadcrumb ── */
 .breadcrumb { display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8;margin-bottom:18px;flex-wrap:wrap; }
-.breadcrumb a { color:{{ $accent }};font-weight:600;text-decoration:none; }
+.breadcrumb a { color:<?php echo e($accent); ?>;font-weight:600;text-decoration:none; }
 .breadcrumb a:hover { text-decoration:underline; }
 .breadcrumb-sep { color:#cbd5e1; }
 
@@ -36,12 +36,12 @@
 .groupe-selector { background:white;border-radius:14px;border:1px solid #e2e8f0;padding:18px 20px;margin-bottom:20px; }
 .grp-label { display:block;font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px; }
 .grp-select { height:44px;padding:0 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:13px;color:#1e293b;outline:none;transition:border-color .15s;width:100%;max-width:360px; }
-.grp-select:focus { border-color:{{ $accent }};background:white; }
+.grp-select:focus { border-color:<?php echo e($accent); ?>;background:white; }
 
 /* ── Buttons ── */
 .n-btn { display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-size:12px;font-weight:700;border-radius:10px;border:none;cursor:pointer;transition:all .15s;text-decoration:none; }
 .n-btn:hover { opacity:.87; }
-.n-btn-primary { background:{{ $accent }};color:white;box-shadow:0 4px 14px {{ $shadow }}; }
+.n-btn-primary { background:<?php echo e($accent); ?>;color:white;box-shadow:0 4px 14px <?php echo e($shadow); ?>; }
 .n-btn-ghost   { background:white;border:1.5px solid #e2e8f0;color:#475569; }
 .n-btn-green   { background:#16a34a;color:white;box-shadow:0 4px 14px rgba(22,163,74,0.25); }
 
@@ -86,8 +86,8 @@
     display:block;margin:0 auto;
 }
 .note-input:focus {
-    border-color:{{ $accent }};background:white;
-    box-shadow:0 0 0 3px {{ $accent }}20;
+    border-color:<?php echo e($accent); ?>;background:white;
+    box-shadow:0 0 0 3px <?php echo e($accent); ?>20;
 }
 .note-input.efm-input:focus {
     border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12);
@@ -121,7 +121,7 @@
 
 /* ── Empty state ── */
 .empty-box { padding:52px 32px;text-align:center; }
-.empty-icon { width:56px;height:56px;border-radius:16px;background:{{ $light }};display:flex;align-items:center;justify-content:center;margin:0 auto 14px; }
+.empty-icon { width:56px;height:56px;border-radius:16px;background:<?php echo e($light); ?>;display:flex;align-items:center;justify-content:center;margin:0 auto 14px; }
 
 /* ── Flash ── */
 .flash-ok   { padding:12px 16px;border-radius:12px;font-size:13px;display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;margin-bottom:16px; }
@@ -133,70 +133,73 @@
 
 <div class="notes-wrap">
 
-{{-- ── FLASH ── --}}
-@if(session('success'))
-<div class="flash-ok">✓ {{ session('success') }}</div>
-@endif
-@if(session('error'))
-<div class="flash-err">✕ {{ session('error') }}</div>
-@endif
 
-{{-- ── BREADCRUMB ── --}}
+<?php if(session('success')): ?>
+<div class="flash-ok">✓ <?php echo e(session('success')); ?></div>
+<?php endif; ?>
+<?php if(session('error')): ?>
+<div class="flash-err">✕ <?php echo e(session('error')); ?></div>
+<?php endif; ?>
+
+
 <div class="breadcrumb">
-    <a href="{{ route('controles.index') }}">Contrôles & Notes</a>
+    <a href="<?php echo e(route('controles.index')); ?>">Contrôles & Notes</a>
     <span class="breadcrumb-sep">›</span>
-    <span style="color:#1e293b;font-weight:600;">{{ $module->name }}</span>
-    @if($selectedGroupe)
+    <span style="color:#1e293b;font-weight:600;"><?php echo e($module->name); ?></span>
+    <?php if($selectedGroupe): ?>
         <span class="breadcrumb-sep">›</span>
-        <span style="color:#64748b;">{{ $selectedGroupe->name }}</span>
-    @endif
+        <span style="color:#64748b;"><?php echo e($selectedGroupe->name); ?></span>
+    <?php endif; ?>
 </div>
 
-{{-- ── MODULE INFO CARD ── --}}
+
 <div class="mod-info">
     <div style="flex:1;min-width:200px;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-            <h2 style="font-size:17px;font-weight:800;color:#0f172a;margin:0;">{{ $module->name }}</h2>
-            <span class="mod-info-badge mod-info-badge-{{ $module->type }}">
-                {{ $module->type === 'regional' ? '🌍 Régional' : '📍 Local' }}
+            <h2 style="font-size:17px;font-weight:800;color:#0f172a;margin:0;"><?php echo e($module->name); ?></h2>
+            <span class="mod-info-badge mod-info-badge-<?php echo e($module->type); ?>">
+                <?php echo e($module->type === 'regional' ? '🌍 Régional' : '📍 Local'); ?>
+
             </span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
             <span class="info-chip">
                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                {{ $module->formateur->name ?? '—' }}
+                <?php echo e($module->formateur->name ?? '—'); ?>
+
             </span>
             <span class="info-chip">
                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                {{ $module->nbr_heure }}h · Coeff. {{ $module->coefficience }}
+                <?php echo e($module->nbr_heure); ?>h · Coeff. <?php echo e($module->coefficience); ?>
+
             </span>
             <span class="info-chip" style="background:#f0fdf4;color:#166534;border-color:#bbf7d0;">
                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                {{ $module->nbr_controles ?? 1 }} contrôle{{ ($module->nbr_controles ?? 1) > 1 ? 's' : '' }} + EFM
+                <?php echo e($module->nbr_controles ?? 1); ?> contrôle<?php echo e(($module->nbr_controles ?? 1) > 1 ? 's' : ''); ?> + EFM
             </span>
-            @if($module->annee)
+            <?php if($module->annee): ?>
             <span class="info-chip">
-                {{ $module->annee }}ème Année
+                <?php echo e($module->annee); ?>ème Année
             </span>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 
-    {{-- Quick edit nbr_controles ── admin + gestionnaire only --}}
-    @if(in_array(Auth::user()->role, ['admin', 'gestionnaire']))
-    <form method="POST" action="{{ route('controles.update-nbr', $module->id) }}"
+    
+    <?php if(in_array(Auth::user()->role, ['admin', 'gestionnaire'])): ?>
+    <form method="POST" action="<?php echo e(route('controles.update-nbr', $module->id)); ?>"
           style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;"
           title="Modifier le nombre de contrôles">
-        @csrf @method('PATCH')
-        @if($selectedGroupe)
-            <input type="hidden" name="groupe_id" value="{{ $selectedGroupe->id }}">
-        @endif
+        <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
+        <?php if($selectedGroupe): ?>
+            <input type="hidden" name="groupe_id" value="<?php echo e($selectedGroupe->id); ?>">
+        <?php endif; ?>
         <div>
             <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">
                 Nbre contrôles
             </label>
             <input type="number" name="nbr_controles"
-                   value="{{ $module->nbr_controles ?? 1 }}"
+                   value="<?php echo e($module->nbr_controles ?? 1); ?>"
                    min="0" max="10"
                    style="width:70px;height:36px;text-align:center;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:700;outline:none;padding:0 8px;"
                    title="0 = EFM uniquement">
@@ -205,69 +208,71 @@
             Mettre à jour
         </button>
     </form>
-    @endif
+    <?php endif; ?>
 </div>
 
-{{-- ── GROUPE SELECTOR ── --}}
+
 <div class="groupe-selector">
-    <form method="GET" action="{{ route('controles.notes', $module->id) }}"
+    <form method="GET" action="<?php echo e(route('controles.notes', $module->id)); ?>"
           style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;">
             <label class="grp-label">Sélectionner un groupe</label>
             <select name="groupe_id" class="grp-select">
                 <option value="">— Choisir un groupe —</option>
-                @forelse($groupes as $g)
-                    <option value="{{ $g->id }}" {{ optional($selectedGroupe)->id == $g->id ? 'selected' : '' }}>
-                        {{ $g->name }}
-                        ({{ $g->stagiaires()->count() }} stagiaire{{ $g->stagiaires()->count() > 1 ? 's' : '' }})
+                <?php $__empty_1 = true; $__currentLoopData = $groupes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $g): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <option value="<?php echo e($g->id); ?>" <?php echo e(optional($selectedGroupe)->id == $g->id ? 'selected' : ''); ?>>
+                        <?php echo e($g->name); ?>
+
+                        (<?php echo e($g->stagiaires()->count()); ?> stagiaire<?php echo e($g->stagiaires()->count() > 1 ? 's' : ''); ?>)
                     </option>
-                @empty
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <option disabled>Aucun groupe pour cette filière / année</option>
-                @endforelse
+                <?php endif; ?>
             </select>
         </div>
         <button type="submit" class="n-btn n-btn-primary">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             Afficher
         </button>
-        @if($selectedGroupe)
-        <a href="{{ route('controles.notes', $module->id) }}" class="n-btn n-btn-ghost">
+        <?php if($selectedGroupe): ?>
+        <a href="<?php echo e(route('controles.notes', $module->id)); ?>" class="n-btn n-btn-ghost">
             Changer de groupe
         </a>
-        @endif
+        <?php endif; ?>
     </form>
 </div>
 
-{{-- ── NOTES TABLE ── --}}
-@if($selectedGroupe)
 
-    @php
+<?php if($selectedGroupe): ?>
+
+    <?php
         $nbr       = $module->nbr_controles ?? 1;
         $totalCols = $controles->count() + 1;
-    @endphp
+    ?>
 
     <div class="notes-card">
 
-        {{-- Card header --}}
+        
         <div class="notes-card-head">
             <div>
                 <div style="font-size:14px;font-weight:800;color:#0f172a;">
-                    Notes — {{ $selectedGroupe->name }}
+                    Notes — <?php echo e($selectedGroupe->name); ?>
+
                 </div>
                 <div style="font-size:11px;color:#64748b;margin-top:2px;">
-                    {{ $stagiaires->count() }} stagiaire{{ $stagiaires->count() > 1 ? 's' : '' }} ·
-                    {{ $controles->count() }} contrôle{{ $controles->count() > 1 ? 's' : '' }} + EFM
+                    <?php echo e($stagiaires->count()); ?> stagiaire<?php echo e($stagiaires->count() > 1 ? 's' : ''); ?> ·
+                    <?php echo e($controles->count()); ?> contrôle<?php echo e($controles->count() > 1 ? 's' : ''); ?> + EFM
                     · notes sur 20
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                {{-- Legend --}}
+                
                 <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:#64748b;">
                     <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>≥ 15</span>
                     <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block;"></span>10–14</span>
                     <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block;"></span>< 10</span>
                 </div>
-                {{-- Moyenne rule hint --}}
+                
                 <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#7c3aed;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:4px 10px;">
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Moyenne calculée uniquement si tous les contrôles <strong style="margin:0 2px;">+</strong> EFM sont saisis
@@ -275,25 +280,25 @@
             </div>
         </div>
 
-        {{-- Table --}}
-        @if($stagiaires->isEmpty())
+        
+        <?php if($stagiaires->isEmpty()): ?>
             <div class="empty-box">
                 <div class="empty-icon">
-                    <svg width="24" height="24" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg width="24" height="24" fill="none" stroke="<?php echo e($accent); ?>" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
                 <p style="font-size:14px;font-weight:700;color:#1e293b;margin:0 0 4px;">Aucun stagiaire dans ce groupe</p>
                 <p style="font-size:12px;color:#94a3b8;">Ajoutez des stagiaires au groupe depuis la gestion des utilisateurs.</p>
             </div>
-        @else
+        <?php else: ?>
 
-        <form method="POST" action="{{ route('controles.save', $module->id) }}" id="notes-form">
-            @csrf
-            <input type="hidden" name="groupe_id" value="{{ $selectedGroupe->id }}">
+        <form method="POST" action="<?php echo e(route('controles.save', $module->id)); ?>" id="notes-form">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="groupe_id" value="<?php echo e($selectedGroupe->id); ?>">
 
-            {{-- Pass expected counts to JS via data attributes --}}
+            
             <div id="js-config"
-                 data-nbr-controles="{{ $controles->count() }}"
-                 data-has-efm="{{ $efm ? '1' : '0' }}"
+                 data-nbr-controles="<?php echo e($controles->count()); ?>"
+                 data-has-efm="<?php echo e($efm ? '1' : '0'); ?>"
                  style="display:none;"></div>
 
             <div class="notes-table-wrap">
@@ -304,90 +309,91 @@
                             <th class="col-name" style="min-width:200px;position:sticky;left:40px;z-index:2;background:#f8fafc;">
                                 Stagiaire
                             </th>
-                            @foreach($controles as $ctrl)
-                            <th class="col-ctrl">{{ $ctrl->titre }}</th>
-                            @endforeach
-                            @if($efm)
+                            <?php $__currentLoopData = $controles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $ctrl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <th class="col-ctrl"><?php echo e($ctrl->titre); ?></th>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            <?php if($efm): ?>
                             <th class="col-efm">⚑ EFM</th>
-                            @endif
+                            <?php endif; ?>
                             <th class="col-moy">Moyenne</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach($stagiaires as $i => $stagiaire)
-                        <tr data-stagiaire="{{ $stagiaire->id }}">
+                    <?php $__currentLoopData = $stagiaires; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $stagiaire): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <tr data-stagiaire="<?php echo e($stagiaire->id); ?>">
 
-                            {{-- Row number --}}
+                            
                             <td style="color:#94a3b8;font-size:11px;font-weight:600;width:36px;text-align:center;background:#fafafa;">
-                                {{ $i + 1 }}
+                                <?php echo e($i + 1); ?>
+
                             </td>
 
-                            {{-- Name (sticky) --}}
+                            
                             <td class="col-name-cell" style="left:40px;">
-                                <div style="font-weight:700;">{{ $stagiaire->name }}</div>
-                                <div style="font-size:10px;color:#94a3b8;margin-top:1px;">{{ $stagiaire->email }}</div>
+                                <div style="font-weight:700;"><?php echo e($stagiaire->name); ?></div>
+                                <div style="font-size:10px;color:#94a3b8;margin-top:1px;"><?php echo e($stagiaire->email); ?></div>
                             </td>
 
-                            {{-- Contrôle columns --}}
-                            @foreach($controles as $ctrl)
-                            @php $existingNote = $notesMap[(int)$stagiaire->id][(int)$ctrl->id] ?? null; @endphp
+                            
+                            <?php $__currentLoopData = $controles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $ctrl): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php $existingNote = $notesMap[(int)$stagiaire->id][(int)$ctrl->id] ?? null; ?>
                             <td style="text-align:center;">
                                 <input
                                     type="number"
-                                    name="notes[{{ $stagiaire->id }}][{{ $ctrl->id }}]"
+                                    name="notes[<?php echo e($stagiaire->id); ?>][<?php echo e($ctrl->id); ?>]"
                                     class="note-input ctrl-input"
-                                    value="{{ $existingNote !== null ? $existingNote : '' }}"
+                                    value="<?php echo e($existingNote !== null ? $existingNote : ''); ?>"
                                     min="0" max="20" step="0.25"
                                     placeholder="—"
-                                    data-stagiaire="{{ $stagiaire->id }}"
+                                    data-stagiaire="<?php echo e($stagiaire->id); ?>"
                                     data-max="20"
-                                    oninput="colorize(this); updateMoy({{ $stagiaire->id }})"
-                                    onchange="colorize(this); updateMoy({{ $stagiaire->id }})">
+                                    oninput="colorize(this); updateMoy(<?php echo e($stagiaire->id); ?>)"
+                                    onchange="colorize(this); updateMoy(<?php echo e($stagiaire->id); ?>)">
                             </td>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-                            {{-- EFM column — max 40 --}}
-                            @if($efm)
-                            @php
+                            
+                            <?php if($efm): ?>
+                            <?php
                                 $efmRaw  = $notesMap[(int)$stagiaire->id][(int)$efm->id] ?? null;
                                 $efmNote = $efmRaw !== null ? round($efmRaw * 2, 2) : null;
-                            @endphp
+                            ?>
                             <td style="text-align:center;">
                                 <input
                                     type="number"
-                                    name="notes[{{ $stagiaire->id }}][{{ $efm->id }}]"
+                                    name="notes[<?php echo e($stagiaire->id); ?>][<?php echo e($efm->id); ?>]"
                                     class="note-input efm-input"
-                                    value="{{ $efmNote !== null ? $efmNote : '' }}"
+                                    value="<?php echo e($efmNote !== null ? $efmNote : ''); ?>"
                                     min="0" max="40" step="0.25"
                                     placeholder="—"
-                                    data-stagiaire="{{ $stagiaire->id }}"
+                                    data-stagiaire="<?php echo e($stagiaire->id); ?>"
                                     data-max="40"
                                     style="border-color:#fecdd3;"
-                                    oninput="colorize(this); updateMoy({{ $stagiaire->id }})"
-                                    onchange="colorize(this); updateMoy({{ $stagiaire->id }})">
+                                    oninput="colorize(this); updateMoy(<?php echo e($stagiaire->id); ?>)"
+                                    onchange="colorize(this); updateMoy(<?php echo e($stagiaire->id); ?>)">
                                 <div style="font-size:9px;color:#94a3b8;margin-top:2px;">/ 40</div>
                             </td>
-                            @endif
+                            <?php endif; ?>
 
-                            {{-- Moyenne — only shown when ALL inputs are filled --}}
+                            
                             <td class="moy-cell">
-                                <span id="moy-{{ $stagiaire->id }}"></span>
+                                <span id="moy-<?php echo e($stagiaire->id); ?>"></span>
                             </td>
                         </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
             </div>
 
-            {{-- ── SAVE BAR ── --}}
+            
             <div style="padding:16px 20px;border-top:2px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:#fafafa;">
                 <div style="font-size:11px;color:#64748b;">
-                    <span id="filled-count" style="font-weight:800;color:{{ $accent }};">0</span>
-                    note{{ '' }} saisie{{ '' }} sur
-                    <span style="font-weight:700;">{{ $stagiaires->count() * ($controles->count() + ($efm ? 1 : 0)) }}</span>
+                    <span id="filled-count" style="font-weight:800;color:<?php echo e($accent); ?>;">0</span>
+                    note<?php echo e(''); ?> saisie<?php echo e(''); ?> sur
+                    <span style="font-weight:700;"><?php echo e($stagiaires->count() * ($controles->count() + ($efm ? 1 : 0))); ?></span>
                 </div>
                 <div style="display:flex;gap:10px;">
-                    <a href="{{ route('controles.index') }}" class="n-btn n-btn-ghost">
+                    <a href="<?php echo e(route('controles.index')); ?>" class="n-btn n-btn-ghost">
                         ← Retour aux modules
                     </a>
                     <button type="submit" class="n-btn n-btn-green">
@@ -398,21 +404,21 @@
             </div>
 
         </form>
-        @endif
+        <?php endif; ?>
     </div>
 
-@else
-    {{-- No groupe selected yet --}}
+<?php else: ?>
+    
     <div style="padding:64px 32px;text-align:center;background:white;border-radius:16px;border:1px solid #e2e8f0;">
         <div class="empty-icon">
-            <svg width="26" height="26" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <svg width="26" height="26" fill="none" stroke="<?php echo e($accent); ?>" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         </div>
         <p style="font-size:15px;font-weight:700;color:#1e293b;margin:0 0 6px;">Sélectionnez un groupe</p>
         <p style="font-size:12px;color:#94a3b8;">Choisissez un groupe dans le menu ci-dessus pour afficher le tableau de notes.</p>
     </div>
-@endif
+<?php endif; ?>
 
-</div>{{-- .notes-wrap --}}
+</div>
 
 <script>
 // ── Config (passed from Blade) ───────────────────────────────
@@ -545,9 +551,9 @@ function updateFilledCount() {
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.note-input').forEach(input => colorize(input));
 
-    @foreach($stagiaires as $stagiaire)
-    updateMoy({{ $stagiaire->id }});
-    @endforeach
+    <?php $__currentLoopData = $stagiaires; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stagiaire): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    updateMoy(<?php echo e($stagiaire->id); ?>);
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
     updateFilledCount();
 
@@ -583,4 +589,5 @@ document.getElementById('notes-form')?.addEventListener('submit', function() {
 });
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/controles/notes.blade.php ENDPATH**/ ?>

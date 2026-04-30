@@ -22,7 +22,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReclamationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\BulletinController;
 // ─────────────────────────────────────────────
 // GUEST
 // ─────────────────────────────────────────────
@@ -195,10 +195,10 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
 // REPORTATIONS
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+
     Route::post('/reportations', [ReportationController::class, 'store'])
         ->name('reportations.store')
         ->middleware('can:reportation-create');
@@ -206,6 +206,11 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
     Route::get('/reportations/mes', [ReportationController::class, 'myIndex'])
         ->name('reportations.my')
         ->middleware('can:reportation-create');
+
+    // ✅ NOUVEAU — gestionnaire : uniquement ses reportations assignées
+    Route::get('/reportations/assigned', [ReportationController::class, 'assignedIndex'])
+        ->name('reportations.assigned')
+        ->middleware('can:reportation-view-assigned');
 
     Route::get('/reportations', [ReportationController::class, 'index'])
         ->name('reportations.index')
@@ -223,7 +228,6 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
         ->name('reportations.delete-session')
         ->middleware('can:reportation-manage');
 
-    // ── NEW: assign + chat ──────────────────────────────────
     Route::post('/reportations/{reportation}/assign', [ReportationController::class, 'assign'])
         ->name('reportations.assign')
         ->middleware('can:reportation-manage');
@@ -305,7 +309,6 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
 // RÉCLAMATIONS
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
@@ -324,11 +327,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/reclamations/{reclamation}/message', [ReclamationController::class, 'sendMessage'])
         ->name('reclamations.message');
 
-    // ✅ ADD THIS
     Route::post('/reclamations/{reclamation}/seen', [ReclamationController::class, 'markSeen'])
         ->name('reclamations.seen');
 
-    // ✅ ADD THESE TOO (also missing)
     Route::delete('/reclamations/{reclamation}/message/{message}', [ReclamationController::class, 'deleteMessage'])
         ->name('reclamations.message.delete');
     Route::patch('/reclamations/{reclamation}/message/{message}', [ReclamationController::class, 'editMessage'])
@@ -395,38 +396,27 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
 
-    // ── LIST ─────────────────────────────────────────────────
     Route::get('/absences', [AbsenceController::class, 'index'])
         ->name('absences.index')
         ->middleware('can:absence-view');
-
-    // ══════════════════════════════════════════════════════════
-    // IMPORTANT: All static /absences/admin/... and
-    // /absences/stagiaire/... routes MUST come BEFORE the
-    // wildcard /{absence} routes to avoid routing conflicts.
-    // ══════════════════════════════════════════════════════════
 
     // ── ADMIN: upload one file for ALL absences of a day ──────
     Route::post('/absences/admin/upload-jour', [AbsenceController::class, 'adminUploadFichierJour'])
         ->name('absences.admin.fichier.jour')
         ->middleware('can:absence-justify');
 
-    // ── ADMIN: autoriser sans justificatif ────────────────────
     Route::post('/absences/admin/valider-sans-justificatif', [AbsenceController::class, 'adminValiderSansJustificatif'])
         ->name('absences.admin.valider')
         ->middleware('can:absence-justify');
 
-    // ── ADMIN: annuler l'autorisation ─────────────────────────
     Route::post('/absences/admin/annuler-validation', [AbsenceController::class, 'adminAnnulerValidation'])
         ->name('absences.admin.annuler')
         ->middleware('can:absence-justify');
 
-    // ── ADMIN: bulk justify ALL sessions of a day ─────────────
     Route::post('/absences/admin/bulk-justify', [AbsenceController::class, 'adminBulkJustify'])
         ->name('absences.admin.bulk.justify')
         ->middleware('can:absence-justify');
 
-    // ── ADMIN: bulk unjustify ALL sessions of a day ───────────
     Route::post('/absences/admin/bulk-unjustify', [AbsenceController::class, 'adminBulkUnjustify'])
         ->name('absences.admin.bulk.unjustify')
         ->middleware('can:absence-justify');
@@ -478,7 +468,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile',          [ProfileController::class, 'show'])          ->name('profile.show');
     Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
-    Route::put('/profile/email',    [ProfileController::class, 'updateEmail'])   ->name('profile.email'); // ✅ NEW
+    Route::put('/profile/email',    [ProfileController::class, 'updateEmail'])   ->name('profile.email');
     Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
 });
 
@@ -506,4 +496,10 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
 Route::middleware(['auth', 'role:stagiaire'])->group(function () {
     Route::get('/mes-notes', [ControleNotesController::class, 'myNotes'])
         ->name('controles.my-notes');
+});
+
+
+Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+    Route::get('/bulletin',                    [BulletinController::class, 'index']) ->name('bulletin.index');
+    Route::get('/bulletin/{stagiaire}',        [BulletinController::class, 'show'])  ->name('bulletin.show');
 });

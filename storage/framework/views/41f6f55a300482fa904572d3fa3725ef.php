@@ -342,6 +342,28 @@
 <?php unset($__componentOriginal460a283b8831bc43d8ca37a2ac46781c); ?>
 <?php endif; ?>
 
+
+<?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('bulletin.index')).'','label' => 'Bulletins','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('nav-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['route' => ''.e(route('bulletin.index')).'','label' => 'Bulletins','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $attributes = $__attributesOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__attributesOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+
 <?php if(in_array($role, ['admin', 'gestionnaire'])): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
@@ -509,6 +531,27 @@
 <?php unset($__componentOriginal460a283b8831bc43d8ca37a2ac46781c); ?>
 <?php endif; ?>
 
+    
+    <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('bulletin.index')).'','label' => 'Bulletins','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('nav-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['route' => ''.e(route('bulletin.index')).'','label' => 'Bulletins','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $attributes = $__attributesOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__attributesOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
 
     
     <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('groupe-list')): ?>
@@ -539,8 +582,6 @@
 
 
 
-
- 
 <?php if($role === 'stagiaire'): ?>
 <?php if (isset($component)) { $__componentOriginal460a283b8831bc43d8ca37a2ac46781c = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal460a283b8831bc43d8ca37a2ac46781c = $attributes; } ?>
@@ -562,7 +603,7 @@
 <?php $component = $__componentOriginal460a283b8831bc43d8ca37a2ac46781c; ?>
 <?php unset($__componentOriginal460a283b8831bc43d8ca37a2ac46781c); ?>
 <?php endif; ?>
- 
+
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('controles.my-notes')).'','label' => 'Mes notes','icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
@@ -583,7 +624,7 @@
 <?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
 <?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
 <?php endif; ?>
- 
+
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('absence-view')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
@@ -606,17 +647,18 @@
 <?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
 <?php endif; ?>
 <?php endif; ?>
- 
+
+
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => '#','label' => 'Bulletin','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('controles.my-notes')).'','label' => 'Bulletin','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
 <?php $component->withName('nav-item'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
 <?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['route' => '#','label' => 'Bulletin','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']); ?>
+<?php $component->withAttributes(['route' => ''.e(route('controles.my-notes')).'','label' => 'Bulletin','icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal6cced52613a484e7295a90162a92d81b)): ?>
@@ -638,6 +680,7 @@
         $user->can('reclamation-create') ||
         $user->can('reclamation-view-assigned') ||
         $user->can('reportation-manage') ||
+        $user->can('reportation-view-assigned') ||
         $user->can('reportation-create') ||
         $user->can('absence-view-all')   ||
         $user->can('news-list');
@@ -740,6 +783,7 @@
 <?php endif; ?>
 <?php endif; ?>
 
+
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reportation-manage')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
@@ -763,8 +807,34 @@
 <?php endif; ?>
 <?php endif; ?>
 
+
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reportation-view-assigned')): ?>
+<?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('reportations.assigned')).'','label' => 'Reportations assignées','icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
+<?php $component->withName('nav-item'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
+<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['route' => ''.e(route('reportations.assigned')).'','label' => 'Reportations assignées','icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $attributes = $__attributesOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__attributesOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
+<?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
+<?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
+<?php endif; ?>
+
+
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reportation-create')): ?>
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->denies('reportation-manage')): ?>
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->denies('reportation-view-assigned')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('reportations.my')).'','label' => 'Mes reportations','icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
@@ -784,6 +854,7 @@
 <?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
 <?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
 <?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>

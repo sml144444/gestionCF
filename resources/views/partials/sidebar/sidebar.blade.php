@@ -103,6 +103,12 @@
 @can('groupe-create')
 <x-nav-section label="Gestion" />
 
+{{-- BULLETIN LINK FOR ADMIN/GESTIONNAIRE --}}
+<x-nav-item
+    route="{{ route('bulletin.index') }}"
+    label="Bulletins"
+    icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+
 @if(in_array($role, ['admin', 'gestionnaire']))
 <x-nav-item
     route="{{ route('controles.index') }}"
@@ -155,6 +161,11 @@
     @if($hasSaisieItems)
     <x-nav-section label="Saisie" />
 
+    {{-- BULLETIN LINK FOR FORMATEUR --}}
+    <x-nav-item
+        route="{{ route('bulletin.index') }}"
+        label="Bulletins"
+        icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 
     {{-- Contrôles & Notes — formateur sees only his modules (scoped in controller) --}}
     @can('groupe-list')
@@ -169,24 +180,25 @@
 
 
 {{-- ════ STAGIAIRE — Évaluation ════ --}}
-{{-- Replace the existing Évaluation section in sidebar.blade.php --}}
- 
 @if($role === 'stagiaire')
 <x-nav-section label="Évaluation" />
- 
+
 <x-nav-item
     route="{{ route('controles.my-notes') }}"
     label="Mes notes"
     icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
- 
+
 @can('absence-view')
 <x-nav-item
     route="{{ route('absences.index') }}"
     label="Mes absences & retards"
     icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 @endcan
- 
-<x-nav-item route="#" label="Bulletin"
+
+{{-- ── FIX: was route="#" (broken placeholder) ── --}}
+<x-nav-item
+    route="{{ route('controles.my-notes') }}"
+    label="Bulletin"
     icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 @endif
 
@@ -199,6 +211,7 @@
         $user->can('reclamation-create') ||
         $user->can('reclamation-view-assigned') ||
         $user->can('reportation-manage') ||
+        $user->can('reportation-view-assigned') ||
         $user->can('reportation-create') ||
         $user->can('absence-view-all')   ||
         $user->can('news-list');
@@ -234,6 +247,7 @@
 @endcannot
 @endcan
 
+{{-- Admin : voit toutes les reportations --}}
 @can('reportation-manage')
 <x-nav-item
     route="{{ route('reportations.index') }}"
@@ -241,12 +255,23 @@
     icon="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 @endcan
 
+{{-- Gestionnaire : voit uniquement ses reportations assignées --}}
+@can('reportation-view-assigned')
+<x-nav-item
+    route="{{ route('reportations.assigned') }}"
+    label="Reportations assignées"
+    icon="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+@endcan
+
+{{-- Formateur : voit ses propres demandes --}}
 @can('reportation-create')
 @cannot('reportation-manage')
+@cannot('reportation-view-assigned')
 <x-nav-item
     route="{{ route('reportations.my') }}"
     label="Mes reportations"
     icon="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+@endcannot
 @endcannot
 @endcan
 

@@ -78,7 +78,7 @@ class DatabaseSeeder extends Seeder
             'salle-list', 'salle-create', 'salle-edit', 'salle-delete',
             'edu-view', 'edu-import',
             'role-list', 'role-create', 'role-edit', 'role-delete',
-            'reportation-create', 'reportation-manage',
+            'reportation-create', 'reportation-manage', 'reportation-view-assigned',
             'reclamation-create', 'reclamation-list',
             'reclamation-manage', 'reclamation-view-assigned',
             'news-list', 'news-create', 'news-edit', 'news-delete',
@@ -102,7 +102,8 @@ class DatabaseSeeder extends Seeder
             'stagiaire-list', 'stagiaire-create', 'stagiaire-edit', 'stagiaire-delete',
             'salle-list', 'salle-create', 'salle-edit', 'salle-delete',
             'edu-view', 'edu-import',
-            'reportation-manage', 'reclamation-manage',
+            'reportation-view-assigned',
+            'reclamation-manage',
             'news-list', 'news-create', 'news-edit', 'news-delete', 'news-comment', 'news-like',
             'absence-view', 'absence-view-all', 'absence-justify',
         ]);
@@ -316,6 +317,44 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->info('✅ EDU comptes créés');
+
+        // ════════════════════════════════════════════════════════════
+        // 7b. STAGIAIRES TDEV-101-26 — comptes de test (used = true)
+        // ════════════════════════════════════════════════════════════
+        $groupeTdev101 = Groupe::where('code', 'TDEV-101-26')->first();
+        $filiereDev    = Filiere::where('code', 'DEVDIG')->first();
+
+        $testStagiaires = [
+            ['nom' => 'Ait Ali',  'prenom' => 'Youssef',  'edu_email' => 'youssef.aitali@ofppt.ma'],
+            ['nom' => 'Idrissi',  'prenom' => 'Sara',      'edu_email' => 'sara.idrissi@ofppt.ma'],
+            ['nom' => 'Benali',   'prenom' => 'Hamza',     'edu_email' => 'hamza.benali@ofppt.ma'],
+            ['nom' => 'Tahiri',   'prenom' => 'Imane',     'edu_email' => 'imane.tahiri@ofppt.ma'],
+            ['nom' => 'Belhaj',   'prenom' => 'Omar',      'edu_email' => 'omar.belhaj@ofppt.ma'],
+        ];
+
+        foreach ($testStagiaires as $s) {
+            // 1. Create the User account
+            $user = User::firstOrCreate(
+                ['email' => $s['edu_email']],
+                [
+                    'name'       => $s['prenom'] . ' ' . $s['nom'],
+                    'password'   => Hash::make('ofppt2024'),
+                    'role'       => 'stagiaire',
+                    'id_filiere' => $filiereDev?->id,
+                    'id_groupe'  => $groupeTdev101?->id,
+                ]
+            );
+
+            // 2. Assign stagiaire role (Spatie)
+            $user->syncRoles(['stagiaire']);
+
+            // 3. Mark EDU row as used
+            DB::table('edu')
+                ->where('edu_email', $s['edu_email'])
+                ->update(['used' => true]);
+        }
+
+        $this->command->info('✅ Stagiaires TDEV-101-26 créés (comptes de test)');
 
         // ════════════════════════════════════════════════════════════
         // 8. RÉSUMÉ

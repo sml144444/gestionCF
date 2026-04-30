@@ -42,12 +42,12 @@ class ControleNotesController extends Controller
             ->get()
             ->groupBy('id_filiere');
 
-        $filieres     = \App\Models\Filiere::orderBy('name')->get();
+        $filieres = \App\Models\Filiere::orderBy('name')->get();
 
         $totalModules = $isFormateur
             ? Module::where('id_user', Auth::id())->count()
             : Module::count();
-        $totalHeures  = $isFormateur
+        $totalHeures = $isFormateur
             ? Module::where('id_user', Auth::id())->sum('nbr_heure')
             : Module::sum('nbr_heure');
 
@@ -62,14 +62,17 @@ class ControleNotesController extends Controller
     {
         $stagiaire = Auth::user();
 
-        // Find the groupe this stagiaire belongs to
-        $groupe = \App\Models\Groupe::whereHas('stagiaires', fn($q) => $q->where('users.id', $stagiaire->id))
-            ->first();
+        $groupe = \App\Models\Groupe::whereHas(
+            'stagiaires',
+            fn($q) => $q->where('users.id', $stagiaire->id)
+        )->first();
 
         $modulesWithNotes = collect();
+        $generalAverage   = null;
 
         if ($groupe) {
-            // Get all modules for this groupe's filière and annee
+            $bulletinService = new \App\Services\BulletinService();
+
             $modules = Module::with(['filiere', 'formateur'])
                 ->where('id_filiere', $groupe->id_filiere)
                 ->when($groupe->annee, fn($q) => $q->where('annee', $groupe->annee))
@@ -77,12 +80,15 @@ class ControleNotesController extends Controller
                 ->orderBy('name')
                 ->get();
 
+            $items = [];
+
             foreach ($modules as $module) {
-                // Get controles for this module + groupe
+                // ── FIX: respect current nbr_controles so old DB rows are ignored ──
                 $controles = Controle::where('id_module', $module->id)
                     ->where('id_groupe', $groupe->id)
                     ->where('type', 'controle')
                     ->orderBy('variante')
+                    ->take(max(0, (int) ($module->nbr_controles ?? 1)))
                     ->get();
 
                 $efm = Controle::where('id_module', $module->id)
@@ -90,41 +96,45 @@ class ControleNotesController extends Controller
                     ->where('type', 'efm')
                     ->first();
 
-                // Get this stagiaire's notes
-                $allControleIds = $controles->pluck('id')
+                $calc = $bulletinService->calculateForModule(
+                    $controles,
+                    $efm,
+                    $stagiaire->id
+                );
+
+                // ── Fetch raw notes keyed by controle id ──────────────────
+                $allIds = $controles->pluck('id')
                     ->when($efm, fn($c) => $c->push($efm->id))
                     ->filter();
 
                 $notes = Note::where('id_user', $stagiaire->id)
-                    ->whereIn('id_controle', $allControleIds)
+                    ->whereIn('id_controle', $allIds)
                     ->pluck('note', 'id_controle');
+                // ─────────────────────────────────────────────────────────
 
-                // Calculate moyenne (all notes normalised to /20)
-                $noteValues = [];
-                foreach ($controles as $ctrl) {
-                    $val = $notes[$ctrl->id] ?? null;
-                    if ($val !== null) $noteValues[] = (float) $val; // already /20
-                }
-                if ($efm) {
-                    $efmRaw = $notes[$efm->id] ?? null;
-                    if ($efmRaw !== null) $noteValues[] = (float) $efmRaw; // stored /20
-                }
+                $item = [
+                    'module'      => $module,
+                    'controles'   => $controles,
+                    'efm'         => $efm,
+                    'notes'       => $notes,
+                    'cc'          => $calc['cc'],
+                    'efmDisplay'  => $calc['efmDisplay'],
+                    'moduleGrade' => $calc['moduleGrade'],
+                    'moyenne'     => $calc['moduleGrade'],
+                ];
 
-                $moyenne = count($noteValues)
-                    ? round(array_sum($noteValues) / count($noteValues), 2)
-                    : null;
-
-                $modulesWithNotes->push([
-                    'module'    => $module,
-                    'controles' => $controles,
-                    'efm'       => $efm,
-                    'notes'     => $notes,
-                    'moyenne'   => $moyenne,
-                ]);
+                $items[]        = $item;
+                $modulesWithNotes->push($item);
             }
+
+            $generalAverage = $bulletinService->calculateGeneralAverage($items);
         }
 
-        return view('controles.my-notes', compact('groupe', 'modulesWithNotes'));
+        return view('controles.my-notes', compact(
+            'groupe',
+            'modulesWithNotes',
+            'generalAverage'
+        ));
     }
 
     // ── NOTES ─────────────────────────────────────────────────────────────
@@ -206,10 +216,9 @@ class ControleNotesController extends Controller
         ));
     }
 
-    // ── UPDATE NBR CONTROLES ───────────────────────────────────────────────
+    // ── UPDATE NBR CONTROLES ──────────────────────────────────────────────
     public function updateNbr(Module $module, Request $request): RedirectResponse
     {
-        // Only admin and gestionnaire can update nbr_controles
         if (! in_array(Auth::user()->role, ['admin', 'gestionnaire'])) {
             abort(403);
         }
@@ -237,36 +246,49 @@ class ControleNotesController extends Controller
         $groupeId = $request->input('groupe_id');
         $notes    = $request->input('notes', []);
 
-        $allControleIds = collect($notes)
-            ->flatMap(fn($row) => array_keys($row))
-            ->unique()
-            ->values();
+        // ── Step 1: collect every submitted controle ID as a plain integer ──
+        $submittedIds = [];
+        foreach ($notes as $stagiaireNotes) {
+            foreach (array_keys($stagiaireNotes) as $cid) {
+                $submittedIds[] = (int) $cid;
+            }
+        }
+        $submittedIds = array_values(array_unique($submittedIds));
 
-        $controleTypes = Controle::whereIn('id', $allControleIds)
-            ->pluck('type', 'id');
+        // ── Step 2: ask the DB directly which IDs are EFM ──────────────────
+        $efmIds = Controle::whereIn('id', $submittedIds)
+            ->where('type', 'efm')
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->toArray();
 
+        // ── Step 3: upsert every note ───────────────────────────────────────
         foreach ($notes as $stagiaireId => $controleNotes) {
             foreach ($controleNotes as $controleId => $raw) {
-                $isEmpty = ($raw === null || $raw === '');
 
-                if ($isEmpty) {
-                    Note::where('id_user',     $stagiaireId)
-                        ->where('id_controle', $controleId)
+                $cId = (int) $controleId;
+                $sId = (int) $stagiaireId;
+
+                if ($raw === null || $raw === '') {
+                    Note::where('id_user', $sId)
+                        ->where('id_controle', $cId)
                         ->delete();
-                } else {
-                    $isEfm = ($controleTypes[$controleId] ?? 'controle') === 'efm';
-                    $input = max(0, (float) $raw);
-
-                    $val = $isEfm
-                        ? round(min(20, $input / 2), 2)
-                        : round(min(20, $input),     2);
-
-                    Note::updateOrCreate(
-                        ['id_user'     => $stagiaireId,
-                         'id_controle' => $controleId],
-                        ['note'        => $val]
-                    );
+                    continue;
                 }
+
+                $input = max(0, (float) $raw);
+
+                $isEfm = in_array($cId, $efmIds);
+
+                $val = $isEfm
+                    ? round(min(20, $input / 2), 2)   // entered /40 → store /20
+                    : round(min(20, $input),     2);   // entered /20 → store /20
+
+                Note::updateOrCreate(
+                    ['id_user'     => $sId,
+                     'id_controle' => $cId],
+                    ['note'        => $val]
+                );
             }
         }
 

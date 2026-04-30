@@ -79,6 +79,42 @@ class ReportationController extends Controller
         return view('reportations.my', compact('reportations', 'status', 'counts'));
     }
 
+    public function assignedIndex(Request $request)
+{
+    if (! auth()->user()->hasPermissionTo('reportation-view-assigned')) {
+        abort(403);
+    }
+ 
+    $status = trim($request->input('status', ''));
+    $search = trim($request->input('search', ''));
+ 
+    $reportations = Reportation::with([
+            'emploiDuTemps.groupe.filiere',
+            'emploiDuTemps.module',
+            'emploiDuTemps.salle',
+            'formateur',
+            'validePar',
+            'messages',
+            'messages.user',
+        ])
+        ->where('assigned_to', auth()->id())
+        ->when($status !== '', fn($q) => $q->where('status', $status))
+        ->when($search !== '', fn($q) => $q->whereHas(
+            'formateur', fn($u) => $u->where('name', 'like', "%{$search}%")
+        ))
+        ->latest()
+        ->paginate(20)
+        ->withQueryString();
+ 
+    $counts = [
+        'en_attente' => Reportation::where('assigned_to', auth()->id())->where('status', 'en_attente')->count(),
+        'valide'     => Reportation::where('assigned_to', auth()->id())->where('status', 'valide')->count(),
+        'refuse'     => Reportation::where('assigned_to', auth()->id())->where('status', 'refuse')->count(),
+    ];
+ 
+    return view('reportations.assigned', compact('reportations', 'status', 'search', 'counts'));
+}
+
     // ── FORMATEUR SUBMITS — reason only, NO date ───────────
     public function store(Request $request): RedirectResponse
     {
@@ -222,20 +258,19 @@ class ReportationController extends Controller
     }
 
     // ── ASSIGN gestionnaire ────────────────────────────────
-    public function assign(Request $request, Reportation $reportation): RedirectResponse
-    {
-        if (! auth()->user()->hasPermissionTo('reportation-manage')) {
-            abort(403);
-        }
+// In ReportationController@assign
+public function assign(Request $request, Reportation $reportation)
+{
+    $request->validate(['assigned_to' => 'nullable|exists:users,id']);
 
-        $data = $request->validate([
-            'assigned_to' => 'nullable|exists:users,id',
-        ]);
+    $reportation->update(['assigned_to' => $request->assigned_to]);
 
-        $reportation->update(['assigned_to' => $data['assigned_to'] ?: null]);
-
-        return back()->with('success', 'Gestionnaire assigné avec succès.');
+    if ($request->assigned_to) {
+        event(new \App\Events\ReportationAssigned($reportation));
     }
+
+    return back()->with('success', 'Reportation assignée avec succès.');
+}
 
     // ── SEND MESSAGE ───────────────────────────────────────
     public function sendMessage(Request $request, Reportation $reportation): \Illuminate\Http\JsonResponse
