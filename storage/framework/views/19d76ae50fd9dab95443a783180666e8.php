@@ -1064,21 +1064,7 @@ $peutNaviguerSuivante = !$restrictNextWeek
                                                 onclick="openEditModal(<?php echo e($emploi->id); ?>)">✎</button>
                                     <?php endif; ?>
 
-                                    <?php if($isGestionnaire && !$isDraft): ?>
-                                        <button class="tt-btn-edit"
-                                                style="background:#f5f3ff; color:#6d28d9;"
-                                                onclick="openRemplacantModal(
-                                                    <?php echo e($emploi->id); ?>,
-                                                    '<?php echo e(addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module'))); ?>',
-                                                    '<?php echo e($emploi->date_debut->translatedFormat('l d M')); ?> · <?php echo e(EmploiDuTempsController::spanLabel($sNum, $colspan)); ?>',
-                                                    <?php echo e($emploi->id_user_remplacant ?? 'null'); ?>
 
-                                                )"
-                                                title="<?php echo e($hasRemplacant ? 'Modifier le remplaçant' : 'Assigner un remplaçant'); ?>">
-                                            <?php echo e($hasRemplacant ? '🔄' : '👤'); ?>
-
-                                        </button>
-                                    <?php endif; ?>
 
                                     <?php if($canReport && $emploi->id_user === Auth::user()->id): ?>
                                         <?php $alreadyPending = in_array($emploi->id, $pendingReportIds); ?>
@@ -1417,84 +1403,6 @@ $peutNaviguerSuivante = !$restrictNextWeek
         </form>
     </div>
 </div>
-
-
-<?php if($isGestionnaire): ?>
-<div id="remplacant-modal" style="display:none; position:fixed; inset:0; z-index:60;
-     background:rgba(15,23,42,0.5); backdrop-filter:blur(4px);
-     align-items:center; justify-content:center;"
-     onclick="if(event.target===this)closeRemplacantModal()">
-    <div style="background:white; border-radius:20px; width:100%; max-width:430px;
-                margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18);">
-        <div style="display:flex; align-items:center; justify-content:space-between;
-                    margin-bottom:14px; padding-bottom:14px; border-bottom:2px solid #7c3aed;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:40px; height:40px; border-radius:12px; background:#f5f3ff;
-                            display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <svg width="18" height="18" fill="none" stroke="#7c3aed" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                </div>
-                <div>
-                    <div style="font-size:14px; font-weight:800; color:#1e293b;">Assigner un remplaçant</div>
-                    <div id="remplacant-session-meta" style="font-size:10px; color:#64748b; margin-top:1px;"></div>
-                </div>
-            </div>
-            <button onclick="closeRemplacantModal()"
-                    style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
-        </div>
-        <div style="padding:10px 12px; border-radius:10px; background:#f8fafc;
-                    border:1px solid #e2e8f0; margin-bottom:14px; font-size:11px; color:#1e293b; font-weight:600;">
-            📅 <span id="remplacant-session-label"></span>
-        </div>
-        <form id="remplacant-form" method="POST" style="display:flex; flex-direction:column; gap:14px;">
-            <?php echo csrf_field(); ?>
-            <div>
-                <label style="display:block; font-size:9px; font-weight:800; color:#94a3b8;
-                              letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px;">
-                    Formateur remplaçant pour cette séance
-                </label>
-                <select name="id_user_remplacant" id="remplacant-select"
-                        style="width:100%; height:42px; padding:0 12px; border-radius:10px;
-                               border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px;
-                               color:#1e293b; outline:none; box-sizing:border-box; transition:border-color .15s;"
-                        onfocus="this.style.borderColor='#7c3aed';this.style.background='white';"
-                        onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc';">
-                    <option value="">— Aucun (annuler le remplacement) —</option>
-                    <?php $__currentLoopData = $formateurs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <option value="<?php echo e($f->id); ?>"><?php echo e($f->name); ?></option>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </select>
-            </div>
-            <div style="padding:10px 14px; border-radius:10px; background:#f5f3ff; border:1px solid #ddd6fe;
-                        font-size:11px; color:#5b21b6; display:flex; align-items:flex-start; gap:8px;">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0116 0z"/>
-                </svg>
-                Le remplacement de séance est prioritaire sur le remplaçant du module.
-            </div>
-            <div style="display:flex; gap:10px; margin-top:4px;">
-                <button type="button" onclick="closeRemplacantModal()"
-                        style="flex:1; height:44px; border-radius:12px; border:1.5px solid #e2e8f0;
-                               background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer;">
-                    Annuler
-                </button>
-                <button type="submit"
-                        style="flex:2; height:44px; border-radius:12px; border:none;
-                               background:#7c3aed; font-size:13px; font-weight:700; color:white; cursor:pointer;
-                               box-shadow:0 4px 12px rgba(124,58,237,0.35);
-                               display:flex; align-items:center; justify-content:center; gap:6px;">
-                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    Enregistrer
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-<?php endif; ?>
 
 
 <?php if($canReport): ?>
@@ -2307,18 +2215,6 @@ function submitLien() {
     document.getElementById('lien-form').submit();
 }
 
-// ── REMPLAÇANT MODAL ─────────────────────────────────────────────
-function openRemplacantModal(emploiId, sessionLabel, sessionMeta, currentRemplacantId) {
-    document.getElementById('remplacant-form').action              = '/emplois/' + emploiId + '/remplacant';
-    document.getElementById('remplacant-session-label').textContent = sessionLabel;
-    document.getElementById('remplacant-session-meta').textContent  = sessionMeta;
-    const sel = document.getElementById('remplacant-select');
-    sel.value = currentRemplacantId ? String(currentRemplacantId) : '';
-    document.getElementById('remplacant-modal').style.display = 'flex';
-}
-function closeRemplacantModal() {
-    document.getElementById('remplacant-modal').style.display = 'none';
-}
 
 // ── REPORT MODAL ─────────────────────────────────────────────────
 function openReportModal(emploiId, sessionLabel, dateLabel, dateStr, spanLabel, heureDebut, heureFin) {

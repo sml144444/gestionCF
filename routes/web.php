@@ -138,10 +138,6 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur,stagiaire'])->grou
     Route::patch('/emplois/{emploi}/lien', [EmploiDuTempsController::class, 'updateLien'])
         ->name('emplois.updateLien')
         ->middleware('can:emploi-lien');
-
-    Route::post('/emplois/{emploi}/remplacant', [EmploiDuTempsController::class, 'assignRemplacant'])
-        ->name('emplois.remplacant')
-        ->middleware('can:emploi-edit');
 });
 
 // ─────────────────────────────────────────────

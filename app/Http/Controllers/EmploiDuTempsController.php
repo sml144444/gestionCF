@@ -301,49 +301,7 @@ class EmploiDuTempsController extends Controller
             ->with('success', 'Séance ajoutée en brouillon.');
     }
 
-    // ── ASSIGN REPLACEMENT ────────────────────────────────
-    public function assignRemplacant(Request $request, EmploiDuTemps $emploi): RedirectResponse
-    {
-        $user = auth()->user();
-
-        if (! $user->hasPermissionTo('emploi-create')) {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'id_user_remplacant' => 'nullable|exists:users,id',
-        ]);
-
-        if (empty($data['id_user_remplacant'])) {
-            $emploi->update(['id_user_remplacant' => null]);
-            return back()->with('success', 'Remplacement annulé — formateur original rétabli.');
-        }
-
-        if ((int) $data['id_user_remplacant'] === (int) $emploi->id_user) {
-            return back()->withErrors(['id_user_remplacant' => 'Le remplaçant ne peut pas être le même formateur.']);
-        }
-
-        $busy = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
-            ->where('id', '!=', $emploi->id)
-            ->where('date_debut', '<', $emploi->date_fin)
-            ->where('date_fin',   '>', $emploi->date_debut)
-            ->where(function ($q) use ($data) {
-                $q->where('id_user', $data['id_user_remplacant'])
-                  ->orWhere('id_user_remplacant', $data['id_user_remplacant']);
-            })
-            ->exists();
-
-        if ($busy) {
-            return back()->withErrors([
-                'id_user_remplacant' => 'Ce formateur est déjà occupé sur ce créneau.',
-            ]);
-        }
-
-        $emploi->update(['id_user_remplacant' => $data['id_user_remplacant']]);
-
-        $remplacant = User::find($data['id_user_remplacant']);
-        return back()->with('success', "Remplacement assigné : {$remplacant->name} remplace {$emploi->gestionnaire->name}.");
-    }
+    // ── ASSIGN REPLACEMENT ───────────────────────────────
 
     // ── PUBLISH ────────────────────────────────────────────
     public function publish(Request $request): RedirectResponse
