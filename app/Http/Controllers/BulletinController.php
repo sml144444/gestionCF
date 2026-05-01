@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Controle;
+use App\Models\Eff;
 use App\Models\Filiere;
 use App\Models\Groupe;
 use App\Models\Module;
@@ -10,6 +11,7 @@ use App\Models\Note;
 use App\Models\User;
 use App\Services\BulletinService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class BulletinController extends Controller
@@ -62,14 +64,18 @@ class BulletinController extends Controller
     {
         abort_unless($stagiaire->role === 'stagiaire', 404);
 
-        $groupe = Groupe::whereHas(
+        $groupe = Groupe::with('filiere')->whereHas(
             'stagiaires',
             fn($q) => $q->where('users.id', $stagiaire->id)
         )->first();
 
         $modulesWithNotes = collect();
         $generalAverage   = null;
-        $disciplineNote   = null;      // ← NEW
+        $disciplineNote   = null;
+        $isFinalYear      = false;
+        $effNote          = null;
+        $effRecord        = null;
+        $finalGrade       = null;
 
         if ($groupe) {
             $service = new BulletinService();
@@ -124,16 +130,38 @@ class BulletinController extends Controller
                 $modulesWithNotes->push($item);
             }
 
-            // ── NEW: Discipline note ───────────────────────────────
-            // penalty = total_unjustified_absence_hours / 5
-            // discipline_note = max(0, 20 - penalty)
+            // ── Discipline note ───────────────────────────────────
             $disciplineNote = $service->calculateDisciplineNote($stagiaire->id);
 
-            // ── General average — includes discipline (coeff = 1) ──
+            // ── General average (modules + discipline, weighted) ──
             $generalAverage = $service->calculateGeneralAverage(
                 $items,
-                $disciplineNote,    // ← pass discipline note
-                1                   // ← discipline coefficient
+                $disciplineNote,
+                1
+            );
+
+            // ── EFF — final year only ─────────────────────────────
+            // Final year = stagiaire.annee == filiere.duree
+            $filiere     = $groupe->filiere;
+           $isFinalYear = $filiere && $groupe->annee == $filiere->duree;
+
+            if ($isFinalYear) {
+                $effRecord = Eff::where('id_user',    $stagiaire->id)
+                               ->where('id_filiere', $groupe->id_filiere)
+                               ->first();
+                $effNote   = $effRecord?->note_eff !== null
+                    ? (float) $effRecord->note_eff
+                    : null;
+            }
+
+            // ── Final grade ───────────────────────────────────────
+            // Not final year → Final Grade = Moyenne Générale
+            // Final year     → Final Grade = (EFF × 0.6) + (MG × 0.4)
+            // Final year, no EFF → null
+            $finalGrade = $service->calculateFinalGrade(
+                $generalAverage,
+                $isFinalYear,
+                $effNote
             );
         }
 
@@ -145,7 +173,42 @@ class BulletinController extends Controller
             'stagiaire', 'groupe', 'modulesWithNotes',
             'generalAverage', 'groupeId',
             'filiereFilter', 'promoFilter',
-            'disciplineNote'        // ← NEW
+            'disciplineNote',
+            'isFinalYear',
+            'effNote',
+            'effRecord',
+            'finalGrade'
         ));
+    }
+
+    // ── Store / update EFF note (admin + gestionnaire only) ──────
+    public function storeEff(Request $request, User $stagiaire): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless(
+            in_array(Auth::user()->role, ['admin', 'gestionnaire']),
+            403
+        );
+        abort_unless($stagiaire->role === 'stagiaire', 404);
+
+        $request->validate([
+            'eff_note' => 'required|numeric|min:0|max:20',
+        ]);
+
+        $groupe = Groupe::with('filiere')->whereHas(
+            'stagiaires',
+            fn($q) => $q->where('users.id', $stagiaire->id)
+        )->first();
+
+        abort_unless($groupe, 404);
+
+        Eff::updateOrCreate(
+            [
+                'id_user'    => $stagiaire->id,
+                'id_filiere' => $groupe->id_filiere,
+            ],
+            ['note_eff' => $request->eff_note]
+        );
+
+        return back()->with('success', 'Note EFF enregistrée avec succès.');
     }
 }

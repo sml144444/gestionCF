@@ -63,7 +63,7 @@ class EmploiDuTempsController extends Controller
         if ($canSeeDraft) {
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
-                ->where('promo', $promo) // ✅ Added promo filter
+                ->where('promo', $promo)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
 
@@ -93,7 +93,7 @@ class EmploiDuTempsController extends Controller
                 $emplois = collect();
                 $groupes = Groupe::with('filiere', 'option')
                     ->where('annee', $year)
-                    ->where('promo', $promo) // ✅ Added promo filter
+                    ->where('promo', $promo)
                     ->where('id', $user->id_groupe)
                     ->get();
             } else {
@@ -111,7 +111,7 @@ class EmploiDuTempsController extends Controller
 
                 $groupes = Groupe::with('filiere', 'option')
                     ->where('annee', $year)
-                    ->where('promo', $promo) // ✅ Added promo filter
+                    ->where('promo', $promo)
                     ->where('id', $user->id_groupe)
                     ->get();
             }
@@ -142,7 +142,7 @@ class EmploiDuTempsController extends Controller
             $groupeIds = $emplois->pluck('id_groupe')->unique();
             $groupes   = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
-                ->where('promo', $promo) // ✅ Added promo filter
+                ->where('promo', $promo)
                 ->whereIn('id', $groupeIds)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
@@ -167,7 +167,7 @@ class EmploiDuTempsController extends Controller
         }
 
         $groupesByFiliere = $groupes->groupBy('id_filiere');
-        $allGroupes       = Groupe::with('filiere')->where('annee', $year)->where('promo', $promo)->get(); // ✅ Added promo filter
+        $allGroupes       = Groupe::with('filiere')->where('annee', $year)->where('promo', $promo)->get();
         $salles           = Salle::orderBy('name')->get();
         $formateurs       = User::where('role', 'formateur')->orderBy('name')->get();
         $grid             = $this->buildGrid($groupes, $emplois);
@@ -211,7 +211,7 @@ class EmploiDuTempsController extends Controller
                 ->where('id_groupe', $user->id_groupe)
                 ->exists();
         } else {
-            $nextWeekHasSessions = true; // admins/formateurs always have access
+            $nextWeekHasSessions = true;
         }
 
         return view('emplois.index', compact(
@@ -219,7 +219,7 @@ class EmploiDuTempsController extends Controller
             'groupesByFiliere', 'allGroupes', 'salles', 'formateurs',
             'emplois', 'emploisJson', 'draftCount', 'canSeeDraft',
             'moduleProgress', 'modulesByFiliereAndAnnee',
-            'nextWeekHasSessions', 'promo', 'currentPromo' // ✅ Added promo and currentPromo
+            'nextWeekHasSessions', 'promo', 'currentPromo'
         ));
     }
 
@@ -254,7 +254,6 @@ class EmploiDuTempsController extends Controller
         $debut = Carbon::parse($data['date_debut']);
         $fin   = Carbon::parse($data['date_fin']);
 
-        // ── ✅ Block creation on past dates ──────────────────
         if ($debut->copy()->startOfDay()->lt(Carbon::today())) {
             throw ValidationException::withMessages([
                 'date_debut' => 'Impossible de créer une séance sur une date passée.',
@@ -356,14 +355,14 @@ class EmploiDuTempsController extends Controller
         }
 
         $year  = (int) $request->get('year', 1);
-        $promo = (int) $request->get('promo', Carbon::now()->year); // ✅ Added promo
+        $promo = (int) $request->get('promo', Carbon::now()->year);
 
         $weekStart = $request->has('week')
             ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
             : Carbon::now()->startOfWeek(Carbon::MONDAY);
 
         $weekEnd   = $weekStart->copy()->addDays(5)->endOfDay();
-        $groupeIds = Groupe::where('annee', $year)->where('promo', $promo)->pluck('id'); // ✅ Added promo filter
+        $groupeIds = Groupe::where('annee', $year)->where('promo', $promo)->pluck('id');
 
         $published = EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
             ->where('statut', 'brouillon')
@@ -445,6 +444,9 @@ class EmploiDuTempsController extends Controller
     {
         $week = Carbon::parse($emploi->date_debut)->toDateString();
         $groupe = $emploi->groupe;
+        
+        $emploi->delete();
+        
         return redirect()
             ->route('emplois.index', [
                 'week' => $week,
@@ -586,7 +588,7 @@ class EmploiDuTempsController extends Controller
     {
         $user = auth()->user();
         $year = (int) $request->get('year', 1);
-        $promo = (int) $request->get('promo', Carbon::now()->year); // ✅ Added promo
+        $promo = (int) $request->get('promo', Carbon::now()->year);
 
         if (! $user->hasPermissionTo('emploi-view')) {
             abort(403, 'Accès refusé.');
@@ -614,7 +616,7 @@ class EmploiDuTempsController extends Controller
         if ($user->hasPermissionTo('emploi-view-all-groups')) {
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
-                ->where('promo', $promo) // ✅ Added promo filter
+                ->where('promo', $promo)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
 
@@ -633,11 +635,12 @@ class EmploiDuTempsController extends Controller
 
             $groupes = Groupe::with('filiere', 'option')
                 ->where('annee', $year)
-                ->where('promo', $promo) // ✅ Added promo filter
+                ->where('promo', $promo)
                 ->where('id', $user->id_groupe)
                 ->get();
 
         } else {
+            // ✅ FIX: Pour les formateurs — on récupère TOUS les groupes liés à leurs séances, sans filtre année/promo
             $emplois = EmploiDuTemps::with($withRelations)
                 ->whereBetween('date_debut', [$weekStart, $weekEnd])
                 ->where('statut', 'actif')
@@ -654,10 +657,9 @@ class EmploiDuTempsController extends Controller
                 })
                 ->get();
 
+            // ✅ Supprimer le filtre par année/promo — on prend TOUS les groupes des séances du formateur
             $groupeIds = $emplois->pluck('id_groupe')->unique();
             $groupes   = Groupe::with('filiere', 'option')
-                ->where('annee', $year)
-                ->where('promo', $promo) // ✅ Added promo filter
                 ->whereIn('id', $groupeIds)
                 ->orderBy('id_filiere')->orderBy('id')
                 ->get();
@@ -666,17 +668,23 @@ class EmploiDuTempsController extends Controller
         $groupesByFiliere = $groupes->groupBy('id_filiere');
         $grid             = $this->buildGrid($groupes, $emplois);
 
-        $yearLabel = match($year) {
-            1       => '1ère Année',
-            2       => '2ème Année',
-            3       => '3ème Année',
-            default => 'Année ' . $year,
-        };
-        $filename = 'emploi_semaine_' . $weekStart->format('Y-m-d') . '_annee' . $year . '_promo' . $promo . '.pdf';
+        // ✅ Mise à jour du label et du filename pour refléter le contexte
+        $yearLabel = $user->hasPermissionTo('emploi-view-all-groups')
+            ? match($year) {
+                1       => '1ère Année',
+                2       => '2ème Année',
+                3       => '3ème Année',
+                default => 'Année ' . $year,
+            }
+            : 'Toutes les années'; // Pour les formateurs
+
+        $filename = 'emploi_semaine_' . $weekStart->format('Y-m-d')
+            . ($user->hasPermissionTo('emploi-view-all-groups') ? '_annee'.$year.'_promo'.$promo : '_formateur_'.$user->id)
+            . '.pdf';
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('emplois.pdf', compact(
             'grid', 'year', 'yearLabel', 'weekStart', 'weekEnd',
-            'dayDates', 'groupesByFiliere', 'user', 'promo' // ✅ Added promo to view
+            'dayDates', 'groupesByFiliere', 'user', 'promo'
         ))->setPaper('a4', 'landscape');
 
         return $pdf->download($filename);

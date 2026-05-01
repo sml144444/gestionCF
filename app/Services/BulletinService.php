@@ -142,4 +142,27 @@ class BulletinService
 
         return round($weightedSum / $coefficientSum, 2);
     }
+
+    /**
+     * Final grade calculation.
+     *
+     * Not final year       → finalGrade = moyenneGenerale
+     * Final year + EFF     → finalGrade = (eff × 0.6) + (moyenneGenerale × 0.4)
+     * Final year, no EFF   → finalGrade = null (waiting for EFF)
+     */
+    public function calculateFinalGrade(
+        ?float $moyenneGenerale,
+        bool   $isFinalYear,
+        ?float $effNote
+    ): ?float {
+        if (! $isFinalYear) {
+            return $moyenneGenerale;
+        }
+
+        if ($effNote === null || $moyenneGenerale === null) {
+            return null;
+        }
+
+        return round(($effNote * 0.6) + ($moyenneGenerale * 0.4), 2);
+    }
 }

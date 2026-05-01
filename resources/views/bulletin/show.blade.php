@@ -148,10 +148,8 @@
 @php
     $totalModules = $modulesWithNotes->count();
     $notedModules = $modulesWithNotes->filter(fn($m) => $m['moduleGrade'] !== null)->count();
-    $gaColor = $generalAverage === null ? '#94a3b8' : ($generalAverage >= 10 ? '#16a34a' : '#dc2626');
-    $gaBg    = $generalAverage === null ? '#f8fafc'  : ($generalAverage >= 10 ? '#f0fdf4'  : '#fff1f2');
 
-    // Discipline stats
+    // Discipline badge class (still used by discipline stat card)
     $discClass = $disciplineNote === null ? 'disc-high'
         : ($disciplineNote >= 15 ? 'disc-high' : ($disciplineNote >= 10 ? 'disc-mid' : 'disc-low'));
 @endphp
@@ -168,17 +166,6 @@
             <svg width="20" height="20" fill="none" stroke="#1d4ed8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
         </div>
         <div><div class="stat-val">{{ $notedModules }}/{{ $totalModules }}</div><div class="stat-lbl">Complétés</div></div>
-    </div>
-    <div class="stat-card" style="background:{{ $gaBg }};border-color:{{ $generalAverage !== null && $generalAverage >= 10 ? '#bbf7d0' : ($generalAverage !== null ? '#fecdd3' : '#e2e8f0') }};">
-        <div class="stat-icon" style="background:white;">
-            <svg width="20" height="20" fill="none" stroke="{{ $gaColor }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-        </div>
-        <div>
-            <div class="stat-val" style="color:{{ $gaColor }};">
-                {{ $generalAverage !== null ? number_format($generalAverage, 2) : '—' }}
-            </div>
-            <div class="stat-lbl">Moy. générale</div>
-        </div>
     </div>
 
     {{-- ── NEW: Discipline stat card ── --}}
@@ -376,14 +363,25 @@
     </div>
 </div>
 
-{{-- ── GENERAL AVERAGE BANNER ── --}}
+{{-- ══════════════════════════════════════════════════════════════
+     BANNERS: Moyenne Générale → EFF → Note Finale
+     ══════════════════════════════════════════════════════════════ --}}
 @if($allGraded)
 @php
     $bannerBg  = $generalAverage >= 10 ? '#f0fdf4' : '#fff1f2';
     $bannerBdr = $generalAverage >= 10 ? '#bbf7d0' : '#fecdd3';
     $bannerClr = $generalAverage >= 10 ? '#15803d' : '#be123c';
+
+    $fgColor = $finalGrade === null ? '#94a3b8'
+        : ($finalGrade >= 10 ? '#15803d' : '#be123c');
+    $fgBg    = $finalGrade === null ? '#f8fafc'
+        : ($finalGrade >= 10 ? '#f0fdf4' : '#fff1f2');
+    $fgBdr   = $finalGrade === null ? '#e2e8f0'
+        : ($finalGrade >= 10 ? '#bbf7d0' : '#fecdd3');
 @endphp
-<div class="ga-banner" style="background:{{ $bannerBg }};border:2px solid {{ $bannerBdr }};">
+
+{{-- ── Row 1: Moyenne Générale ── --}}
+<div class="ga-banner" style="background:{{ $bannerBg }};border:2px solid {{ $bannerBdr }};margin-bottom:10px;">
     <div>
         <div style="font-size:14px;font-weight:800;color:#0f172a;">Moyenne générale</div>
         <div style="font-size:11px;color:#64748b;margin-top:3px;">
@@ -399,14 +397,107 @@
         @endif
     </div>
     <div style="font-size:38px;font-weight:800;color:{{ $bannerClr }};">
-        {{ number_format($generalAverage, 2) }} <span style="font-size:18px;font-weight:600;opacity:.6;">/ 20</span>
+        {{ number_format($generalAverage, 2) }}
+        <span style="font-size:18px;font-weight:600;opacity:.6;">/ 20</span>
     </div>
 </div>
 
+{{-- ── Row 2: EFF + Note Finale (final year) ── --}}
+@if($isFinalYear)
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;">
+
+    {{-- EFF card --}}
+    <div style="border-radius:16px;padding:20px 24px;background:#eff6ff;
+                border:2px solid #bfdbfe;
+                display:flex;align-items:center;justify-content:space-between;
+                gap:12px;flex-wrap:wrap;">
+        <div>
+            <div style="font-size:13px;font-weight:800;color:#1e40af;">⚑ EFF</div>
+            <div style="font-size:11px;color:#3b82f6;margin-top:3px;">
+                Examen Final de Formation · année terminale
+            </div>
+
+            {{-- Admin / gestionnaire: inline note entry --}}
+            @if(in_array(Auth::user()->role, ['admin','gestionnaire']))
+            <form method="POST"
+                  action="{{ route('bulletin.eff.store', $stagiaire) }}"
+                  style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+                @csrf
+                <input type="number"
+                       name="eff_note"
+                       value="{{ $effNote !== null ? number_format($effNote, 2, '.', '') : '' }}"
+                       min="0" max="20" step="0.01"
+                       placeholder="0 – 20"
+                       style="width:90px;height:34px;padding:0 10px;border-radius:8px;
+                              border:1.5px solid #bfdbfe;font-size:13px;font-weight:700;
+                              color:#1e40af;outline:none;background:white;">
+                <button type="submit"
+                        style="padding:7px 14px;border-radius:8px;background:#1d4ed8;
+                               color:white;font-size:11px;font-weight:700;border:none;cursor:pointer;
+                               transition:opacity .15s;"
+                        onmouseover="this.style.opacity='.85'"
+                        onmouseout="this.style.opacity='1'">
+                    {{ $effNote !== null ? '✏️ Modifier' : '+ Saisir' }}
+                </button>
+            </form>
+            @endif
+        </div>
+        <div style="font-size:38px;font-weight:800;color:#1d4ed8;">
+            {{ $effNote !== null ? number_format($effNote, 2) : '—' }}
+            <span style="font-size:18px;font-weight:600;opacity:.6;">/ 20</span>
+        </div>
+    </div>
+
+    {{-- Note Finale card --}}
+    <div style="border-radius:16px;padding:20px 24px;background:{{ $fgBg }};
+                border:2px solid {{ $fgBdr }};
+                display:flex;align-items:center;justify-content:space-between;
+                gap:12px;flex-wrap:wrap;">
+        <div>
+            <div style="font-size:13px;font-weight:800;color:#0f172a;">🏆 Note Finale</div>
+            <div style="font-size:11px;color:#64748b;margin-top:3px;">
+                EFF × 60% + Moy. Générale × 40%
+            </div>
+            @if($effNote === null)
+            <div style="font-size:10px;color:#f59e0b;margin-top:5px;
+                        display:inline-flex;align-items:center;gap:4px;
+                        background:#fef3c7;padding:2px 8px;border-radius:6px;border:1px solid #fde68a;">
+                ⚠️ En attente de la note EFF
+            </div>
+            @else
+            <div style="font-size:10px;color:#64748b;margin-top:5px;">
+                ({{ number_format($effNote,2) }} × 0.6) + ({{ number_format($generalAverage,2) }} × 0.4)
+            </div>
+            @endif
+        </div>
+        <div style="font-size:38px;font-weight:800;color:{{ $fgColor }};">
+            {{ $finalGrade !== null ? number_format($finalGrade, 2) : '—' }}
+            <span style="font-size:18px;font-weight:600;opacity:.6;">/ 20</span>
+        </div>
+    </div>
+
+</div>
+
 @else
-{{-- Pending notice --}}
+{{-- Not final year: Final Grade = Moyenne Générale --}}
+<div style="border-radius:14px;padding:14px 20px;background:#f8fafc;
+            border:1.5px solid #e2e8f0;
+            display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b;">
+    🏆 <strong style="color:#1e293b;">Note Finale :</strong>
+    <span style="font-size:15px;font-weight:800;color:{{ $bannerClr }};">
+        {{ number_format($generalAverage, 2) }} / 20
+    </span>
+    <span style="font-size:10px;color:#94a3b8;">(= Moyenne Générale — pas en année terminale)</span>
+</div>
+@endif
+
+@else
+{{-- ── Pending notice: some modules have no grade yet ── --}}
 <div class="pending-notice">
-    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
     Moyenne générale non disponible —
     {{ $totalModules - $notedModules }} module{{ ($totalModules - $notedModules) > 1 ? 's' : '' }}
     en attente d'EFM

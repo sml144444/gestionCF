@@ -208,7 +208,6 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
         ->name('reportations.my')
         ->middleware('can:reportation-create');
 
-    // ✅ NOUVEAU — gestionnaire : uniquement ses reportations assignées
     Route::get('/reportations/assigned', [ReportationController::class, 'assignedIndex'])
         ->name('reportations.assigned')
         ->middleware('can:reportation-view-assigned');
@@ -401,7 +400,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.index')
         ->middleware('can:absence-view');
 
-    // ── ADMIN: upload one file for ALL absences of a day ──────
     Route::post('/absences/admin/upload-jour', [AbsenceController::class, 'adminUploadFichierJour'])
         ->name('absences.admin.fichier.jour')
         ->middleware('can:absence-justify');
@@ -422,7 +420,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.admin.bulk.unjustify')
         ->middleware('can:absence-justify');
 
-    // ── STAGIAIRE SELF-SERVICE (whole day) ────────────────────
     Route::post('/absences/stagiaire/upload-jour', [AbsenceController::class, 'stagiaireUploadFichierJour'])
         ->name('absences.stagiaire.fichier.jour')
         ->middleware('can:absence-view');
@@ -431,7 +428,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.stagiaire.fichier.jour.delete')
         ->middleware('can:absence-view');
 
-    // ── WILDCARD: single absence actions ─────────────────────
     Route::patch('/absences/{absence}/justification', [AbsenceController::class, 'toggleJustification'])
         ->name('absences.justify')
         ->middleware('can:absence-justify');
@@ -452,7 +448,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('absences.fichier.delete')
         ->middleware('can:absence-justify');
 
-    // ── STAGIAIRE SELF-SERVICE (single absence) ───────────────
     Route::post('/absences/{absence}/stagiaire-fichier', [AbsenceController::class, 'stagiaireUploadFichier'])
         ->name('absences.stagiaire.fichier')
         ->middleware('can:absence-view');
@@ -474,7 +469,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// CONTRÔLES & NOTES (UPDATED WITH PERMISSIONS)
+// CONTRÔLES & NOTES
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
 
@@ -496,7 +491,7 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
 });
 
 // ─────────────────────────────────────────────
-// MES NOTES — stagiaire (read-only) (UPDATED WITH PERMISSIONS)
+// MES NOTES — stagiaire (read-only)
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:stagiaire'])->group(function () {
     Route::get('/mes-notes', [ControleNotesController::class, 'myNotes'])
@@ -505,7 +500,7 @@ Route::middleware(['auth', 'role:stagiaire'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// BULLETINS DE NOTES (UPDATED WITH PERMISSIONS)
+// BULLETINS DE NOTES
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
     Route::get('/bulletin', [BulletinController::class, 'index'])
@@ -515,4 +510,7 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
     Route::get('/bulletin/{stagiaire}', [BulletinController::class, 'show'])
         ->name('bulletin.show')
         ->middleware('can:bulletin-view');
+
+    Route::post('/bulletin/{stagiaire}/eff', [BulletinController::class, 'storeEff'])
+        ->name('bulletin.eff.store');
 });
