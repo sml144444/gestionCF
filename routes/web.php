@@ -5,24 +5,26 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredStagiaireController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\BulletinController;
 use App\Http\Controllers\ControleNotesController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EduImportController;
 use App\Http\Controllers\EmploiDuTempsController;
 use App\Http\Controllers\FiliereController;
 use App\Http\Controllers\GroupeController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\SalleController;
-use App\Http\Controllers\UserManagementController;
-use App\Http\Controllers\SeanceController;
-use App\Http\Controllers\ReportationController;
-use App\Http\Controllers\StagiaireController;
-use App\Http\Controllers\RoleController;
 use App\Http\Controllers\NewsEventController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReclamationController;
+use App\Http\Controllers\ReportationController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalleController;
+use App\Http\Controllers\SeanceController;
+use App\Http\Controllers\StagiaireController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BulletinController;
 
 // ─────────────────────────────────────────────
 // GUEST
@@ -63,17 +65,17 @@ Route::middleware('auth')->get('/redirect-by-role', function () {
 // DASHBOARDS
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:stagiaire'])->group(function () {
-    Route::get('/stagiaire/dashboard', fn() => view('stagiaire.dashboard'))
+    Route::get('/stagiaire/dashboard', [DashboardController::class, 'stagiaire'])
         ->name('stagiaire.dashboard');
 });
 
 Route::middleware(['auth', 'role:formateur'])->group(function () {
-    Route::get('/formateur/dashboard', fn() => view('formateur.dashboard'))
+    Route::get('/formateur/dashboard', [DashboardController::class, 'formateur'])
         ->name('formateur.dashboard');
 });
 
 Route::middleware(['auth', 'role:gestionnaire'])->group(function () {
-    Route::get('/gestionnaire/dashboard', fn() => view('gestionnaire.dashboard'))
+    Route::get('/gestionnaire/dashboard', [DashboardController::class, 'gestionnaire'])
         ->name('gestionnaire.dashboard');
 });
 
@@ -81,7 +83,7 @@ Route::middleware(['auth', 'role:gestionnaire'])->group(function () {
 // ADMIN ONLY
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('/admin/dashboard', fn() => view('admin.dashboard'))
+    Route::get('/admin/dashboard', [DashboardController::class, 'admin'])
         ->name('admin.dashboard');
 
     Route::resource('roles', RoleController::class);
@@ -270,6 +272,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('modules.update')->middleware('can:groupe-edit');
     Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])
         ->name('modules.destroy')->middleware('can:groupe-delete');
+
+    Route::post('/modules/{module}/activate-replacement',
+        [ModuleController::class, 'activateReplacement'])
+        ->name('modules.replacement.activate')
+        ->middleware('can:groupe-edit');
+
+    Route::post('/modules/{module}/deactivate-replacement',
+        [ModuleController::class, 'deactivateReplacement'])
+        ->name('modules.replacement.deactivate')
+        ->middleware('can:groupe-edit');
 });
 
 // ─────────────────────────────────────────────
@@ -340,6 +352,16 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/reclamations/{reclamation}', [ReclamationController::class, 'destroy'])
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
+
+        
+    
+    // ── NOTIFICATIONS ────────────────────────────────────
+    Route::get('/notifications',                          [NotificationController::class, 'index'])    ->name('notifications.index');
+    Route::post('/notifications/read-all',                [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::post('/notifications/{notification}/read',     [NotificationController::class, 'markRead'])  ->name('notifications.read');
+     Route::post('notifications/reclamation/{reclamationId}/read', [NotificationController::class, 'markReadByReclamation'])->name('notifications.readByReclamation');
+     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
+    ->name('notifications.destroy');
 });
 
 // ─────────────────────────────────────────────

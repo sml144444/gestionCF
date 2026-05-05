@@ -1,27 +1,27 @@
-{{-- resources/views/reclamations/show.blade.php --}}
-@extends('layouts.app')
-@section('title', 'Réclamation #' . $reclamation->id)
-@section('page-title', 'Conversation')
 
-@push('scripts')
+
+<?php $__env->startSection('title', 'Réclamation #' . $reclamation->id); ?>
+<?php $__env->startSection('page-title', 'Conversation'); ?>
+
+<?php $__env->startPush('scripts'); ?>
 <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
 <script>
 window.Pusher = Pusher;
 window.Echo = new Echo({
     broadcaster: 'reverb',
-    key: '{{ env("REVERB_APP_KEY") }}',
-    wsHost: '{{ env("REVERB_HOST", "localhost") }}',
-    wsPort: {{ env("REVERB_PORT", 8080) }},
-    wssPort: {{ env("REVERB_PORT", 8080) }},
+    key: '<?php echo e(env("REVERB_APP_KEY")); ?>',
+    wsHost: '<?php echo e(env("REVERB_HOST", "localhost")); ?>',
+    wsPort: <?php echo e(env("REVERB_PORT", 8080)); ?>,
+    wssPort: <?php echo e(env("REVERB_PORT", 8080)); ?>,
     forceTLS: false,
     enabledTransports: ['ws', 'wss'],
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     $user        = Auth::user();
     $isStaff     = $user->can('reclamation-manage');
     $isAssigned  = $reclamation->assigned_to === $user->id;
@@ -87,7 +87,7 @@ window.Echo = new Echo({
     $succBg    = $roleSuccessBg[$role]     ?? $roleSuccessBg['stagiaire'];
     $succBd    = $roleSuccessBorder[$role] ?? $roleSuccessBorder['stagiaire'];
     $succTx    = $roleSuccessText[$role]   ?? $roleSuccessText['stagiaire'];
-@endphp
+?>
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -115,7 +115,7 @@ window.Echo = new Echo({
 /* ── Hero ── */
 .hero {
     flex-shrink: 0;
-    background: {{ $gradient }};
+    background: <?php echo e($gradient); ?>;
     border-radius: 18px;
     padding: 16px 22px;
     display: flex;
@@ -194,7 +194,7 @@ window.Echo = new Echo({
     line-height: 1.6;
     word-break: break-word;
 }
-.msg-bubble.mine   .msg-content { background: {{ $gradient }}; color: white; border-bottom-right-radius: 4px; }
+.msg-bubble.mine   .msg-content { background: <?php echo e($gradient); ?>; color: white; border-bottom-right-radius: 4px; }
 .msg-bubble.theirs .msg-content { background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; }
 
 .msg-meta   { font-size: 10px; color: #94a3b8; padding: 0 4px; }
@@ -247,7 +247,7 @@ window.Echo = new Echo({
     color: #1e293b;
 }
 .edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
-.btn-save-edit   { background: {{ $gradient }}; color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-save-edit   { background: <?php echo e($gradient); ?>; color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
 .btn-cancel-edit { background: #f1f5f9; color: #64748b; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
 
 /* ── Date divider ── */
@@ -309,11 +309,11 @@ window.Echo = new Echo({
     background: white;
 }
 .reply-input:focus {
-    border-color: {{ $accent }};
-    box-shadow: 0 0 0 3px {{ $ring }};
+    border-color: <?php echo e($accent); ?>;
+    box-shadow: 0 0 0 3px <?php echo e($ring); ?>;
 }
 .btn-send {
-    background: {{ $gradient }};
+    background: <?php echo e($gradient); ?>;
     color: white;
     border: none;
     border-radius: 12px;
@@ -378,11 +378,11 @@ window.Echo = new Echo({
     width: 100%;
     transition: border-color .15s;
 }
-.f-select:focus { border-color: {{ $accent }}; box-shadow: 0 0 0 3px {{ $ring }}; }
+.f-select:focus { border-color: <?php echo e($accent); ?>; box-shadow: 0 0 0 3px <?php echo e($ring); ?>; }
 .btn-action {
     font-size: 12px; font-weight: 700;
     padding: 8px 18px; border-radius: 10px;
-    background: {{ $gradient }};
+    background: <?php echo e($gradient); ?>;
     color: white; border: none; cursor: pointer;
     transition: opacity .15s; width: 100%;
 }
@@ -397,148 +397,156 @@ window.Echo = new Echo({
 
 <div class="conv-shell">
 
-    {{-- Flash --}}
-    @if(session('success'))
-    <div class="flash-notice" style="background:{{ $succBg }};border:1px solid {{ $succBd }};color:{{ $succTx }};">
-        ✓ {{ session('success') }}
-    </div>
-    @endif
+    
+    <?php if(session('success')): ?>
+    <div class="flash-notice" style="background:<?php echo e($succBg); ?>;border:1px solid <?php echo e($succBd); ?>;color:<?php echo e($succTx); ?>;">
+        ✓ <?php echo e(session('success')); ?>
 
-    {{-- Hero --}}
+    </div>
+    <?php endif; ?>
+
+    
     <div class="hero">
         <div style="display:flex;align-items:center;gap:14px;">
-            <a href="{{ route('reclamations.index') }}"
+            <a href="<?php echo e(route('reclamations.index')); ?>"
                style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.15);
                       display:flex;align-items:center;justify-content:center;
                       text-decoration:none;color:white;font-size:16px;flex-shrink:0;">←</a>
             <div>
                 <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;">
-                    {{ $tc['icon'] }} {{ $tc['label'] }} · #{{ $reclamation->id }}
+                    <?php echo e($tc['icon']); ?> <?php echo e($tc['label']); ?> · #<?php echo e($reclamation->id); ?>
+
                 </div>
                 <div style="font-size:15px;font-weight:800;color:white;margin-top:1px;">Conversation</div>
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span id="status-badge" class="badge"
-                  style="background:{{ $sc['bg'] }};color:{{ $sc['color'] }};border:1px solid {{ $sc['border'] }};">
-                {{ $sc['icon'] }} {{ $sc['label'] }}
+                  style="background:<?php echo e($sc['bg']); ?>;color:<?php echo e($sc['color']); ?>;border:1px solid <?php echo e($sc['border']); ?>;">
+                <?php echo e($sc['icon']); ?> <?php echo e($sc['label']); ?>
+
             </span>
             <span class="rt-badge"><span class="rt-dot"></span> Temps réel</span>
         </div>
     </div>
 
-    {{-- Chat card --}}
+    
     <div class="chat-card">
 
-        {{-- Header --}}
+        
         <div class="chat-header">
             <div>
-                @if($isStagiaire)
+                <?php if($isStagiaire): ?>
                     <div style="font-size:12px;font-weight:700;color:#1e293b;">Votre réclamation</div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:1px;">
-                        Ouverte le {{ $reclamation->created_at->format('d/m/Y à H:i') }}
+                        Ouverte le <?php echo e($reclamation->created_at->format('d/m/Y à H:i')); ?>
+
                     </div>
-                @else
+                <?php else: ?>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <div style="width:34px;height:34px;border-radius:10px;
-                                    background:{{ $avatarBg }};flex-shrink:0;
+                                    background:<?php echo e($avatarBg); ?>;flex-shrink:0;
                                     display:flex;align-items:center;justify-content:center;
-                                    font-size:11px;font-weight:800;color:{{ $avatarTx }};">
-                            {{ strtoupper(mb_substr($reclamation->stagiaire?->name ?? '?', 0, 2)) }}
+                                    font-size:11px;font-weight:800;color:<?php echo e($avatarTx); ?>;">
+                            <?php echo e(strtoupper(mb_substr($reclamation->stagiaire?->name ?? '?', 0, 2))); ?>
+
                         </div>
                         <div>
-                            <div style="font-size:12px;font-weight:700;color:#1e293b;">{{ $reclamation->stagiaire?->name }}</div>
-                            <div style="font-size:10px;color:#94a3b8;">{{ $reclamation->stagiaire?->email }}</div>
+                            <div style="font-size:12px;font-weight:700;color:#1e293b;"><?php echo e($reclamation->stagiaire?->name); ?></div>
+                            <div style="font-size:10px;color:#94a3b8;"><?php echo e($reclamation->stagiaire?->email); ?></div>
                         </div>
                     </div>
-                @endif
+                <?php endif; ?>
             </div>
             <div style="font-size:11px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;
                         border-radius:8px;padding:4px 10px;">
-                {{ $reclamation->messages->count() }} msg
+                <?php echo e($reclamation->messages->count()); ?> msg
             </div>
         </div>
 
-        {{-- Messages — ONLY this scrolls --}}
+        
         <div class="messages-area" id="messages-area">
 
-            <div class="date-divider">{{ $reclamation->created_at->format('d/m/Y') }}</div>
+            <div class="date-divider"><?php echo e($reclamation->created_at->format('d/m/Y')); ?></div>
 
-            {{-- Initial description --}}
-            <div class="msg-bubble {{ $isStagiaire ? 'mine' : 'theirs' }}">
-                @unless($isStagiaire)
-                    <div class="msg-sender">{{ $reclamation->stagiaire?->name }}</div>
-                @endunless
+            
+            <div class="msg-bubble <?php echo e($isStagiaire ? 'mine' : 'theirs'); ?>">
+                <?php if (! ($isStagiaire)): ?>
+                    <div class="msg-sender"><?php echo e($reclamation->stagiaire?->name); ?></div>
+                <?php endif; ?>
                 <div class="msg-content"
-                     style="{{ !$isStagiaire ? "background:{$msgBg};border:1px solid {$msgBorder};color:#1e293b;" : '' }}">
+                     style="<?php echo e(!$isStagiaire ? "background:{$msgBg};border:1px solid {$msgBorder};color:#1e293b;" : ''); ?>">
                     <div style="font-size:10px;font-weight:700;margin-bottom:6px;opacity:.6;letter-spacing:.3px;">
                         📝 RÉCLAMATION INITIALE
                     </div>
-                    {{ $reclamation->description }}
+                    <?php echo e($reclamation->description); ?>
+
                 </div>
-                <div class="msg-meta">{{ $reclamation->created_at->format('H:i') }}</div>
+                <div class="msg-meta"><?php echo e($reclamation->created_at->format('H:i')); ?></div>
             </div>
 
-            {{-- Messages --}}
-            @foreach($reclamation->messages as $msg)
-                @php
+            
+            <?php $__currentLoopData = $reclamation->messages; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $msg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
                     $isMe   = $msg->sender_id === $user->id;
                     $canAct = $isMe && is_null($msg->seen_at);
-                @endphp
-                <div class="msg-bubble {{ $isMe ? 'mine' : 'theirs' }}"
-                     id="msg-{{ $msg->id }}"
-                     data-seen="{{ $msg->seen_at ? '1' : '0' }}"
-                     data-mine="{{ $isMe ? '1' : '0' }}">
+                ?>
+                <div class="msg-bubble <?php echo e($isMe ? 'mine' : 'theirs'); ?>"
+                     id="msg-<?php echo e($msg->id); ?>"
+                     data-seen="<?php echo e($msg->seen_at ? '1' : '0'); ?>"
+                     data-mine="<?php echo e($isMe ? '1' : '0'); ?>">
 
-                    {{-- Edit / Delete — only unseen own messages --}}
-                    @if($canAct)
+                    
+                    <?php if($canAct): ?>
                     <div class="msg-actions">
                         <button class="msg-action-btn btn-edit-msg"
-                                onclick="startEdit({{ $msg->id }})">✏️ Modifier</button>
+                                onclick="startEdit(<?php echo e($msg->id); ?>)">✏️ Modifier</button>
                         <button class="msg-action-btn btn-delete-msg"
-                                onclick="deleteMsg({{ $msg->id }})">🗑 Supprimer</button>
+                                onclick="deleteMsg(<?php echo e($msg->id); ?>)">🗑 Supprimer</button>
                     </div>
-                    @endif
+                    <?php endif; ?>
 
-                    @unless($isMe)
+                    <?php if (! ($isMe)): ?>
                         <div class="msg-sender">
-                            {{ $msg->sender?->name }}
-                            <span style="font-weight:400;color:#cbd5e1;">· {{ ucfirst($msg->sender?->role) }}</span>
-                        </div>
-                    @endunless
+                            <?php echo e($msg->sender?->name); ?>
 
-                    <div class="msg-content" id="msg-content-{{ $msg->id }}">{{ $msg->message }}</div>
+                            <span style="font-weight:400;color:#cbd5e1;">· <?php echo e(ucfirst($msg->sender?->role)); ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="msg-content" id="msg-content-<?php echo e($msg->id); ?>"><?php echo e($msg->message); ?></div>
 
                     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                        <div class="msg-meta">{{ $msg->created_at->format('H:i') }}</div>
+                        <div class="msg-meta"><?php echo e($msg->created_at->format('H:i')); ?></div>
 
-                        @if($msg->edited_at)
-                            <div class="msg-edited {{ $isMe ? '' : 'theirs' }}">
-                                · modifié {{ $msg->edited_at->format('H:i') }}
+                        <?php if($msg->edited_at): ?>
+                            <div class="msg-edited <?php echo e($isMe ? '' : 'theirs'); ?>">
+                                · modifié <?php echo e($msg->edited_at->format('H:i')); ?>
+
                             </div>
-                        @endif
+                        <?php endif; ?>
 
-                        @if($isMe)
-                            @if($msg->seen_at)
+                        <?php if($isMe): ?>
+                            <?php if($msg->seen_at): ?>
                                 <div class="msg-seen" title="Vu">✓✓</div>
-                            @else
+                            <?php else: ?>
                                 <div class="msg-seen" style="opacity:.4;" title="Envoyé">✓</div>
-                            @endif
-                        @endif
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-            {{-- Typing indicator --}}
+            
             <div class="typing-indicator" id="typing-indicator">
                 <div class="typing-dots"><span></span><span></span><span></span></div>
             </div>
         </div>
 
-        {{-- Reply / Closed --}}
-        @if($reclamation->status === 'traite')
+        
+        <?php if($reclamation->status === 'traite'): ?>
             <div class="traite-notice">✅ Réclamation traitée — les réponses sont désactivées.</div>
-        @elseif($canReply)
+        <?php elseif($canReply): ?>
             <div class="reply-area">
                 <div class="reply-box">
                     <textarea id="reply-input" class="reply-input"
@@ -552,59 +560,60 @@ window.Echo = new Echo({
                 </div>
                 <div class="reply-hint">Ctrl + Entrée pour envoyer</div>
             </div>
-        @endif
+        <?php endif; ?>
     </div>
 
-    {{-- Admin panel (staff only) --}}
-    @if($isStaff)
+    
+    <?php if($isStaff): ?>
     <div class="admin-panel">
         <h3>⚙️ Gestion</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
                 <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;">Assigner à</div>
-                <form action="{{ route('reclamations.assign', $reclamation) }}" method="POST">
-                    @csrf @method('PATCH')
+                <form action="<?php echo e(route('reclamations.assign', $reclamation)); ?>" method="POST">
+                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
                     <select name="assigned_to" class="f-select" onchange="this.form.submit()">
                         <option value="">— Non assignée —</option>
-                        @foreach($assignableUsers as $u)
-                            <option value="{{ $u->id }}" {{ $reclamation->assigned_to === $u->id ? 'selected' : '' }}>
-                                {{ $u->name }} ({{ ucfirst($u->role) }})
+                        <?php $__currentLoopData = $assignableUsers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $u): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($u->id); ?>" <?php echo e($reclamation->assigned_to === $u->id ? 'selected' : ''); ?>>
+                                <?php echo e($u->name); ?> (<?php echo e(ucfirst($u->role)); ?>)
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                 </form>
             </div>
             <div>
                 <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;">Statut</div>
-                <form action="{{ route('reclamations.status', $reclamation) }}" method="POST">
-                    @csrf @method('PATCH')
+                <form action="<?php echo e(route('reclamations.status', $reclamation)); ?>" method="POST">
+                    <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
                     <select name="status" class="f-select" style="margin-bottom:8px;">
-                        @foreach(\App\Models\Reclamation::STATUSES as $k => $cfg)
-                            <option value="{{ $k }}" {{ $reclamation->status === $k ? 'selected' : '' }}>
-                                {{ $cfg['icon'] }} {{ $cfg['label'] }}
+                        <?php $__currentLoopData = \App\Models\Reclamation::STATUSES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $k => $cfg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($k); ?>" <?php echo e($reclamation->status === $k ? 'selected' : ''); ?>>
+                                <?php echo e($cfg['icon']); ?> <?php echo e($cfg['label']); ?>
+
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                     <button type="submit" class="btn-action">Mettre à jour</button>
                 </form>
             </div>
         </div>
-        @can('reclamation-manage')
-        <form action="{{ route('reclamations.destroy', $reclamation) }}" method="POST"
+        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-manage')): ?>
+        <form action="<?php echo e(route('reclamations.destroy', $reclamation)); ?>" method="POST"
               onsubmit="return confirm('Supprimer ?');" style="margin-top:12px;text-align:right;">
-            @csrf @method('DELETE')
+            <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
             <button type="submit"
                     style="font-size:11px;font-weight:700;padding:7px 16px;border-radius:10px;
                            background:white;border:1.5px solid #fecdd3;color:#be123c;cursor:pointer;">
                 🗑 Supprimer
             </button>
         </form>
-        @endcan
+        <?php endif; ?>
     </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- ── Assigned user status panel (gestionnaire/formateur only) ── --}}
-    @if($isAssigned && !$isStaff)
+    
+    <?php if($isAssigned && !$isStaff): ?>
     <div class="admin-panel" id="assigned-status-panel">
         <h3>📋 Mettre à jour le statut</h3>
         <div style="display:flex;align-items:flex-end;gap:10px;">
@@ -612,20 +621,22 @@ window.Echo = new Echo({
                 <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;">
                     Statut actuel :
                     <span id="asgn-status-badge" class="badge"
-                          style="background:{{ $sc['bg'] }};color:{{ $sc['color'] }};
-                                 border:1px solid {{ $sc['border'] }};margin-left:4px;">
-                        {{ $sc['icon'] }} {{ $sc['label'] }}
+                          style="background:<?php echo e($sc['bg']); ?>;color:<?php echo e($sc['color']); ?>;
+                                 border:1px solid <?php echo e($sc['border']); ?>;margin-left:4px;">
+                        <?php echo e($sc['icon']); ?> <?php echo e($sc['label']); ?>
+
                     </span>
                 </div>
                 <select id="asgn-status-select" class="f-select">
-                    @foreach(\App\Models\Reclamation::STATUSES as $k => $cfg)
-                        @if(in_array($k, ['en_cours', 'traite']))
-                            <option value="{{ $k }}"
-                                {{ $reclamation->status === $k ? 'selected' : '' }}>
-                                {{ $cfg['icon'] }} {{ $cfg['label'] }}
+                    <?php $__currentLoopData = \App\Models\Reclamation::STATUSES; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $k => $cfg): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php if(in_array($k, ['en_cours', 'traite'])): ?>
+                            <option value="<?php echo e($k); ?>"
+                                <?php echo e($reclamation->status === $k ? 'selected' : ''); ?>>
+                                <?php echo e($cfg['icon']); ?> <?php echo e($cfg['label']); ?>
+
                             </option>
-                        @endif
-                    @endforeach
+                        <?php endif; ?>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
             <button id="asgn-status-btn" class="btn-action"
@@ -637,18 +648,18 @@ window.Echo = new Echo({
         <div id="asgn-status-msg" style="font-size:11px;font-weight:600;
              margin-top:10px;display:none;padding:8px 12px;border-radius:10px;"></div>
     </div>
-    @endif
+    <?php endif; ?>
 
-</div>{{-- .conv-shell --}}
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    const CURRENT_USER_ID = {{ $user->id }};
-    const RECLAMATION_ID  = {{ $reclamation->id }};
-    const SEND_URL        = "{{ route('reclamations.message', $reclamation) }}";
-    const MARK_SEEN_URL   = "{{ route('reclamations.seen', $reclamation) }}";
-    const MSG_BASE_URL    = "/reclamations/{{ $reclamation->id }}/message/";
-    const CSRF_TOKEN      = "{{ csrf_token() }}";
+    const CURRENT_USER_ID = <?php echo e($user->id); ?>;
+    const RECLAMATION_ID  = <?php echo e($reclamation->id); ?>;
+    const SEND_URL        = "<?php echo e(route('reclamations.message', $reclamation)); ?>";
+    const MARK_SEEN_URL   = "<?php echo e(route('reclamations.seen', $reclamation)); ?>";
+    const MSG_BASE_URL    = "/reclamations/<?php echo e($reclamation->id); ?>/message/";
+    const CSRF_TOKEN      = "<?php echo e(csrf_token()); ?>";
 
     const area     = document.getElementById('messages-area');
     const input    = document.getElementById('reply-input');
@@ -963,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (el) el.textContent = n;
                     if (n <= 0) {
                         clearInterval(iv);
-                        window.location.href = '{{ route('reclamations.index') }}';
+                        window.location.href = '<?php echo e(route('reclamations.index')); ?>';
                     }
                 }, 1000);
             })
@@ -998,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.textContent = '…';
 
         try {
-            const res = await fetch('{{ route('reclamations.status', $reclamation) }}', {
+            const res = await fetch('<?php echo e(route('reclamations.status', $reclamation)); ?>', {
                 method : 'POST',
                 headers: {
                     'Content-Type' : 'application/json',
@@ -1059,16 +1070,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script>
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 // Tell the global Echo listener which reclamation is open.
 // Any incoming notification for THIS reclamation will be
 // suppressed in the bell and auto-marked as read.
-window.__currentReclamationId = {{ $reclamation->id }};
+window.__currentReclamationId = <?php echo e($reclamation->id); ?>;
  
 // On page load → clear all existing unread notifications for this reclamation.
 document.addEventListener('DOMContentLoaded', function () {
-    fetch('/notifications/reclamation/{{ $reclamation->id }}/read', {
+    fetch('/notifications/reclamation/<?php echo e($reclamation->id); ?>/read', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -1085,5 +1096,6 @@ document.addEventListener('DOMContentLoaded', function () {
     .catch(() => {}); // silent fail — non-critical
 });
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/reclamations/show.blade.php ENDPATH**/ ?>

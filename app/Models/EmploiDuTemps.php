@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EmploiDuTemps extends Model
 {
@@ -15,11 +17,11 @@ class EmploiDuTemps extends Model
         'date_debut',
         'date_fin',
         'id_user',
+        'id_user_remplacant',
         'jour',
         'statut',
-        'mode',           // 'presentiel' | 'distance'
-        'lien_distance',  // Teams/Zoom link for distance sessions
-        'id_user_remplacant',   // ← ajouter cette ligne
+        'mode',
+        'lien_distance',
     ];
 
     protected $casts = [
@@ -27,58 +29,78 @@ class EmploiDuTemps extends Model
         'date_fin'   => 'datetime',
     ];
 
-    public function module()
+    // ── Relations ────────────────────────────────────────────
+
+    public function module(): BelongsTo
     {
         return $this->belongsTo(Module::class, 'id_module');
     }
 
-    public function groupe()
+    public function groupe(): BelongsTo
     {
         return $this->belongsTo(Groupe::class, 'id_groupe');
     }
 
-    public function salle()
+    public function salle(): BelongsTo
     {
         return $this->belongsTo(Salle::class, 'id_salle');
     }
 
-    public function gestionnaire()
+    /**
+     * The original assigned formateur (id_user — never changes after creation).
+     */
+    public function gestionnaire(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_user');
     }
 
-    public function cours()
+    /**
+     * The replacement formateur recorded on this specific session.
+     * This is set when activateReplacement() propagates to future sessions.
+     * It is NEVER cleared retroactively — history is permanent.
+     */
+    public function remplacant(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'id_user_remplacant');
+    }
+
+    public function cours(): HasMany
     {
         return $this->hasMany(Cours::class, 'id_emplois_du_temps');
     }
 
-    public function reportations()
+    public function reportations(): HasMany
     {
         return $this->hasMany(Reportation::class, 'id_emplois_du_temps');
     }
 
-    // Helper
+    // ── Helpers ──────────────────────────────────────────────
+
     public function isDistance(): bool
     {
         return $this->mode === 'distance';
     }
 
- 
     /**
-     * The replacement formateur (null = no replacement, original teaches).
+     * The formateur who actually teaches this session.
+     * If a replacement was recorded at the time the session was scheduled,
+     * it is returned. Otherwise the original formateur is returned.
+     *
+     * NOTE: This reads purely from the session record — no inference from
+     * the module's current state. History is never lost this way.
      */
-    public function remplacant()
+    public function formateurActif(): ?User
     {
-        return $this->belongsTo(\App\Models\User::class, 'id_user_remplacant');
+        return $this->id_user_remplacant
+            ? $this->remplacant
+            : $this->gestionnaire;
     }
- 
+
     /**
-     * The formateur who will actually teach this session
-     * (replacement if assigned, original otherwise).
+     * True if this session has a recorded replacement formateur.
      */
-    public function formateurActif(): ?\App\Models\User
+    public function hasRemplacant(): bool
     {
-        return $this->remplacant ?? $this->gestionnaire;
+        return (bool) $this->id_user_remplacant;
     }
- 
 }

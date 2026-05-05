@@ -12,8 +12,7 @@
     $canEdit         = Auth::user()->hasPermissionTo('emploi-edit');
     $canDelete       = Auth::user()->hasPermissionTo('emploi-delete');
     $canLien         = Auth::user()->hasPermissionTo('emploi-lien');
-    $canChangeModule = Auth::user()->hasPermissionTo('emploi-change-module');
-    $canSelectModule = Auth::user()->hasPermissionTo('emploi-view-all-groups') || $canChangeModule;
+    $canSelectModule = Auth::user()->hasPermissionTo('emploi-view-all-groups');
     $isGestionnaire  = Auth::user()->hasPermissionTo('emploi-view-all-groups');
     $canReport       = Auth::user()->hasPermissionTo('reportation-create');
 
@@ -681,7 +680,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         @php
             $semaineSuivante   = $weekStart->copy()->addWeek();
             $prochainLundiNav  = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
-            $visibleDepuisNav  = $prochainLundiNav->copy()->subDays(2);
+            $visibleDepuisNav  = $prochainLundiNav->copy()->subDays(1);
 $peutNaviguerSuivante = !$restrictNextWeek
     || $semaineSuivante->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
     || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
@@ -1051,7 +1050,7 @@ $peutNaviguerSuivante = !$restrictNextWeek
                         <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
                             <div class="tt-card {{ $cardClass }}">
 
-                                @if($canEdit || $canDelete || $canLien || $canChangeModule || $isGestionnaire || $canReport)
+                                @if($canEdit || $canDelete || $canLien || $isGestionnaire || $canReport)
                                 <div class="tt-actions">
                                     @if($canEdit)
                                         <button class="tt-btn-edit"
@@ -1104,12 +1103,6 @@ $peutNaviguerSuivante = !$restrictNextWeek
                                                     '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
                                                     '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
                                                 )">🔗</button>
-                                    @endif
-
-                                    @if($canChangeModule && !$canEdit && $emploi->id_user === Auth::user()->id)
-                                        <button class="tt-btn-edit"
-                                                style="background:{{ $p['light'] }}; color:{{ $p['text'] }};"
-                                                onclick="openEditModal({{ $emploi->id }})">📚</button>
                                     @endif
                                 </div>
                                 @endif
@@ -1480,7 +1473,7 @@ $peutNaviguerSuivante = !$restrictNextWeek
 @endif
 
 {{-- ── CREATE / EDIT ── --}}
-@if($canCreate || $canEdit || $canChangeModule)
+@if($canCreate || $canEdit )
 <div id="emploi-modal" class="tt-modal-overlay" onclick="if(event.target===this)closeModal()">
     <div class="tt-modal-box">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid {{ $accentColor }};">

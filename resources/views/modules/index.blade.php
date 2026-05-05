@@ -39,17 +39,15 @@
 .mod-badge-annee1   { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
 .mod-badge-annee2   { background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; }
 .mod-badge-annee3   { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
-
-/* Progress bar */
 .mod-progress-track { height:6px; background:#f1f5f9; border-radius:99px; overflow:hidden; }
 .mod-progress-fill  { height:100%; border-radius:99px; transition:width .5s; }
-
 .mod-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; font-size:12px; font-weight:700; border-radius:10px; border:none; cursor:pointer; transition:opacity .15s; text-decoration:none; }
 .mod-btn:hover { opacity:.85; }
 .mod-btn-primary { background:{{ $accent }}; color:white; box-shadow:0 4px 12px {{ $shadow }}; }
 .mod-btn-ghost   { background:white; border:1.5px solid #e2e8f0; color:#475569; }
 .mod-btn-yellow  { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
 .mod-btn-red     { background:#fee2e2; color:#dc2626; border:1px solid #fecaca; }
+.mod-btn-purple  { background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; }
 .mod-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; }
 .mod-input { width:100%; height:42px; padding:0 12px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; color:#1e293b; outline:none; transition:border-color .15s; box-sizing:border-box; }
 .mod-input:focus { border-color:{{ $accent }}; background:white; }
@@ -60,19 +58,27 @@
 .type-btn { flex:1; padding:10px; font-size:12px; font-weight:600; border:none; background:white; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:6px; color:#64748b; }
 .type-btn.active-regional { background:#2563eb; color:white; }
 .type-btn.active-local    { background:#7e22ce; color:white; }
-
-/* Annee tabs */
 .annee-tab { padding:7px 14px; border-radius:99px; font-size:12px; font-weight:600; text-decoration:none; border:1.5px solid #e2e8f0; background:white; color:#64748b; transition:all .15s; display:inline-flex; align-items:center; gap:5px; }
 .annee-tab:hover { border-color:{{ $accent }}; color:{{ $text }}; background:{{ $light }}; }
 .annee-tab.active { background:{{ $accent }}; border-color:{{ $accent }}; color:white; }
+.remplacant-pill { display:inline-flex; align-items:center; gap:3px; font-size:8px; font-weight:800; padding:1px 6px; border-radius:99px; background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; text-transform:uppercase; letter-spacing:.3px; }
 
-/* Remplacant badge */
-.remplacant-pill {
-    display:inline-flex; align-items:center; gap:3px;
-    font-size:8px; font-weight:800; padding:1px 6px; border-radius:99px;
-    background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe;
-    text-transform:uppercase; letter-spacing:.3px;
-}
+/* ── Replacement panel ── */
+.repl-panel { border-radius:10px; border:1px solid #ddd6fe; background:#f5f3ff; padding:8px 12px; margin-bottom:10px; }
+.repl-panel-inactive { border-color:#e2e8f0; background:#f8fafc; }
+.repl-badge-active { display:inline-flex; align-items:center; gap:4px; font-size:8px; font-weight:800; padding:2px 7px; border-radius:99px; background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe; text-transform:uppercase; letter-spacing:.3px; }
+.repl-restore-btn { font-size:9px; font-weight:700; padding:3px 9px; border-radius:8px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; cursor:pointer; transition:opacity .15s; }
+.repl-restore-btn:hover { opacity:.8; }
+.repl-assign-btn { width:100%; height:34px; border-radius:8px; border:none; cursor:pointer; background:#7c3aed; color:white; font-size:11px; font-weight:700; transition:opacity .15s; }
+.repl-assign-btn:hover { opacity:.85; }
+.repl-history-row { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:5px 8px; border-radius:8px; background:white; border:1px solid #f1f5f9; }
+.repl-details summary { font-size:9px; font-weight:800; color:#94a3b8; cursor:pointer; text-transform:uppercase; letter-spacing:.5px; user-select:none; list-style:none; display:flex; align-items:center; gap:5px; }
+.repl-details summary::-webkit-details-marker { display:none; }
+.repl-details[open] summary .repl-chevron { transform:rotate(90deg); }
+.repl-chevron { display:inline-block; transition:transform .15s; font-size:9px; }
+.repl-assign-details summary { font-size:9px; font-weight:800; color:#7c3aed; cursor:pointer; text-transform:uppercase; letter-spacing:.5px; user-select:none; list-style:none; display:flex; align-items:center; gap:5px; }
+.repl-assign-details summary::-webkit-details-marker { display:none; }
+.repl-assign-details[open] summary .repl-chevron { transform:rotate(90deg); }
 </style>
 
 <div class="mod-wrap">
@@ -168,7 +174,8 @@
         Filtrer
     </button>
     @if($search || request('filiere') || $typeFilter)
-    <a href="{{ route('modules.index', $anneeFilter ? ['annee'=>$anneeFilter] : []) }}" class="mod-btn mod-btn-ghost" style="padding:8px 14px;">Réinitialiser</a>
+    <a href="{{ route('modules.index', $anneeFilter ? ['annee'=>$anneeFilter] : []) }}"
+       class="mod-btn mod-btn-ghost" style="padding:8px 14px;">Réinitialiser</a>
     @endif
 </form>
 
@@ -221,12 +228,17 @@
                 $doneHours   = $anneeRows->isNotEmpty()
                     ? round($anneeRows->avg(fn($r) => $r->total_minutes / 60), 1)
                     : 0;
-                $pct      = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
-                $pctColor = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
+                $pct         = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
+                $pctColor    = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
+
+                // Replacement state
+                $hasReplacement  = (bool) $module->id_user_remplacant;
+                $replHistory     = $module->formateurHistory ?? collect();
+                $pastReplacements = $replHistory->where('type', 'remplacement')->where('is_active', false);
             @endphp
 
             <div class="mod-card">
-                {{-- Badges --}}
+                {{-- Type + Année badges --}}
                 <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
                     <span class="mod-badge mod-badge-{{ $module->type }}">
                         {{ $module->type === 'regional' ? '🌍 Régional' : '📍 Local' }}
@@ -240,7 +252,7 @@
                     </span>
                 </div>
 
-                {{-- Name --}}
+                {{-- Module name --}}
                 <div style="font-size:13px;font-weight:800;color:#1e293b;padding-right:80px;line-height:1.3;margin-bottom:10px;">
                     {{ $module->name }}
                 </div>
@@ -265,7 +277,7 @@
                     </div>
                 </div>
 
-                {{-- Progress bars — one per group --}}
+                {{-- Progress bars per group --}}
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b;margin-bottom:4px;">
                         <span>Progression par groupe</span>
@@ -275,7 +287,7 @@
                     </div>
                     @if($anneeRows->isEmpty())
                         <div class="mod-progress-track">
-                            <div class="mod-progress-fill" style="width:0%; background:#e2e8f0;"></div>
+                            <div class="mod-progress-fill" style="width:0%;background:#e2e8f0;"></div>
                         </div>
                         <div style="font-size:8px;color:#94a3b8;margin-top:3px;">Aucune séance effectuée</div>
                     @else
@@ -294,35 +306,140 @@
                                     </span>
                                 </div>
                                 <div class="mod-progress-track">
-                                    <div class="mod-progress-fill" style="width:{{ $gPct }}%; background:{{ $gColor }};"></div>
+                                    <div class="mod-progress-fill" style="width:{{ $gPct }}%;background:{{ $gColor }};"></div>
                                 </div>
                             </div>
                         @endforeach
                     @endif
                 </div>
 
-                {{-- Formateur principal --}}
+                {{-- ════════════════════════════════════════════════════════
+                     REPLACEMENT PANEL
+                ════════════════════════════════════════════════════════ --}}
+                <div style="padding-top:8px;border-top:1px solid #f1f5f9;margin-bottom:10px;">
+
+                    {{-- CASE A: Replacement is currently active --}}
+                    @if($hasReplacement && $module->remplacant)
+                        <div class="repl-panel">
+                            {{-- Header row --}}
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                                <div style="display:flex;align-items:center;gap:6px;">
+                                    <div style="width:6px;height:6px;border-radius:50%;background:#7c3aed;flex-shrink:0;"></div>
+                                    <span style="font-size:10px;font-weight:700;color:#5b21b6;">
+                                        {{ $module->remplacant->name }}
+                                    </span>
+                                    <span class="repl-badge-active">Remplaçant actif</span>
+                                </div>
+                                @if($canEdit)
+                                <form method="POST"
+                                      action="{{ route('modules.replacement.deactivate', $module) }}"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Restaurer {{ addslashes($module->formateur->name ?? 'le formateur original') }} comme formateur principal ?')">
+                                    @csrf
+                                    <button type="submit" class="repl-restore-btn">
+                                        ↩ Restaurer l'original
+                                    </button>
+                                </form>
+                                @endif
+                            </div>
+                            {{-- Original formateur (strikethrough) --}}
+                            <div style="font-size:9px;color:#7c3aed;">
+                                Remplace :
+                                <span style="text-decoration:line-through;color:#94a3b8;margin-left:3px;">
+                                    {{ $module->formateur->name ?? '—' }}
+                                </span>
+                            </div>
+                            {{-- Active since --}}
+                            @php
+                                $activeRecord = $replHistory->where('type','remplacement')->where('is_active', true)->first();
+                            @endphp
+                            @if($activeRecord)
+                            <div style="font-size:8px;color:#a78bfa;margin-top:3px;">
+                                Depuis le {{ $activeRecord->start_date->format('d/m/Y') }}
+                            </div>
+                            @endif
+                        </div>
+
+                    {{-- CASE B: No active replacement — show assign form --}}
+                    @elseif($canEdit)
+                        <details class="repl-assign-details">
+                            <summary>
+                                <span class="repl-chevron">▶</span>
+                                <svg width="10" height="10" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                Affecter un remplaçant
+                            </summary>
+                            <form method="POST"
+                                  action="{{ route('modules.replacement.activate', $module) }}"
+                                  style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+                                @csrf
+                                <select name="id_user_remplacant" required
+                                        style="width:100%;height:36px;padding:0 10px;border-radius:8px;
+                                               border:1.5px solid #ddd6fe;background:#faf5ff;font-size:12px;
+                                               color:#1e293b;outline:none;box-sizing:border-box;">
+                                    <option value="">— Choisir un formateur —</option>
+                                    @foreach($formateurs as $f)
+                                        @if($f->id !== $module->id_user)
+                                            <option value="{{ $f->id }}">{{ $f->name }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="repl-assign-btn">
+                                    Activer le remplacement
+                                </button>
+                                <p style="font-size:9px;color:#94a3b8;margin:0;">
+                                    Le remplacement sera propagé aux séances futures. L'historique passé est conservé.
+                                </p>
+                            </form>
+                        </details>
+                    @endif
+
+                    {{-- PAST REPLACEMENTS HISTORY --}}
+                    @if($pastReplacements->isNotEmpty())
+                        <details class="repl-details" style="margin-top:8px;">
+                            <summary>
+                                <span class="repl-chevron">▶</span>
+                                Historique ({{ $pastReplacements->count() }} remplacement{{ $pastReplacements->count() > 1 ? 's' : '' }} passé{{ $pastReplacements->count() > 1 ? 's' : '' }})
+                            </summary>
+                            <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+                                @foreach($pastReplacements->sortByDesc('start_date') as $record)
+                                    <div class="repl-history-row">
+                                        <div>
+                                            <span style="font-size:10px;font-weight:700;color:#1e293b;">
+                                                {{ $record->formateur->name ?? '—' }}
+                                            </span>
+                                        </div>
+                                        <div style="text-align:right;flex-shrink:0;">
+                                            <div style="font-size:9px;color:#64748b;">
+                                                {{ $record->start_date->format('d/m/Y') }}
+                                                →
+                                                {{ $record->end_date ? $record->end_date->format('d/m/Y') : 'en cours' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endif
+
+                </div>
+                {{-- ════ END REPLACEMENT PANEL ════ --}}
+
+                {{-- Principal formateur --}}
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                     <div style="width:20px;height:20px;border-radius:50%;background:{{ $light }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="11" height="11" fill="none" stroke="{{ $accent }}" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     </div>
-                    <span style="font-size:10px;color:#64748b;font-weight:500;">{{ $module->formateur->name ?? '—' }}</span>
+                    <span style="font-size:10px;color:#64748b;font-weight:500;">
+                        {{ $module->formateur->name ?? '—' }}
+                        @if($hasReplacement)
+                            <span style="color:#94a3b8;text-decoration:line-through;font-size:9px;margin-left:2px;">principal</span>
+                        @endif
+                    </span>
                 </div>
 
-                {{-- Formateur remplaçant (si défini) --}}
-                @if($module->remplacant)
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                    <div style="width:20px;height:20px;border-radius:50%;background:#f5f3ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <svg width="11" height="11" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    </div>
-                    <span style="font-size:10px;color:#7c3aed;font-weight:600;">{{ $module->remplacant->name }}</span>
-                    <span class="remplacant-pill">Remplaçant</span>
-                </div>
-                @else
                 <div style="margin-bottom:8px;"></div>
-                @endif
 
-                {{-- Actions --}}
+                {{-- ACTIONS FOOTER --}}
                 @if($canEdit || $canDelete)
                 <div style="display:flex;gap:6px;padding-top:8px;border-top:1px solid #f1f5f9;">
                     @if($canEdit)
@@ -335,9 +452,8 @@
                                 {{ $module->coefficience }},
                                 {{ $module->nbr_controles ?? 1 }},
                                 '{{ $module->id_user ?? '' }}',
-                                '{{ $module->id_user_remplacant ?? '' }}',
-                                '{{ $module->type }}',
-                                '{{ $module->annee ?? 3 }}'
+                                '{{ $module->annee ?? 3 }}',
+                                '{{ $module->type }}'
                             )">✎ Modifier</button>
                     @endif
                     @if($canDelete)
@@ -351,7 +467,8 @@
                     @endif
                 </div>
                 @endif
-            </div>
+
+            </div>{{-- .mod-card --}}
 
         @endforeach
         </div>
@@ -374,9 +491,10 @@
 
 </div>{{-- .mod-wrap --}}
 
+
 {{-- ════════════════════════════════════════════════════════════
-     MODAL CRÉER (avec nbr_controles)
-     ════════════════════════════════════════════════════════════ --}}
+     MODAL CRÉER
+════════════════════════════════════════════════════════════ --}}
 @if($canCreate)
 <div id="modal-create" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="mod-modal">
@@ -406,33 +524,31 @@
                 <input type="text" name="name" class="mod-input" required placeholder="Ex : PHP & Laravel…" value="{{ old('name') }}">
             </div>
 
-            {{-- Heures + Coeff + Nbre contrôles (3 colonnes) --}}
+            {{-- Heures + Coeff + Nbre contrôles --}}
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
-                    <label class="mod-label">Heures totales <span style="color:#ef4444;">*</span></label>
+                    <label class="mod-label">Heures <span style="color:#ef4444;">*</span></label>
                     <input type="number" name="nbr_heure" class="mod-input" required min="1" max="500" placeholder="75" value="{{ old('nbr_heure') }}">
                 </div>
                 <div>
-                    <label class="mod-label">Coefficient <span style="color:#ef4444;">*</span></label>
+                    <label class="mod-label">Coeff. <span style="color:#ef4444;">*</span></label>
                     <input type="number" name="coefficience" class="mod-input" required min="0.5" max="10" step="0.5" placeholder="3" value="{{ old('coefficience') }}">
                 </div>
                 <div>
                     <label class="mod-label">
-                        Nbre contrôles
+                        Contrôles
                         <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
                     </label>
                     <input type="number" name="nbr_controles" class="mod-input"
                            min="0" max="10" step="1" placeholder="1"
-                           value="{{ old('nbr_controles', 1) }}"
-                           title="0 = EFM uniquement · L'EFM est toujours ajouté automatiquement">
+                           value="{{ old('nbr_controles', 1) }}">
                 </div>
             </div>
 
             {{-- Formateur principal --}}
             <div>
                 <label class="mod-label">Formateur responsable <span style="color:#ef4444;">*</span></label>
-                <select name="id_user" id="create-id-user" class="mod-input" required
-                        onchange="filterRemplacantCreate(this.value)">
+                <select name="id_user" id="create-id-user" class="mod-input" required>
                     <option value="">— Sélectionner —</option>
                     @foreach($formateurs as $f)
                         <option value="{{ $f->id }}">{{ $f->name }}</option>
@@ -440,41 +556,19 @@
                 </select>
             </div>
 
-            {{-- Formateur remplaçant (optionnel) --}}
-            <div>
-                <label class="mod-label">
-                    Formateur remplaçant
-                    <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;">(optionnel)</span>
-                </label>
-                <select name="id_user_remplacant" id="create-remplacant" class="mod-input"
-                        style="border-color:#ddd6fe;">
-                    <option value="">— Aucun —</option>
-                    @foreach($formateurs as $f)
-                        <option value="{{ $f->id }}">{{ $f->name }}</option>
-                    @endforeach
-                </select>
-                <p style="font-size:9px;color:#94a3b8;margin-top:4px;display:flex;align-items:center;gap:4px;">
-                    <svg width="10" height="10" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    En cas d'absence du formateur principal (maladie, empêchement…)
-                </p>
-            </div>
-
             {{-- Année --}}
             <div>
-                <label class="mod-label">Année concernée <span style="color:#ef4444;">*</span></label>
+                <label class="mod-label">Année <span style="color:#ef4444;">*</span></label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                     @foreach([[1,'1ère An.'],[2,'2ème An.'],[3,'3ème An.']] as [$val,$lbl])
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;transition:all .15s;font-size:12px;font-weight:600;color:#475569;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:12px;font-weight:600;color:#475569;">
                         <input type="radio" name="annee" value="{{ $val }}"
-                               {{ (old('annee', '1') === (string)$val) ? 'checked' : '' }}
+                               {{ (old('annee','1') === (string)$val) ? 'checked' : '' }}
                                style="accent-color:{{ $accent }};">
                         {{ $lbl }}
                     </label>
                     @endforeach
                 </div>
-                <p style="font-size:9px;color:#94a3b8;margin-top:4px;">
-                    Détermine dans quelle année ce module apparaît dans l'emploi du temps
-                </p>
             </div>
 
             {{-- Type --}}
@@ -500,9 +594,11 @@
 </div>
 @endif
 
+
 {{-- ════════════════════════════════════════════════════════════
-     MODAL ÉDITER (avec nbr_controles)
-     ════════════════════════════════════════════════════════════ --}}
+     MODAL ÉDITER
+     NOTE: id_user_remplacant removed — use the replacement panel instead
+════════════════════════════════════════════════════════════ --}}
 @if($canEdit)
 <div id="modal-edit" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="mod-modal">
@@ -514,6 +610,12 @@
             <button onclick="document.getElementById('modal-edit').classList.remove('open')"
                     style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
         </div>
+
+        <div style="margin-bottom:14px;padding:10px 12px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" fill="none" stroke="#f59e0b" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Pour changer le formateur remplaçant, utilisez le panneau de remplacement sur la carte du module.
+        </div>
+
         <form id="edit-form" method="POST" style="display:flex;flex-direction:column;gap:14px;">
             @csrf @method('PATCH')
 
@@ -523,32 +625,26 @@
                 <input type="text" name="name" id="edit-name" class="mod-input" required>
             </div>
 
-            {{-- Heures + Coeff + Nbre contrôles (3 colonnes) --}}
+            {{-- Heures + Coeff + Nbre contrôles --}}
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
-                    <label class="mod-label">Heures totales</label>
+                    <label class="mod-label">Heures</label>
                     <input type="number" name="nbr_heure" id="edit-heure" class="mod-input" required min="1" max="500">
                 </div>
                 <div>
-                    <label class="mod-label">Coefficient</label>
+                    <label class="mod-label">Coeff.</label>
                     <input type="number" name="coefficience" id="edit-coeff" class="mod-input" required min="0.5" max="10" step="0.5">
                 </div>
                 <div>
-                    <label class="mod-label">
-                        Nbre contrôles
-                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
-                    </label>
-                    <input type="number" name="nbr_controles" id="edit-nbr-controles" class="mod-input"
-                           min="0" max="10" step="1" placeholder="1"
-                           title="0 = EFM uniquement">
+                    <label class="mod-label">Contrôles</label>
+                    <input type="number" name="nbr_controles" id="edit-nbr-controles" class="mod-input" min="0" max="10" step="1">
                 </div>
             </div>
 
-            {{-- Formateur principal --}}
+            {{-- Formateur principal only --}}
             <div>
-                <label class="mod-label">Formateur <span style="color:#ef4444;">*</span></label>
-                <select name="id_user" id="edit-user" class="mod-input" required
-                        onchange="filterRemplacantEdit(this.value)">
+                <label class="mod-label">Formateur principal <span style="color:#ef4444;">*</span></label>
+                <select name="id_user" id="edit-user" class="mod-input" required>
                     <option value="">— Sélectionner —</option>
                     @foreach($formateurs as $f)
                         <option value="{{ $f->id }}">{{ $f->name }}</option>
@@ -556,30 +652,9 @@
                 </select>
             </div>
 
-            {{-- Formateur remplaçant (optionnel) --}}
-            <div>
-                <label class="mod-label">
-                    Formateur remplaçant
-                    <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;">(optionnel)</span>
-                </label>
-                <select name="id_user_remplacant" id="edit-remplacant" class="mod-input"
-                        style="border-color:#ddd6fe;"
-                        onfocus="this.style.borderColor='#7c3aed'"
-                        onblur="this.style.borderColor='#ddd6fe'">
-                    <option value="">— Aucun —</option>
-                    @foreach($formateurs as $f)
-                        <option value="{{ $f->id }}">{{ $f->name }}</option>
-                    @endforeach
-                </select>
-                <p style="font-size:9px;color:#94a3b8;margin-top:4px;display:flex;align-items:center;gap:4px;">
-                    <svg width="10" height="10" fill="none" stroke="#7c3aed" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    En cas d'absence du formateur principal
-                </p>
-            </div>
-
             {{-- Année --}}
             <div>
-                <label class="mod-label">Année concernée <span style="color:#ef4444;">*</span></label>
+                <label class="mod-label">Année <span style="color:#ef4444;">*</span></label>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                     @foreach([[1,'1ère An.'],[2,'2ème An.'],[3,'3ème An.']] as [$val,$lbl])
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:12px;font-weight:600;color:#475569;">
@@ -613,9 +688,10 @@
 </div>
 @endif
 
+
 {{-- ════════════════════════════════════════════════════════════
      MODAL SUPPRIMER
-     ════════════════════════════════════════════════════════════ --}}
+════════════════════════════════════════════════════════════ --}}
 @if($canDelete)
 <div id="modal-delete" class="mod-overlay" onclick="if(event.target===this)this.classList.remove('open')">
     <div class="mod-modal" style="max-width:400px;">
@@ -648,6 +724,8 @@
 </div>
 @endif
 
+
+{{-- ════ JAVASCRIPT ════ --}}
 <script>
 // ── Créer modal ───────────────────────────────────────────────
 function openCreateModal(filiereId) {
@@ -660,31 +738,17 @@ function setCreateType(type) {
     document.getElementById('create-btn-local').className    = 'type-btn' + (type === 'local'    ? ' active-local'    : '');
 }
 
-// Empêcher de choisir le même formateur comme remplaçant (créer)
-function filterRemplacantCreate(userId) {
-    const sel = document.getElementById('create-remplacant');
-    for (const opt of sel.options) {
-        opt.disabled = (opt.value !== '' && opt.value === userId);
-        if (opt.disabled && sel.value === opt.value) sel.value = '';
-    }
-}
-
 // ── Éditer modal ──────────────────────────────────────────────
-function openEditModal(id, name, heure, coeff, nbrControles, userId, remplacantId, type, annee) {
+// NOTE: id_user_remplacant param removed — use replacement panel on card
+function openEditModal(id, name, heure, coeff, nbrControles, userId, annee, type) {
     document.getElementById('edit-form').action          = '/modules/' + id;
     document.getElementById('edit-name').value           = name;
     document.getElementById('edit-heure').value          = heure;
     document.getElementById('edit-coeff').value          = coeff;
     document.getElementById('edit-nbr-controles').value  = nbrControles;
     document.getElementById('edit-user').value           = userId;
-    document.getElementById('edit-remplacant').value     = remplacantId || '';
     document.getElementById('edit-subtitle').textContent = 'Modification : ' + name;
     setEditType(type);
-    // Désactiver le formateur principal dans le select remplaçant
-    filterRemplacantEdit(userId);
-    // Remettre la valeur après le filtre
-    document.getElementById('edit-remplacant').value = remplacantId || '';
-    // Set annee radio
     ['1','2','3'].forEach(v => {
         const r = document.getElementById('edit-annee-' + v);
         if (r) r.checked = (String(annee) === v);
@@ -697,15 +761,6 @@ function setEditType(type) {
     document.getElementById('edit-btn-local').className    = 'type-btn' + (type === 'local'    ? ' active-local'    : '');
 }
 
-// Empêcher de choisir le même formateur comme remplaçant (éditer)
-function filterRemplacantEdit(userId) {
-    const sel = document.getElementById('edit-remplacant');
-    for (const opt of sel.options) {
-        opt.disabled = (opt.value !== '' && opt.value === userId);
-        if (opt.disabled && sel.value === opt.value) sel.value = '';
-    }
-}
-
 // ── Supprimer modal ───────────────────────────────────────────
 function openDeleteModal(action, name, emploisCount) {
     document.getElementById('delete-form').action      = action;
@@ -713,12 +768,12 @@ function openDeleteModal(action, name, emploisCount) {
     const btn  = document.getElementById('delete-btn');
     const warn = document.getElementById('delete-warning');
     if (emploisCount > 0) {
-        warn.innerHTML  = '⚠️ Impossible : ce module est utilisé dans <strong>' + emploisCount + '</strong> séance(s).';
-        btn.disabled    = true;
+        warn.innerHTML    = '⚠️ Impossible : ce module est utilisé dans <strong>' + emploisCount + '</strong> séance(s).';
+        btn.disabled      = true;
         btn.style.opacity = '.4';
         btn.style.cursor  = 'not-allowed';
     } else {
-        warn.textContent  = 'Cette action est irréversible.';
+        warn.textContent  = 'Cette action est irréversible. L\'historique des remplacements sera également supprimé.';
         btn.disabled      = false;
         btn.style.opacity = '1';
         btn.style.cursor  = 'pointer';

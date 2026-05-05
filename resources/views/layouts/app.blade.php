@@ -19,7 +19,6 @@
         to   { opacity:0; transform:translateX(30px); }
     }
     </style>
-    {{-- Sidebar hidden on load via CSS --}}
     <style>
         #sidebar {
             transform: translateX(-100%);
@@ -54,7 +53,7 @@
     $badgeStyle   = $badgeStyles[Auth::user()->role]   ?? 'bg-blue-100 text-blue-700';
 @endphp
 
-{{-- ════ BACKDROP — inline style="display:none" guarantees it's invisible on load ════ --}}
+{{-- ════ BACKDROP ════ --}}
 <div id="sidebar-backdrop"
      onclick="closeSidebar()"
      class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
@@ -101,61 +100,55 @@
 <div class="flex flex-col h-screen w-screen overflow-hidden">
 
     {{-- NAVBAR --}}
-    <header class="h-[60px] bg-white border-b border-slate-200 flex items-center
-                   justify-between px-5 flex-shrink-0 shadow-sm z-30 relative">
-        <div class="flex items-center gap-3">
+    <header class="h-[56px] bg-white border-b border-slate-100 flex items-center
+                   justify-between px-5 flex-shrink-0 z-30 relative">
 
-            {{-- Hamburger — pure JS, works on every page --}}
+        {{-- LEFT: Hamburger + title --}}
+        <div class="flex items-center gap-4">
             <button onclick="openSidebar()"
-                    class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
-                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    class="w-8 h-8 flex items-center justify-center rounded-lg
+                           text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all">
+                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h10M4 18h16"/>
                 </svg>
             </button>
-
-            <h1 class="text-sm font-semibold text-slate-700">@yield('page-title', 'Dashboard')</h1>
+            <h1 class="text-sm font-semibold text-slate-600 tracking-tight">@yield('page-title', 'Dashboard')</h1>
         </div>
 
-        <div class="flex items-center gap-3">
+        {{-- RIGHT --}}
+        <div class="flex items-center gap-1">
 
-            {{-- Notification bell --}}
-            <div class="relative">
-                <button class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200
-                               flex items-center justify-center hover:bg-slate-100 transition-colors">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                    </svg>
-                </button>
-                <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </div>
+            {{-- ════ NOTIFICATION BELL (replaces old static bell) ════ --}}
+            @include('partials.notifications.bell')
 
-            {{-- User info --}}
-            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-                <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white {{ $avatarColor }}">
-                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', Auth::user()->name)[1] ?? '', 0, 1)) }}
-                </div>
-                <div class="hidden sm:block">
+            {{-- Divider --}}
+            <div class="w-px h-4 bg-slate-200 mx-2"></div>
+
+            {{-- User --}}
+            <div class="flex items-center gap-2.5">
+                <div class="text-right hidden sm:block">
                     <p class="text-xs font-semibold text-slate-700 leading-none">{{ Auth::user()->name }}</p>
                     <p class="text-[10px] text-slate-400 mt-0.5">{{ ucfirst(Auth::user()->role) }}</p>
                 </div>
-                <span class="hidden md:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full {{ $badgeStyle }}">
-                    {{ ucfirst(Auth::user()->role) }}
-                </span>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center
+                            text-[11px] font-bold text-white {{ $avatarColor }}">
+                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', Auth::user()->name)[1] ?? '', 0, 1)) }}
+                </div>
             </div>
+
+            {{-- Divider --}}
+            <div class="w-px h-4 bg-slate-200 mx-2"></div>
 
             {{-- Logout --}}
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit"
-                        class="flex items-center gap-1.5 text-xs font-medium text-slate-500
-                               hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200
-                               hover:border-red-200 px-3 py-2 rounded-xl transition-all">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg
+                               text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                    <svg class="w-[16px] h-[16px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
                               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                     </svg>
-                    <span class="hidden sm:inline">Déconnexion</span>
                 </button>
             </form>
         </div>
@@ -171,7 +164,7 @@
 {{-- Toast container --}}
 <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;"></div>
 
-{{-- ════ SIDEBAR JS — defined before page scripts, always available ════ --}}
+{{-- ════ SIDEBAR JS ════ --}}
 <script>
 function openSidebar() {
     var sidebar  = document.getElementById('sidebar');
@@ -202,20 +195,22 @@ document.addEventListener('keydown', function (e) {
 });
 </script>
 
+{{-- ════ REVERB / ECHO ════ --}}
 <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
 <script>
 window.Pusher = Pusher;
 window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: '{{ env("REVERB_APP_KEY") }}',
-    wsHost: '{{ env("REVERB_HOST", "localhost") }}',
-    wsPort: {{ env("REVERB_PORT", 8080) }},
-    wssPort: {{ env("REVERB_PORT", 8080) }},
-    forceTLS: false,
+    broadcaster:       'reverb',
+    key:               '{{ env("REVERB_APP_KEY") }}',
+    wsHost:            '{{ env("REVERB_HOST", "localhost") }}',
+    wsPort:            {{ env("REVERB_PORT", 8080) }},
+    wssPort:           {{ env("REVERB_PORT", 8080) }},
+    forceTLS:          false,
     enabledTransports: ['ws', 'wss'],
 });
 
+// ── Toast helper (used by all listeners below) ─────────────
 function showToast(icon, title, body, url) {
     const toast = document.createElement('div');
     toast.style.cssText = `
@@ -231,7 +226,8 @@ function showToast(icon, title, body, url) {
             <div style="font-size:12px;font-weight:800;color:#1e293b;margin-bottom:3px;">${title}</div>
             <div style="font-size:11px;color:#64748b;line-height:1.4;">${body}</div>
         </div>
-        <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:0;flex-shrink:0;">×</button>
+        <button onclick="this.parentElement.remove()"
+                style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:0;flex-shrink:0;">×</button>
     `;
     if (url) toast.addEventListener('click', (e) => {
         if (e.target.tagName !== 'BUTTON') window.location.href = url;
@@ -244,23 +240,17 @@ const _toastStyle = document.createElement('style');
 _toastStyle.textContent = `@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }`;
 document.head.appendChild(_toastStyle);
 
+// ══════════════════════════════════════════════════════════════
+// REAL-TIME LISTENERS
+// ══════════════════════════════════════════════════════════════
 @auth
 window.Echo.private('user.{{ Auth::id() }}')
+ 
     .listen('.ReclamationAssigned', (e) => {
         showToast('📋', 'Réclamation assignée !',
             `Réclamation #${e.reclamation_id} de ${e.stagiaire} vous a été assignée.`, e.url);
-    });
-
-@can('reclamation-manage')
-window.Echo.channel('reclamations.admin')
-    .listen('.ReclamationCreated', (e) => {
-        showToast(e.type_icon, 'Nouvelle réclamation !', `${e.stagiaire} : ${e.description}`, e.url);
-        const badge = document.getElementById('reclamations-count');
-        if (badge) badge.textContent = parseInt(badge.textContent || 0) + 1;
-    });
-@endcan
-
-window.Echo.private('user.{{ Auth::id() }}')
+    })
+ 
     .listen('.ReclamationDeleted', (e) => {
         showToast('🗑️', 'Réclamation supprimée',
             `La réclamation #${e.reclamation_id} a été supprimée.`, null);
@@ -272,12 +262,66 @@ window.Echo.private('user.{{ Auth::id() }}')
         if (window.location.href.includes('/reclamations/' + e.reclamation_id)) {
             setTimeout(() => window.location.href = '{{ route("reclamations.index") }}', 2000);
         }
+    })
+ 
+    // ── New notification (first message) ──────────────────────────
+    .listen('.NotificationCreated', (e) => {
+        const currentId  = window.__currentReclamationId ?? null;
+        const notifRecId = e.data?.reclamation_id ?? null;
+ 
+        // Already viewing this reclamation → silently mark as read
+        if (currentId && notifRecId && currentId === notifRecId) {
+            fetch(`/notifications/${e.id}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept':       'application/json',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (typeof setUnreadCount === 'function') setUnreadCount(data.unread_count ?? 0);
+            })
+            .catch(() => {});
+            return;
+        }
+ 
+        if (typeof prependNotification === 'function') prependNotification(e);
+    })
+ 
+    // ── Existing notification incremented (2nd, 3rd… message) ────
+    .listen('.NotificationUpdated', (e) => {
+        const currentId  = window.__currentReclamationId ?? null;
+        const notifRecId = e.data?.reclamation_id ?? null;
+ 
+        // Already viewing this reclamation → silently mark as read
+        if (currentId && notifRecId && currentId === notifRecId) {
+            fetch(`/notifications/${e.id}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept':       'application/json',
+                },
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (typeof setUnreadCount === 'function') setUnreadCount(data.unread_count ?? 0);
+            })
+            .catch(() => {});
+            return;
+        }
+ 
+        // Patch the existing bell item in-place
+        if (typeof patchNotification === 'function') patchNotification(e);
     });
-
+ 
+ 
 @can('reclamation-manage')
 window.Echo.channel('reclamations.admin')
     .listen('.ReclamationCreated', (e) => {
-        showToast(e.type_icon, '🔔 Nouvelle réclamation !', `${e.stagiaire} : ${e.description}`, e.url);
+        showToast(e.type_icon, 'Nouvelle réclamation !', `${e.stagiaire} : ${e.description}`, e.url);
+        const badge = document.getElementById('reclamations-count');
+        if (badge) badge.textContent = parseInt(badge.textContent || 0) + 1;
     })
     .listen('.ReclamationDeleted', (e) => {
         showToast('🗑️', 'Réclamation supprimée', `Réclamation #${e.reclamation_id} supprimée.`, null);

@@ -23,13 +23,12 @@
             'icon'  => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
             'color' => '#2563eb', 'bg' => '#eff6ff',
             'perms' => [
-                'emploi-view'            => '📅 Consulter son planning',
+                'emploi-view'            => '📅 Consulter son planning (formateur)',
                 'emploi-view-all-groups' => '👑 Consulter tous les groupes',
                 'emploi-create'          => '➕ Créer une séance',
                 'emploi-edit'            => '✏️ Modifier une séance',
                 'emploi-delete'          => '🗑️ Supprimer une séance',
-                'emploi-lien'            => '🔗 Gérer les liens de réunion',
-                'emploi-change-module'   => '📚 Changer le module d\'une séance',
+                'emploi-lien'            => '🔗 Gérer les liens de réunion (formateur)',
             ]
         ],
         'user' => [

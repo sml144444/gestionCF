@@ -707,6 +707,7 @@
 <?php unset($__componentOriginal460a283b8831bc43d8ca37a2ac46781c); ?>
 <?php endif; ?>
 
+
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reclamation-manage')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
@@ -783,6 +784,8 @@
 <?php endif; ?>
 
 
+
+
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reportation-manage')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
@@ -808,6 +811,7 @@
 
 
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('reportation-view-assigned')): ?>
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->denies('reportation-manage')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6cced52613a484e7295a90162a92d81b = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.nav-item','data' => ['route' => ''.e(route('reportations.assigned')).'','label' => 'Reportations assignées','icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
@@ -827,6 +831,7 @@
 <?php if (isset($__componentOriginal6cced52613a484e7295a90162a92d81b)): ?>
 <?php $component = $__componentOriginal6cced52613a484e7295a90162a92d81b; ?>
 <?php unset($__componentOriginal6cced52613a484e7295a90162a92d81b); ?>
+<?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>
 
@@ -857,6 +862,7 @@
 <?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>
+
 
 <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('absence-view-all')): ?>
 <?php if (isset($component)) { $__componentOriginal6cced52613a484e7295a90162a92d81b = $component; } ?>

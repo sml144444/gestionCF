@@ -1,15 +1,3 @@
-{{-- resources/views/stagiaire/dashboard.blade.php --}}
-{{--
-    Controller should pass:
-    $stats = [
-        'absences_count'     => AbsenceRetard::where('id_user', auth()->id())->where('type','absence')->count(),
-        'retards_count'      => AbsenceRetard::where('id_user', auth()->id())->where('type','retard')->count(),
-        'absences_injust'    => AbsenceRetard::where('id_user', auth()->id())->where('justifie', false)->count(),
-        'cours_semaine'      => count of emplois this week for this stagiaire's groupe,
-    ]
-    $prochaines_seances = EmploiDuTemps upcoming this week for this stagiaire's groupe (limit 5)
-    $derniers_documents  = Cours (ressources) latest for this stagiaire's groupe (limit 4)
---}}
 @extends('layouts.app')
 @section('title', 'Espace Stagiaire')
 @section('page-title', 'Dashboard')
@@ -23,203 +11,296 @@
 @endphp
 
 {{-- ══ Welcome Banner ══ --}}
-<div class="bg-white rounded-2xl border border-slate-200 px-6 py-5 mb-6 shadow-sm">
-    <div class="flex items-start justify-between">
+<div class="relative overflow-hidden rounded-2xl mb-6"
+     style="background: linear-gradient(135deg, #1a4f8a 0%, #1a6fa8 60%, #2563eb 100%);">
+    <div class="absolute inset-0"
+         style="background-image: radial-gradient(circle at 85% 15%, rgba(255,255,255,0.12) 0%, transparent 50%);"></div>
+    <div class="relative px-6 py-6 flex items-start justify-between">
         <div>
-            <h2 class="text-lg font-semibold text-slate-800">Bonjour, {{ $user->name }} 👋</h2>
-            <p class="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p class="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-1">Stagiaire</p>
+            <h2 class="text-2xl font-bold text-white">Bonjour, {{ $user->name }} 👋</h2>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
                 @if($filiere)
-                    <span class="inline-flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
-                        </svg>
-                        <span class="font-medium text-slate-700">{{ $filiere->name }}</span>
-                    </span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-100 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <svg class="w-3 h-3 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
+                    </svg>
+                    {{ $filiere->name }}
+                </span>
                 @endif
                 @if($groupe)
-                    <span class="inline-flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857"/>
-                        </svg>
-                        <span class="font-medium text-slate-700">{{ $groupe->name }}</span>
-                    </span>
-                    <span class="text-[10px] font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                        {{ $groupe->annee }}ème Année
-                    </span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-100 bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <svg class="w-3 h-3 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857"/>
+                    </svg>
+                    {{ $groupe->name }}
+                </span>
+                <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/20 text-white">
+                    {{ $groupe->annee }}ème Année
+                </span>
                 @endif
-            </p>
+            </div>
         </div>
-        <span class="text-xs text-slate-400 hidden sm:block">{{ now()->isoFormat('dddd D MMMM') }}</span>
+        <a href="{{ route('emplois.index') }}"
+           class="hidden sm:flex items-center gap-2 bg-white/15 hover:bg-white/25 rounded-xl px-4 py-2.5 text-sm text-white font-semibold transition-colors backdrop-blur-sm flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Mon emploi du temps
+        </a>
     </div>
 </div>
 
 {{-- ══ Stats ══ --}}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                <svg class="w-5 h-5 text-[#1a5fa8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+        <div class="flex items-start justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#eff6ff;">
+                <svg class="w-5 h-5" fill="none" stroke="#1a4f8a" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
             </div>
-            <span class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Semaine</span>
+            <span class="text-[9px] font-bold uppercase tracking-wide px-2 py-1 rounded-full" style="background:#eff6ff; color:#1a4f8a;">Semaine</span>
         </div>
-        <p class="text-2xl font-bold text-slate-800">{{ $stats['cours_semaine'] ?? '—' }}</p>
-        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Cours à venir</p>
+        <p class="text-3xl font-black text-slate-800 leading-none">{{ $stats['cours_semaine'] ?? '—' }}</p>
+        <p class="text-[11px] text-slate-400 mt-1.5 uppercase tracking-widest font-medium">Cours</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+        <div class="flex items-start justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
                 <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             @if(($stats['absences_injust'] ?? 0) > 0)
-                <span class="text-[10px] font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">Non justif.</span>
+                <span class="text-[9px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-red-100 text-red-600">Non justif.</span>
             @endif
         </div>
-        <p class="text-2xl font-bold text-slate-800">{{ $stats['absences_count'] ?? '—' }}</p>
-        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Absences</p>
+        <p class="text-3xl font-black text-slate-800 leading-none">{{ $stats['absences_count'] ?? '—' }}</p>
+        <p class="text-[11px] text-slate-400 mt-1.5 uppercase tracking-widest font-medium">Absences</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+        <div class="flex items-start justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                 <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
         </div>
-        <p class="text-2xl font-bold text-slate-800">{{ $stats['retards_count'] ?? '—' }}</p>
-        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Retards</p>
+        <p class="text-3xl font-black text-slate-800 leading-none">{{ $stats['retards_count'] ?? '—' }}</p>
+        <p class="text-[11px] text-slate-400 mt-1.5 uppercase tracking-widest font-medium">Retards</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-            <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+    <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+        <div class="flex items-start justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
             </div>
         </div>
-        <p class="text-2xl font-bold text-slate-800">—</p>
-        <p class="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">Notes disponibles</p>
+        <p class="text-3xl font-black text-slate-800 leading-none">—</p>
+        <p class="text-[11px] text-slate-400 mt-1.5 uppercase tracking-widest font-medium">Notes dispo.</p>
     </div>
 
 </div>
 
-{{-- ══ Schedule + Documents ══ --}}
+{{-- ══ Session Banner ══ --}}
+@if($current_seance)
+<div class="mb-5 rounded-2xl px-5 py-4 shadow-lg flex items-center gap-4"
+     style="background: linear-gradient(135deg, #059669, #10b981);">
+    <div class="relative flex-shrink-0">
+        <div class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.361a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+            </svg>
+        </div>
+        <span class="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+        </span>
+    </div>
+    <div class="flex-1 min-w-0">
+        <p class="text-[10px] font-bold text-emerald-100 uppercase tracking-widest">Séance en cours</p>
+        <p class="text-sm font-bold text-white truncate">{{ $current_seance->module->name ?? 'Séance' }}</p>
+        <p class="text-xs text-emerald-200 mt-0.5">
+            {{ $current_seance->date_debut->format('H:i') }} – {{ $current_seance->date_fin->format('H:i') }}
+            @if($current_seance->salle) · {{ $current_seance->salle->name }} @endif
+            @if($current_seance->isDistance())
+                · 🌐
+                @if($current_seance->lien_distance)
+                    <a href="{{ $current_seance->lien_distance }}" target="_blank" class="underline font-semibold">Rejoindre</a>
+                @endif
+            @endif
+        </p>
+    </div>
+    @php $remaining = now()->diffInMinutes($current_seance->date_fin); @endphp
+    <div class="flex-shrink-0 text-right hidden sm:block">
+        <p class="text-xl font-black text-white leading-none">{{ intdiv($remaining,60) > 0 ? intdiv($remaining,60).'h '.($remaining%60).'min' : ($remaining%60).'min' }}</p>
+        <p class="text-[10px] text-emerald-300 uppercase tracking-wide">restantes</p>
+    </div>
+    <a href="{{ route('seances.show', $current_seance) }}"
+       class="flex-shrink-0 bg-white text-emerald-700 text-xs font-bold px-4 py-2 rounded-xl hover:bg-emerald-50 transition-colors">
+        Ouvrir
+    </a>
+</div>
+
+@elseif($next_seance)
+<div class="mb-5 rounded-2xl bg-white border-2 border-slate-100 px-5 py-4 shadow-sm flex items-center gap-4">
+    <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#eff6ff;">
+        <svg class="w-5 h-5" fill="none" stroke="#1a4f8a" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+    </div>
+    <div class="flex-1 min-w-0">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prochaine séance</p>
+        <p class="text-sm font-bold text-slate-800 truncate">{{ $next_seance->module->name ?? 'Séance' }}</p>
+        <p class="text-xs text-slate-400 mt-0.5">
+            {{ $next_seance->date_debut->isoFormat('ddd D MMM') }}
+            · {{ $next_seance->date_debut->format('H:i') }} – {{ $next_seance->date_fin->format('H:i') }}
+            @if($next_seance->salle) · {{ $next_seance->salle->name }} @endif
+        </p>
+    </div>
+    @php
+        $diffMins  = now()->diffInMinutes($next_seance->date_debut);
+        $diffHours = now()->diffInHours($next_seance->date_debut);
+        $diffDays  = now()->diffInDays($next_seance->date_debut);
+        [$cVal, $cUnit, $cColor] = $diffMins < 60
+            ? [$diffMins, 'min', '#ea580c']
+            : ($diffHours < 24 ? [$diffHours, 'h', '#1a4f8a'] : [$diffDays, $diffDays>1?'jours':'jour', '#475569']);
+    @endphp
+    <div class="flex-shrink-0 text-right hidden sm:block">
+        <p class="text-lg font-black leading-none" style="color:{{ $cColor }};">dans {{ $cVal }}{{ $cUnit }}</p>
+        <p class="text-[10px] text-slate-400 uppercase">{{ $next_seance->date_debut->format('H:i') }}</p>
+    </div>
+    <a href="{{ route('seances.show', $next_seance) }}"
+       class="flex-shrink-0 text-white text-xs font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
+       style="background:#1a4f8a;">Détails</a>
+</div>
+@endif
+
+{{-- ══ Programme + Sidebar ══ --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-    {{-- Programme de la semaine --}}
-    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-700">Programme de la semaine</h3>
-            <a href="{{ route('emplois.index') }}"
-               class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
-                Voir tout
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#eff6ff;">
+                    <svg class="w-4 h-4" fill="none" stroke="#1a4f8a" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-bold text-slate-700">Programme de la semaine</h3>
+            </div>
+            <a href="{{ route('emplois.index') }}" class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                Voir tout <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>
         </div>
 
         @if(isset($prochaines_seances) && $prochaines_seances->isNotEmpty())
-            <div class="divide-y divide-slate-50">
-                @foreach($prochaines_seances as $seance)
-                @php
-                    $isPast    = $seance->date_debut->isPast();
-                    $isToday   = $seance->date_debut->isToday();
-                @endphp
-                <a href="{{ route('seances.show', $seance) }}"
-                   class="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors {{ $isPast ? 'opacity-50' : '' }}">
-                    {{-- Day badge --}}
-                    <div class="w-10 text-center flex-shrink-0">
-                        <p class="text-[10px] text-slate-400 uppercase">{{ $seance->date_debut->isoFormat('ddd') }}</p>
-                        <p class="text-lg font-bold {{ $isToday ? 'text-[#1a5fa8]' : 'text-slate-700' }} leading-none">
-                            {{ $seance->date_debut->format('d') }}
-                        </p>
-                        @if($isToday)
-                            <div class="w-1 h-1 rounded-full bg-[#1a5fa8] mx-auto mt-0.5"></div>
+        <div class="divide-y divide-slate-50">
+            @foreach($prochaines_seances as $seance)
+            @php
+                $isPast  = $seance->date_debut->isPast();
+                $isToday = $seance->date_debut->isToday();
+                $isNow   = $seance->date_debut->lte(now()) && $seance->date_fin->gte(now());
+                $formateur = $seance->remplacant ?? $seance->gestionnaire;
+            @endphp
+            <a href="{{ route('seances.show', $seance) }}"
+               class="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors group {{ $isPast ? 'opacity-40' : '' }}">
+                <div class="w-11 text-center flex-shrink-0">
+                    <p class="text-[9px] text-slate-400 uppercase font-semibold">{{ $seance->date_debut->isoFormat('ddd') }}</p>
+                    <p class="text-xl font-black leading-none mt-0.5" style="{{ $isToday ? 'color:#1a4f8a;' : 'color:#1e293b;' }}">
+                        {{ $seance->date_debut->format('d') }}
+                    </p>
+                    @if($isToday)<div class="w-1.5 h-1.5 rounded-full mx-auto mt-1" style="background:#1a4f8a;"></div>@endif
+                </div>
+                <div class="w-px h-10 bg-slate-100 flex-shrink-0"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="text-sm font-bold text-slate-800 truncate">{{ $seance->module->name ?? 'Séance' }}</p>
+                        @if($isNow)
+                            <span class="text-[9px] font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full animate-pulse">EN COURS</span>
+                        @elseif($isToday)
+                            <span class="text-[9px] font-bold text-white px-2 py-0.5 rounded-full" style="background:#1a4f8a;">AUJOURD'HUI</span>
                         @endif
                     </div>
-                    {{-- Info --}}
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <p class="text-sm font-semibold text-slate-800 truncate">
-                                {{ $seance->module->name ?? 'Séance' }}
-                            </p>
-                            @if($isToday)
-                                <span class="text-[10px] font-semibold bg-[#1a5fa8] text-white px-2 py-0.5 rounded-full flex-shrink-0">Aujourd'hui</span>
-                            @endif
-                        </div>
-                        <p class="text-xs text-slate-400">
-                            {{ $seance->date_debut->format('H:i') }} – {{ $seance->date_fin->format('H:i') }}
-                            @if($seance->salle) · {{ $seance->salle->name }} @endif
-                            @if($seance->mode === 'distance')
-                                <span class="inline-flex items-center gap-1 text-blue-500">
-                                    · 🌐 Distance
-                                </span>
-                            @endif
-                        </p>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        {{ $seance->date_debut->format('H:i') }} – {{ $seance->date_fin->format('H:i') }}
+                        @if($seance->salle) · {{ $seance->salle->name }} @endif
+                        @if($seance->mode === 'distance') · 🌐 @endif
+                    </p>
+                </div>
+                @if($formateur)
+                <div class="hidden sm:flex items-center gap-1.5 flex-shrink-0">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                         style="background:#1a4f8a;">
+                        {{ strtoupper(substr($formateur->name, 0, 1)) }}
                     </div>
-                    {{-- Formateur --}}
-                    @php
-                        $formateur = $seance->remplacant ?? $seance->gestionnaire;
-                    @endphp
-                    @if($formateur)
-                    <div class="hidden sm:flex items-center gap-1.5 flex-shrink-0">
-                        <div class="w-6 h-6 rounded-full bg-[#1a4f8a] flex items-center justify-center text-[9px] font-bold text-white">
-                            {{ strtoupper(substr($formateur->name, 0, 1)) }}
-                        </div>
-                        <span class="text-[11px] text-slate-400 max-w-[80px] truncate">{{ $formateur->name }}</span>
-                    </div>
-                    @endif
-                </a>
-                @endforeach
-            </div>
+                    <span class="text-[10px] text-slate-400 max-w-[70px] truncate">{{ $formateur->name }}</span>
+                </div>
+                @endif
+                @if($isToday && !$isNow && !$isPast)
+                @php $mins = now()->diffInMinutes($seance->date_debut); @endphp
+                <div class="flex-shrink-0 hidden sm:block">
+                    <p class="text-xs font-bold" style="{{ $mins < 30 ? 'color:#ea580c;' : 'color:#94a3b8;' }}">
+                        {{ intdiv($mins,60) > 0 ? 'dans '.intdiv($mins,60).'h'.($mins%60) : 'dans '.$mins.'min' }}
+                    </p>
+                </div>
+                @endif
+            </a>
+            @endforeach
+        </div>
         @else
-            <div class="py-12 text-center">
-                <svg class="w-10 h-10 text-slate-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="py-14 text-center">
+            <div class="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background:#eff6ff;">
+                <svg class="w-7 h-7" fill="none" stroke="#1a4f8a" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
-                <p class="text-xs text-slate-400">Aucun cours programmé cette semaine</p>
-                <p class="text-[11px] text-slate-300 mt-1">L'emploi du temps sera disponible prochainement</p>
             </div>
+            <p class="text-xs font-semibold text-slate-400">Aucun cours programmé</p>
+            <p class="text-[11px] text-slate-300 mt-1">L'emploi du temps sera disponible prochainement</p>
+        </div>
         @endif
     </div>
 
-    {{-- Right column: quick links + recent documents --}}
     <div class="flex flex-col gap-5">
 
-        {{-- Quick Links --}}
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-100">
-                <h3 class="text-sm font-semibold text-slate-700">Accès rapide</h3>
+        {{-- Accès rapide --}}
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-50">
+                <h3 class="text-sm font-bold text-slate-700">Accès rapide</h3>
             </div>
             <div class="p-4 space-y-2">
                 @foreach([
-                    ['Emploi du temps',    route('emplois.index'),  'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',   'text-blue-600 bg-blue-50 hover:bg-blue-100'],
-                    ['Mes absences',       route('absences.index'), 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',                                                'text-red-500 bg-red-50 hover:bg-red-100'],
-                    ['Mes réclamations',   route('reclamations.index'),'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', 'text-slate-600 bg-slate-50 hover:bg-slate-100'],
-                    ['News / Événements',  route('news.index'),    'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z', 'text-slate-600 bg-slate-50 hover:bg-slate-100'],
-                ] as [$label, $route, $icon, $colorClass])
+                    ['Emploi du temps', route('emplois.index'),      'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',   '#1a4f8a', '#eff6ff'],
+                    ['Mes absences',    route('absences.index'),     'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',                                                '#dc2626', '#fff1f2'],
+                    ['Réclamations',    route('reclamations.index'), 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', '#475569', '#f8fafc'],
+                    ['News',            route('news.index'),         'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z', '#475569', '#f8fafc'],
+                    ['Mes notes',       route('controles.my-notes'), 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', '#059669', '#f0fdf4'],
+                ] as [$label, $route, $icon, $color, $bg])
                 <a href="{{ $route }}"
-                   class="flex items-center gap-3 rounded-xl {{ $colorClass }} px-4 py-2.5 transition-colors">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $icon }}"/>
-                    </svg>
-                    <span class="text-xs font-semibold">{{ $label }}</span>
-                    <svg class="w-3.5 h-3.5 ml-auto opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   class="group flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all hover:shadow-sm"
+                   style="background:{{ $bg }}; color:{{ $color }};">
+                    <div class="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="{{ $color }}" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $icon }}"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs font-bold">{{ $label }}</span>
+                    <svg class="w-3 h-3 ml-auto opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
                 </a>
@@ -227,19 +308,42 @@
             </div>
         </div>
 
+        {{-- Profile Card (matches formateur style) --}}
+        <div class="rounded-2xl p-5 text-white" style="background: linear-gradient(135deg, #1a4f8a, #2563eb);">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-sm font-black">
+                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-white truncate">{{ $user->name }}</p>
+                    <p class="text-[10px] text-blue-200 truncate">{{ $user->email }}</p>
+                </div>
+            </div>
+            @if($groupe)
+            <p class="text-xs text-blue-200 mb-3">{{ $groupe->name }} · {{ $groupe->annee }}ème Année</p>
+            @endif
+            <a href="{{ route('profile.show') }}"
+               class="flex items-center justify-center gap-2 w-full bg-white/15 hover:bg-white/25 rounded-xl py-2 text-xs font-bold text-white transition-colors">
+                Mon profil
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+
         {{-- Derniers documents --}}
         @if(isset($derniers_documents) && $derniers_documents->isNotEmpty())
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-100">
-                <h3 class="text-sm font-semibold text-slate-700">Documents récents</h3>
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-50">
+                <h3 class="text-sm font-bold text-slate-700">Documents récents</h3>
             </div>
             <div class="divide-y divide-slate-50">
                 @foreach($derniers_documents as $doc)
-                <div class="flex items-center gap-3 px-4 py-3">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
-                        {{ $doc->lien ? 'bg-blue-50' : 'bg-red-50' }}">
+                <div class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                         style="{{ $doc->lien ? 'background:#eff6ff;' : 'background:#fff1f2;' }}">
                         @if($doc->lien)
-                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4" fill="none" stroke="#1a4f8a" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"/>
                             </svg>
                         @else

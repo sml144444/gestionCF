@@ -23,6 +23,7 @@ class ReclamationDeleted implements ShouldBroadcastNow
         return [
             new Channel('reclamations.admin'),                    // admin/gestionnaire
             new \Illuminate\Broadcasting\PrivateChannel('user.' . $this->stagiaireId), // stagiaire
+            new \Illuminate\Broadcasting\PrivateChannel('reclamation.' . $this->reclamationId), // ← ADD THIS
         ];
     }
 
