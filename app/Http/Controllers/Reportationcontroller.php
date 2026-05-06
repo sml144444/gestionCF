@@ -79,41 +79,42 @@ class ReportationController extends Controller
         return view('reportations.my', compact('reportations', 'status', 'counts'));
     }
 
+    // ── GESTIONNAIRE — see ONLY assigned requests ──────────
     public function assignedIndex(Request $request)
-{
-    if (! auth()->user()->hasPermissionTo('reportation-view-assigned')) {
-        abort(403);
+    {
+        if (! auth()->user()->hasPermissionTo('reportation-view-assigned')) {
+            abort(403);
+        }
+
+        $status = trim($request->input('status', ''));
+        $search = trim($request->input('search', ''));
+
+        $reportations = Reportation::with([
+                'emploiDuTemps.groupe.filiere',
+                'emploiDuTemps.module',
+                'emploiDuTemps.salle',
+                'formateur',
+                'validePar',
+                'messages',
+                'messages.user',
+            ])
+            ->where('assigned_to', auth()->id())
+            ->when($status !== '', fn($q) => $q->where('status', $status))
+            ->when($search !== '', fn($q) => $q->whereHas(
+                'formateur', fn($u) => $u->where('name', 'like', "%{$search}%")
+            ))
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        $counts = [
+            'en_attente' => Reportation::where('assigned_to', auth()->id())->where('status', 'en_attente')->count(),
+            'valide'     => Reportation::where('assigned_to', auth()->id())->where('status', 'valide')->count(),
+            'refuse'     => Reportation::where('assigned_to', auth()->id())->where('status', 'refuse')->count(),
+        ];
+
+        return view('reportations.assigned', compact('reportations', 'status', 'search', 'counts'));
     }
- 
-    $status = trim($request->input('status', ''));
-    $search = trim($request->input('search', ''));
- 
-    $reportations = Reportation::with([
-            'emploiDuTemps.groupe.filiere',
-            'emploiDuTemps.module',
-            'emploiDuTemps.salle',
-            'formateur',
-            'validePar',
-            'messages',
-            'messages.user',
-        ])
-        ->where('assigned_to', auth()->id())
-        ->when($status !== '', fn($q) => $q->where('status', $status))
-        ->when($search !== '', fn($q) => $q->whereHas(
-            'formateur', fn($u) => $u->where('name', 'like', "%{$search}%")
-        ))
-        ->latest()
-        ->paginate(20)
-        ->withQueryString();
- 
-    $counts = [
-        'en_attente' => Reportation::where('assigned_to', auth()->id())->where('status', 'en_attente')->count(),
-        'valide'     => Reportation::where('assigned_to', auth()->id())->where('status', 'valide')->count(),
-        'refuse'     => Reportation::where('assigned_to', auth()->id())->where('status', 'refuse')->count(),
-    ];
- 
-    return view('reportations.assigned', compact('reportations', 'status', 'search', 'counts'));
-}
 
     // ── FORMATEUR SUBMITS — reason only, NO date ───────────
     public function store(Request $request): RedirectResponse
@@ -146,7 +147,6 @@ class ReportationController extends Controller
             'status'              => 'en_attente',
         ]);
 
-        // Broadcast new reportation in real-time
         if (class_exists(\App\Events\ReportationCreated::class)) {
             broadcast(new \App\Events\ReportationCreated($reportation));
         }
@@ -258,19 +258,18 @@ class ReportationController extends Controller
     }
 
     // ── ASSIGN gestionnaire ────────────────────────────────
-// In ReportationController@assign
-public function assign(Request $request, Reportation $reportation)
-{
-    $request->validate(['assigned_to' => 'nullable|exists:users,id']);
+    public function assign(Request $request, Reportation $reportation)
+    {
+        $request->validate(['assigned_to' => 'nullable|exists:users,id']);
 
-    $reportation->update(['assigned_to' => $request->assigned_to]);
+        $reportation->update(['assigned_to' => $request->assigned_to]);
 
-    if ($request->assigned_to) {
-        event(new \App\Events\ReportationAssigned($reportation));
+        if ($request->assigned_to) {
+            event(new \App\Events\ReportationAssigned($reportation));
+        }
+
+        return back()->with('success', 'Reportation assignée avec succès.');
     }
-
-    return back()->with('success', 'Reportation assignée avec succès.');
-}
 
     // ── SEND MESSAGE ───────────────────────────────────────
     public function sendMessage(Request $request, Reportation $reportation): \Illuminate\Http\JsonResponse
@@ -283,28 +282,43 @@ public function assign(Request $request, Reportation $reportation)
 
         if (! $allowed) abort(403);
 
-        $data = $request->validate(['message' => 'required|string|max:1000']);
+        $data = $request->validate([
+            'message'    => 'nullable|string|max:1000',
+            'attachment' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,zip',
+        ]);
+
+        // Must have at least message or attachment
+        if (empty($data['message']) && ! $request->hasFile('attachment')) {
+            return response()->json(['error' => 'Message ou fichier requis.'], 422);
+        }
+
+        $attachmentPath = null;
+        $attachmentName = null;
+        $attachmentType = null;
+
+        if ($request->hasFile('attachment')) {
+            $file           = $request->file('attachment');
+            $attachmentName = $file->getClientOriginalName();
+            $attachmentType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'file';
+            $attachmentPath = $file->store('reportation-attachments', 'local');
+        }
 
         $msg = ReportationMessage::create([
-            'reportation_id' => $reportation->id,
-            'user_id'        => $user->id,
-            'message'        => $data['message'],
+            'reportation_id'  => $reportation->id,
+            'user_id'         => $user->id,
+            'message'         => $data['message'] ?? null,
+            'attachment_path' => $attachmentPath,
+            'attachment_name' => $attachmentName,
+            'attachment_type' => $attachmentType,
         ]);
 
         $msg->load('user');
 
-        // toOthers() excludes the sender (requires X-Socket-ID header from frontend)
         if (class_exists(\App\Events\ReportationMessageSent::class)) {
             broadcast(new \App\Events\ReportationMessageSent($msg))->toOthers();
         }
 
-        return response()->json([
-            'id'         => $msg->id,
-            'message'    => $msg->message,
-            'user_id'    => $msg->user_id,
-            'user_name'  => $msg->user->name,
-            'created_at' => $msg->created_at->format('H:i'),
-        ]);
+        return response()->json($this->formatMessage($msg));
     }
 
     // ── GET MESSAGES ───────────────────────────────────────
@@ -321,13 +335,44 @@ public function assign(Request $request, Reportation $reportation)
         $reportation->load('messages.user');
 
         return response()->json(
-            $reportation->messages->map(fn($m) => [
-                'id'         => $m->id,
-                'message'    => $m->message,
-                'user_id'    => $m->user_id,
-                'user_name'  => $m->user->name,
-                'created_at' => $m->created_at->format('H:i'),
-            ])
+            $reportation->messages->map(fn($m) => $this->formatMessage($m))
         );
+    }
+
+    // ── SERVE ATTACHMENT (private storage) ─────────────────
+    public function serveAttachment(ReportationMessage $message): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = auth()->user();
+        $rp   = $message->reportation;
+
+        $allowed = $rp->id_user === $user->id
+            || $rp->assigned_to === $user->id
+            || $user->hasPermissionTo('reportation-manage');
+
+        if (! $allowed) abort(403);
+
+        abort_unless(\Storage::disk('local')->exists($message->attachment_path), 404);
+
+        return \Storage::disk('local')->download(
+            $message->attachment_path,
+            $message->attachment_name
+        );
+    }
+
+    // ── HELPER ─────────────────────────────────────────────
+    private function formatMessage(ReportationMessage $m): array
+    {
+        return [
+            'id'              => $m->id,
+            'message'         => $m->message,
+            'user_id'         => $m->user_id,
+            'user_name'       => $m->user->name,
+            'created_at'      => $m->created_at->format('H:i'),
+            'attachment_name' => $m->attachment_name,
+            'attachment_type' => $m->attachment_type,
+            'attachment_url'  => $m->attachment_path
+                ? route('reportations.attachment', $m->id)
+                : null,
+        ];
     }
 }

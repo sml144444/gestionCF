@@ -23,14 +23,19 @@ class ReportationMessageSent implements ShouldBroadcast
         return 'message.sent';
     }
 
-    public function broadcastWith(): array
-    {
-        return [
-            'id'         => $this->reportationMessage->id,
-            'message'    => $this->reportationMessage->message,
-            'user_id'    => $this->reportationMessage->user_id,
-            'user_name'  => $this->reportationMessage->user->name,
-            'created_at' => $this->reportationMessage->created_at->format('H:i'),
-        ];
-    }
+public function broadcastWith(): array
+{
+    return [
+        'id'              => $this->reportationMessage->id,
+        'message'         => $this->reportationMessage->message,
+        'user_id'         => $this->reportationMessage->user_id,
+        'user_name'       => $this->reportationMessage->user->name,
+        'created_at'      => $this->reportationMessage->created_at->format('H:i'),
+        'attachment_name' => $this->reportationMessage->attachment_name,
+        'attachment_type' => $this->reportationMessage->attachment_type,
+        'attachment_url'  => $this->reportationMessage->attachment_path
+            ? route('reportations.attachment', $this->reportationMessage->id)
+            : null,
+    ];
+}
 }

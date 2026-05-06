@@ -20,6 +20,7 @@
 .rp-btn { height:36px; padding:0 14px; border-radius:9px; font-size:12px; font-weight:700; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity .15s; text-decoration:none; }
 .rp-btn:hover { opacity:.85; }
 .rp-btn.ghost { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+@keyframes slideIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
 </style>
 
 <div class="rp-wrap">
@@ -192,12 +193,37 @@
             <div style="font-size:14px;font-weight:800;color:#1e293b;" id="chat-title">💬 Conversation</div>
             <button onclick="closeChat()" style="border:none;background:#f1f5f9;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:16px;">×</button>
         </div>
+
         <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;"></div>
-        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;">
+
+        
+        <div id="file-preview-bar" style="display:none;padding:8px 16px;border-top:1px solid #e2e8f0;background:#f8fafc;align-items:center;gap:8px;">
+            <span id="file-preview-name" style="font-size:11px;color:#475569;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+            <button onclick="clearAttachment()" style="border:none;background:#fecdd3;color:#dc2626;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+        </div>
+
+        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
+            
+            <input type="file" id="chat-file-input"
+                   accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                   style="display:none;" onchange="onFileSelected(this)">
+
+            
+            <button onclick="document.getElementById('chat-file-input').click()"
+                    title="Joindre un fichier"
+                    style="width:40px;height:40px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s;"
+                    onmouseover="this.style.borderColor='#1a4f8a'" onmouseout="this.style.borderColor='#e2e8f0'">
+                📎
+            </button>
+
             <input id="chat-input" type="text" placeholder="Votre message…" maxlength="1000"
                    style="flex:1;height:40px;padding:0 12px;border-radius:10px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;"
                    onkeydown="if(event.key==='Enter')sendChatMsg()">
-            <button onclick="sendChatMsg()" style="height:40px;padding:0 16px;border-radius:10px;border:none;background:#1a4f8a;color:white;font-weight:700;font-size:13px;cursor:pointer;">Envoyer</button>
+
+            <button onclick="sendChatMsg()"
+                    style="height:40px;padding:0 16px;border-radius:10px;border:none;background:#1a4f8a;color:white;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;">
+                Envoyer
+            </button>
         </div>
     </div>
 </div>
@@ -227,6 +253,20 @@ function openChat(id, label) {
 function closeChat() {
     document.getElementById('chat-modal').style.display = 'none';
     currentReportationId = null;
+    clearAttachment(); // Reset attachment when closing
+}
+
+function onFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('file-preview-name').textContent = '📎 ' + file.name;
+    document.getElementById('file-preview-bar').style.display = 'flex';
+}
+
+function clearAttachment() {
+    document.getElementById('chat-file-input').value = '';
+    document.getElementById('file-preview-bar').style.display = 'none';
+    document.getElementById('file-preview-name').textContent = '';
 }
 
 function appendMsg(msg) {
@@ -234,38 +274,80 @@ function appendMsg(msg) {
     const isMe = msg.user_id == me;
     const box = document.getElementById('chat-messages');
     const div = document.createElement('div');
-    div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:2px;`;
+    div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};gap:2px;`;
+
+    let attachmentHtml = '';
+    if (msg.attachment_url) {
+        if (msg.attachment_type === 'image') {
+            attachmentHtml = `
+                <a href="${msg.attachment_url}" target="_blank" style="display:block;max-width:200px;margin-top:4px;">
+                    <img src="${msg.attachment_url}" alt="${escapeHtml(msg.attachment_name)}"
+                         style="max-width:200px;max-height:160px;border-radius:8px;border:1px solid #e2e8f0;display:block;">
+                </a>`;
+        } else {
+            attachmentHtml = `
+                <a href="${msg.attachment_url}" target="_blank"
+                   style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:7px 12px;border-radius:8px;background:${isMe ? 'rgba(255,255,255,0.15)' : '#e2e8f0'};color:${isMe ? 'white' : '#1e293b'};font-size:11px;font-weight:600;text-decoration:none;max-width:200px;overflow:hidden;">
+                    📄 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(msg.attachment_name)}</span>
+                </a>`;
+        }
+    }
+
+    const msgHtml = msg.message
+        ? `<div style="max-width:75%;padding:8px 12px;border-radius:${isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};background:${isMe ? '#1a4f8a' : '#f1f5f9'};color:${isMe ? 'white' : '#1e293b'};font-size:12px;line-height:1.5;">${escapeHtml(msg.message)}</div>`
+        : '';
+
     div.innerHTML = `
         <div style="font-size:9px;color:#94a3b8;">${escapeHtml(msg.user_name)} · ${escapeHtml(msg.created_at)}</div>
-        <div style="max-width:75%;padding:8px 12px;border-radius:${isMe?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${isMe?'#1a4f8a':'#f1f5f9'};color:${isMe?'white':'#1e293b'};font-size:12px;line-height:1.5;">${escapeHtml(msg.message)}</div>`;
+        ${msgHtml}
+        ${attachmentHtml}`;
     box.appendChild(div);
 }
-
 function sendChatMsg() {
-    const input = document.getElementById('chat-input');
-    const msg = input.value.trim();
-    if (!msg || !currentReportationId) return;
+    const input     = document.getElementById('chat-input');
+    const fileInput = document.getElementById('chat-file-input');
+    const msg       = input.value.trim();
+    const file      = fileInput.files[0] ?? null;
+
+    if (!msg && !file) return;
+    if (!currentReportationId) return;
+
+    const rpId = currentReportationId;
     input.value = '';
-    input.focus();
+
+    const formData = new FormData();
+    if (msg)  formData.append('message', msg);
+    if (file) formData.append('attachment', file);
+    formData.append('_token', '<?php echo e(csrf_token()); ?>');
 
     const socketId = window.Echo?.socketId() ?? null;
-    const headers = {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
+    const headers  = {
+        'Accept': 'application/json',   // ← FIX : force Laravel à répondre en JSON
     };
     if (socketId) headers['X-Socket-ID'] = socketId;
 
-    const rpId = currentReportationId;
+    clearAttachment();
 
     fetch(`/reportations/${rpId}/message`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message: msg })
+        body: formData
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {                    // ← FIX : vérifier le statut HTTP
+            return r.json().then(err => {
+                const msg = err?.message || err?.error
+                    || Object.values(err?.errors ?? {})[0]?.[0]
+                    || 'Erreur lors de l\'envoi.';
+                showSendError(msg);
+                throw new Error(msg);
+            });
+        }
+        return r.json();
+    })
     .then(data => {
         if (currentReportationId === rpId) {
-            const box = document.getElementById('chat-messages');
+            const box   = document.getElementById('chat-messages');
             const empty = box.querySelector('div[style*="text-align:center"]');
             if (empty) empty.remove();
             appendMsg(data);
@@ -274,9 +356,19 @@ function sendChatMsg() {
         const badge = document.getElementById('chat-count-' + rpId);
         if (badge) badge.textContent = parseInt(badge.textContent || '0') + 1;
     })
-    .catch(() => console.error('Erreur envoi du message'));
+    .catch(err => console.error('Erreur envoi:', err));
 }
 
+// Ajouter cette fonction helper dans les 3 blades
+function showSendError(message) {
+    const box = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.style.cssText = 'text-align:center;padding:6px 12px;font-size:11px;color:#dc2626;background:#fff1f2;border-radius:8px;border:1px solid #fecdd3;';
+    div.textContent = '⚠ ' + message;
+    box.appendChild(div);
+    box.scrollTop = 99999;
+    setTimeout(() => div.remove(), 5000); // disparaît après 5s
+}
 // ══════════════════════════════════════════════
 // GLOBAL ECHO — wait for Echo to be ready then subscribe
 // ══════════════════════════════════════════════
@@ -287,8 +379,8 @@ function subscribeAll() {
     }
     <?php $__currentLoopData = $reportations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
     window.Echo.channel('reportation.<?php echo e($rp->id); ?>')
-.listen('.message.sent', function(e) {
-                const rpId = <?php echo e($rp->id); ?>;
+        .listen('.message.sent', function(e) {
+            const rpId = <?php echo e($rp->id); ?>;
             if (currentReportationId === rpId) {
                 const box = document.getElementById('chat-messages');
                 const empty = box.querySelector('div[style*="text-align:center"]');

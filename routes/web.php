@@ -235,6 +235,10 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
 
     Route::post('/reportations/{reportation}/message', [ReportationController::class, 'sendMessage'])
         ->name('reportations.message');
+    
+    Route::get('reportations/attachment/{message}', [ReportationController::class, 'serveAttachment'])
+    ->name('reportations.attachment')
+    ->middleware('auth');
 });
 
 // ─────────────────────────────────────────────
