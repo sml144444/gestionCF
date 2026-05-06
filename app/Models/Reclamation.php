@@ -58,15 +58,17 @@ class Reclamation extends Model
     }
 
     // ── AUTHORIZATION HELPER ──────────────────────────────────
-    public function isAccessibleBy(User $user): bool
-    {
-        return $user->can('reclamation-manage')
-            || $this->id_user     === $user->id
-            || $this->assigned_to === $user->id;
-    }
+// app/Models/Reclamation.php
 
-    public function canReply(User $user): bool
-    {
-        return $this->isAccessibleBy($user) && $this->status !== 'traite';
-    }
+public function isAccessibleBy(User $user): bool
+{
+    return ($user->role === 'admin')
+        || $this->id_user     === $user->id
+        || $this->assigned_to === $user->id;
+}
+
+public function canReply(User $user): bool
+{
+    return $this->isAccessibleBy($user) && $this->status !== 'traite';
+}
 }

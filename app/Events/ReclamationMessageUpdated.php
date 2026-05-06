@@ -1,5 +1,4 @@
 <?php
-// app/Events/ReclamationMessageUpdated.php
 
 namespace App\Events;
 
@@ -21,14 +20,17 @@ class ReclamationMessageUpdated implements ShouldBroadcastNow
         return [new PrivateChannel('reclamation.' . $this->message->reclamation_id)];
     }
 
-    public function broadcastAs(): string { return 'ReclamationMessageUpdated'; }
+    public function broadcastAs(): string
+    {
+        return 'ReclamationMessageUpdated';
+    }
 
     public function broadcastWith(): array
     {
         return [
-            'message_id' => $this->message->id,
-            'message'    => $this->message->message,
-            'edited_at'  => $this->message->edited_at?->format('H:i'),
+            'id'        => $this->message->id,        // ← was 'message_id', must be 'id'
+            'message'   => $this->message->message,
+            'edited_at' => $this->message->edited_at?->format('H:i'),
         ];
     }
 }

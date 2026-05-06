@@ -17,7 +17,8 @@ use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Str;
+use App\Models\UserNotification;
 class ReclamationController extends Controller
 {
     public function __construct()
@@ -166,107 +167,167 @@ public function store(Request $request): RedirectResponse
 
     // ── SEND MESSAGE ──────────────────────────────────────────
 // ── SEND MESSAGE ──────────────────────────────────────────────────
-public function sendMessage(Request $request, Reclamation $reclamation)
+
+public function sendMessage(Request $request, Reclamation $reclamation): \Illuminate\Http\JsonResponse
 {
-    $user = Auth::user();
- 
-    if (! $reclamation->canReply($user)) {
-        if ($request->expectsJson()) {
-            return response()->json(['error' => 'Non autorisé.'], 403);
-        }
+    // ── Authorization ────────────────────────────────────────
+    if (! $reclamation->isAccessibleBy(Auth::user())) {
         abort(403);
     }
- 
+
+    if (! $reclamation->canReply(Auth::user())) {
+        return response()->json(['error' => 'Cette réclamation est clôturée.'], 403);
+    }
+
+    // ── Validation ───────────────────────────────────────────
     $request->validate([
-        'message' => 'required|string|min:1|max:2000',
+        'message'    => 'nullable|string|max:2000',
+        'attachment' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,zip',
     ]);
- 
-    $msg = ReclamationMessage::create([
-        'reclamation_id' => $reclamation->id,
-        'sender_id'      => Auth::id(),
-        'message'        => $request->message,
+
+    if (! $request->filled('message') && ! $request->hasFile('attachment')) {
+        return response()->json(['error' => 'Veuillez écrire un message ou joindre un fichier.'], 422);
+    }
+
+    // ── Upload ───────────────────────────────────────────────
+    $attachmentPath = null;
+    $attachmentName = null;
+    $attachmentMime = null;
+
+    if ($request->hasFile('attachment')) {
+        $file           = $request->file('attachment');
+        $attachmentName = $file->getClientOriginalName();
+        $attachmentMime = $file->getMimeType();
+        $attachmentPath = $file->store('reclamation-attachments', 'public');
+    }
+
+    // ── Create message ───────────────────────────────────────
+    $message = ReclamationMessage::create([
+        'reclamation_id'  => $reclamation->id,
+        'sender_id'       => Auth::id(),
+        'message'         => $request->filled('message') ? $request->input('message') : null,
+        'attachment_path' => $attachmentPath,
+        'attachment_name' => $attachmentName,
+        'attachment_mime' => $attachmentMime,
     ]);
- 
-    if ($reclamation->status === 'en_attente' && $user->id !== $reclamation->id_user) {
+
+    // ── Broadcast ────────────────────────────────────────────
+    broadcast(new ReclamationMessageSent($message))->toOthers();
+
+    // ── Auto status: en_attente → en_cours ───────────────────
+    if ($reclamation->status === 'en_attente' && Auth::user()->can('reclamation-manage')) {
         $reclamation->update(['status' => 'en_cours']);
     }
- 
-    $reclamation->touch();
-    $reclamation->load('stagiaire', 'assignee');
- 
-    // ── Broadcast WebSocket event (existing) ──────────────────────
-    broadcast(new ReclamationMessageSent($msg))->toOthers();
- 
-    $url = route('reclamations.show', $reclamation);
- 
-    if ($user->id === $reclamation->id_user) {
- 
-        // ── STAGIAIRE sent a message ──────────────────────────────
- 
-        // → Notify the assignee if one exists
-        if ($reclamation->assignee) {
-            NotificationService::send(
-                $reclamation->assignee,
-                'reclamation_reply',
-                "Nouveau message dans une réclamation assignée (#" . $reclamation->id . ").",
-                $url,
-                ['reclamation_id' => $reclamation->id]
-            );
-        }
- 
-        // → Notify managers who CAN manage reclamations (except the assignee, already notified)
-        $assigneeId = $reclamation->assignee?->id;
- 
-        $managers = User::permission('reclamation-manage')
-            ->where('id', '!=', $user->id)                          // not the sender
-            ->when($assigneeId, fn($q) => $q->where('id', '!=', $assigneeId)) // not already notified
-            ->get();
- 
-        foreach ($managers as $manager) {
-            NotificationService::send(
-                $manager,
-                'reclamation_reply',
-                "Nouveau message dans une réclamation (#" . $reclamation->id . ") de {$reclamation->stagiaire->name}.",
-                $url,
-                ['reclamation_id' => $reclamation->id]
-            );
-        }
- 
-    } else {
- 
-        // ── STAFF sent a message → notify the stagiaire only ─────
-        if ($reclamation->stagiaire) {
-            NotificationService::send(
-                $reclamation->stagiaire,
-                'reclamation_reply',
-                "Vous avez reçu une réponse concernant votre réclamation #" . $reclamation->id . ".",
-                $url,
-                ['reclamation_id' => $reclamation->id]
-            );
-        }
-    }
- 
-    if ($request->expectsJson()) {
-        return response()->json([
-            'success' => true,
-            'message' => [
-                'id'         => $msg->id,
-                'message'    => $msg->message,
-                'created_at' => $msg->created_at->format('H:i'),
-                'sender'     => [
-                    'id'   => $user->id,
-                    'name' => $user->name,
-                    'role' => $user->role,
-                ],
-            ],
-        ]);
-    }
- 
-    return redirect()
-        ->route('reclamations.show', $reclamation)
-        ->with('success', 'Message envoyé.');
-}
 
+    // ── Notification ─────────────────────────────────────────
+    $notifMessage = $attachmentPath && ! $request->filled('message')
+        ? '📎 Vous avez reçu un fichier joint.'
+        : '💬 Nouveau message de ' . Auth::user()->name . '.';
+
+    $senderIsStagiaire = Auth::id() === $reclamation->id_user;
+
+    if ($senderIsStagiaire) {
+        // ── Stagiaire sent ────────────────────────────────────
+        $recipients = collect();
+
+        if ($reclamation->assigned_to) {
+            // Assigned → notify the assignee only
+            $recipients->push($reclamation->assigned_to);
+        } else {
+            // Not assigned → notify admins only (not gestionnaire/formateur)
+            $adminIds = User::where('role', 'admin')
+                ->where('id', '!=', Auth::id())
+                ->pluck('id');
+            $recipients = $recipients->merge($adminIds);
+        }
+
+        foreach ($recipients->unique() as $recipientId) {
+            $existing = UserNotification::where('user_id', $recipientId)
+                ->where('type', 'reclamation_reply')
+                ->whereNull('read_at')
+                ->whereJsonContains('data->reclamation_id', $reclamation->id)
+                ->latest()
+                ->first();
+
+            if ($existing) {
+                $newCount = $existing->count + 1;
+                $existing->update([
+                    'count'   => $newCount,
+                    'message' => "+{$newCount} nouveaux messages dans la réclamation #{$reclamation->id}.",
+                ]);
+                broadcast(new \App\Events\NotificationUpdated($existing))->toOthers();
+            } else {
+                $notif = UserNotification::create([
+                    'user_id' => $recipientId,
+                    'type'    => 'reclamation_reply',
+                    'message' => $notifMessage,
+                    'url'     => route('reclamations.show', $reclamation),
+                    'count'   => 1,
+                    'data'    => [
+                        'reclamation_id' => $reclamation->id,
+                        'sender_name'    => Auth::user()->name,
+                        'sender_role'    => Auth::user()->role,
+                    ],
+                ]);
+                broadcast(new \App\Events\NotificationCreated($notif))->toOthers();
+            }
+        }
+
+    } else {
+        // ── Staff / admin sent → notify the stagiaire ────────
+        $recipientId = $reclamation->id_user;
+
+        if ($recipientId) {
+            $existing = UserNotification::where('user_id', $recipientId)
+                ->where('type', 'reclamation_reply')
+                ->whereNull('read_at')
+                ->whereJsonContains('data->reclamation_id', $reclamation->id)
+                ->latest()
+                ->first();
+
+            if ($existing) {
+                $newCount = $existing->count + 1;
+                $existing->update([
+                    'count'   => $newCount,
+                    'message' => "+{$newCount} nouveaux messages dans la réclamation #{$reclamation->id}.",
+                ]);
+                broadcast(new \App\Events\NotificationUpdated($existing))->toOthers();
+            } else {
+                $notif = UserNotification::create([
+                    'user_id' => $recipientId,
+                    'type'    => 'reclamation_reply',
+                    'message' => $notifMessage,
+                    'url'     => route('reclamations.show', $reclamation),
+                    'count'   => 1,
+                    'data'    => [
+                        'reclamation_id' => $reclamation->id,
+                        'sender_name'    => Auth::user()->name,
+                        'sender_role'    => Auth::user()->role,
+                    ],
+                ]);
+                broadcast(new \App\Events\NotificationCreated($notif))->toOthers();
+            }
+        }
+    }
+
+    // ── Return JSON for AJAX ─────────────────────────────────
+    return response()->json([
+        'ok'              => true,
+        'id'              => $message->id,
+        'message'         => $message->message,
+        'created_at'      => $message->created_at->format('H:i'),
+        'attachment_path' => $message->attachment_path
+                                ? asset('storage/' . $message->attachment_path)
+                                : null,
+        'attachment_name' => $message->attachment_name,
+        'attachment_mime' => $message->attachment_mime,
+        'sender'          => [
+            'id'   => Auth::id(),
+            'name' => Auth::user()->name,
+            'role' => Auth::user()->role,
+        ],
+    ]);
+}
     // ── ASSIGN ────────────────────────────────────────────────
     public function assign(Request $request, Reclamation $reclamation): RedirectResponse
     {
@@ -359,33 +420,39 @@ public function updateStatus(Request $request, Reclamation $reclamation): Redire
 
     $url = route('reclamations.show', $reclamation);
 
-    // ── Notify stagiaire ───────────────────────────────────
-    if ($reclamation->stagiaire) {
-        $message = match ($request->status) {
-            'traite'   => "Votre réclamation #" . $reclamation->id . " a été traitée. ✅",
-            'refuse'   => "Votre réclamation #" . $reclamation->id . " a été refusée.",
-            'en_cours' => "Votre réclamation #" . $reclamation->id . " est en cours de traitement. 🔄",
-            default    => "Le statut de votre réclamation #" . $reclamation->id . " a été mis à jour.",
-        };
+    // ── Notify ONLY when status = traite ───────────────────
+    if ($request->status === 'traite') {
 
-        $type = match ($request->status) {
-            'traite', 'refuse' => 'reclamation_deleted',
-            default            => 'reclamation_status',
-        };
+        // 1. Notify stagiaire ──────────────────────────────
+        if ($reclamation->stagiaire) {
+            NotificationService::send(
+                $reclamation->stagiaire,
+                'reclamation_status',
+                "✅ Votre réclamation #{$reclamation->id} a été traitée.",
+                $url,
+                ['reclamation_id' => $reclamation->id]
+            );
+        }
 
-        NotificationService::send(
-            $reclamation->stagiaire,
-            $type,
-            $message,
-            $url,
-            ['reclamation_id' => $reclamation->id]
-        );
+        // 2. Notify admins (only if action done by gestionnaire/formateur)
+        if ($user->role !== 'admin') {
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                NotificationService::send(
+                    $admin,
+                    'reclamation_status',
+                    "✅ La réclamation #{$reclamation->id} a été traitée par {$user->name}.",
+                    $url,
+                    ['reclamation_id' => $reclamation->id]
+                );
+            }
+        }
     }
 
     $cfg   = \App\Models\Reclamation::STATUSES[$request->status] ?? [];
     $label = $cfg['label'] ?? $request->status;
 
-    // ── JSON response for AJAX (assigned-user panel) ───────
+    // ── JSON response for AJAX ─────────────────────────────
     if ($request->expectsJson()) {
         return response()->json([
             'ok'    => true,
@@ -427,57 +494,84 @@ public function updateStatus(Request $request, Reclamation $reclamation): Redire
     }
 
     // ── MARK MESSAGES AS SEEN ─────────────────────────────────
-    public function markSeen(Reclamation $reclamation)
-    {
-        $user = Auth::user();
+ public function markSeen(Reclamation $reclamation)
+{
+    $user = Auth::user();
 
-        $reclamation->messages()
-            ->where('sender_id', '!=', $user->id)
-            ->whereNull('seen_at')
-            ->update(['seen_at' => now()]);
+    // Get IDs of messages that were unseen before we update them
+    $unseenIds = $reclamation->messages()
+        ->where('sender_id', '!=', $user->id)
+        ->whereNull('seen_at')
+        ->pluck('id')
+        ->toArray();
 
+    if (empty($unseenIds)) {
         return response()->json(['ok' => true]);
     }
+
+    // Mark them as seen
+    $reclamation->messages()
+        ->whereIn('id', $unseenIds)
+        ->update(['seen_at' => now()]);
+
+    // Broadcast to the other user so their ✓✓ updates
+    broadcast(new \App\Events\ReclamationMessageSeen(
+        $reclamation->id,
+        $unseenIds,
+        $user->name,
+        $user->role
+    ))->toOthers();
+
+    return response()->json(['ok' => true]);
+}
 
     // ── DELETE MESSAGE ────────────────────────────────────────
-    public function deleteMessage(Request $request, Reclamation $reclamation, ReclamationMessage $message)
-    {
-        $user = Auth::user();
+public function deleteMessage(Request $request, Reclamation $reclamation, ReclamationMessage $message)
+{
+    $user = Auth::user();
 
-        if (! $message->canEditOrDelete($user)) {
-            return response()->json(['error' => 'Ce message a déjà été vu et ne peut plus être supprimé.'], 403);
-        }
-
-        $messageId = $message->id;
-        $message->delete();
-
-        broadcast(new ReclamationMessageDeleted($reclamation->id, $messageId))->toOthers();
-
-        return response()->json(['ok' => true]);
+    if (! $message->canEditOrDelete($user)) {
+        return response()->json([
+            'error' => 'Ce message a déjà été vu et ne peut plus être supprimé.'
+        ], 403);
     }
+
+    $messageId = $message->id;
+
+    // ── Delete the physical file from storage if exists ──────
+    if ($message->attachment_path) {
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($message->attachment_path);
+    }
+
+    $message->delete();
+
+    broadcast(new ReclamationMessageDeleted($reclamation->id, $messageId))->toOthers();
+
+    return response()->json(['ok' => true]);
+}
 
     // ── EDIT MESSAGE ──────────────────────────────────────────
-    public function editMessage(Request $request, Reclamation $reclamation, ReclamationMessage $message)
-    {
-        $user = Auth::user();
+   public function editMessage(Request $request, Reclamation $reclamation, ReclamationMessage $message)
+{
+    $user = Auth::user();
 
-        if (! $message->canEditOrDelete($user)) {
-            return response()->json(['error' => 'Ce message a déjà été vu et ne peut plus être modifié.'], 403);
-        }
-
-        $request->validate(['message' => 'required|string|min:1|max:2000']);
-
-        $message->update([
-            'message'   => $request->message,
-            'edited_at' => now(),
-        ]);
-
-        broadcast(new ReclamationMessageUpdated($message->fresh()))->toOthers();
-
-        return response()->json([
-            'ok'        => true,
-            'message'   => $message->message,
-            'edited_at' => $message->edited_at->format('H:i'),
-        ]);
+    if (! $message->canEdit($user)) {  // ← changed from canEditOrDelete
+        return response()->json(['error' => 'Ce message ne peut pas être modifié.'], 403);
     }
+
+    $request->validate(['message' => 'required|string|min:1|max:2000']);
+
+    $message->update([
+        'message'   => $request->message,
+        'edited_at' => now(),
+    ]);
+
+    broadcast(new ReclamationMessageUpdated($message->fresh()))->toOthers();
+
+    return response()->json([
+        'ok'        => true,
+        'message'   => $message->message,
+        'edited_at' => $message->edited_at->format('H:i'),
+    ]);
+}
 }

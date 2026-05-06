@@ -331,6 +331,23 @@ window.Echo.channel('reclamations.admin')
             row.style.animation = 'fadeOut .4s ease forwards';
             setTimeout(() => row.remove(), 400);
         }
+    })
+
+    // ── ADD THIS: real-time status update on index page ────
+    .listen('.ReclamationStatusUpdated', (e) => {
+        const row = document.getElementById('rec-row-' + e.reclamation_id);
+        if (!row) return;
+
+        const badge = row.querySelector('.status-badge');
+        if (badge) {
+            badge.textContent        = e.icon + ' ' + e.label;
+            badge.style.background   = e.bg;
+            badge.style.color        = e.color;
+            badge.style.border       = '1px solid ' + e.border;
+        }
+
+        showToast(e.icon, 'Statut mis à jour',
+            `Réclamation #${e.reclamation_id} → ${e.label}`, null);
     });
 <?php endif; ?>
 <?php endif; ?>

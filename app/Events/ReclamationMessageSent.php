@@ -28,19 +28,24 @@ class ReclamationMessageSent implements ShouldBroadcastNow
         return 'ReclamationMessageSent';
     }
 
-    public function broadcastWith(): array
-    {
-        $msg = $this->reclamationMessage->load('sender');
+public function broadcastWith(): array
+{
+    $msg = $this->reclamationMessage->load('sender');
 
-        return [
-            'id'         => $msg->id,
-            'message'    => $msg->message,
-            'created_at' => $msg->created_at->format('H:i'),
-            'sender'     => [
-                'id'   => $msg->sender->id,
-                'name' => $msg->sender->name,
-                'role' => $msg->sender->role,
-            ],
-        ];
-    }
+    return [
+        'id'              => $msg->id,
+        'message'         => $msg->message,
+        'created_at'      => $msg->created_at->format('H:i'),
+        'attachment_path' => $msg->attachment_path
+                                ? asset('storage/' . $msg->attachment_path)
+                                : null,
+        'attachment_name' => $msg->attachment_name,
+        'attachment_mime' => $msg->attachment_mime,
+        'sender'          => [
+            'id'   => $msg->sender->id,
+            'name' => $msg->sender->name,
+            'role' => $msg->sender->role,
+        ],
+    ];
+}
 }

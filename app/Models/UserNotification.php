@@ -21,11 +21,11 @@ class UserNotification extends Model
         'count',   // ← ajouter ça
     ];
 
-    protected $casts = [
-        'data'    => 'array',
-        'read_at' => 'datetime',
-        'count',   // ← ajouter ça
-    ];
+protected $casts = [
+    'data'    => 'array',
+    'read_at' => 'datetime',
+    'count'   => 'integer',  // ← correct
+];
 
     // ── Notification type → icon / color mapping (used in blade) ─
     public const TYPES = [
