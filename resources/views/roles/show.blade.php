@@ -179,8 +179,12 @@
                                 $suffix = $parts[2] ?? null;
                                 $label = $actionLabels[$action] ?? ucfirst($action);
                                 if ($suffix) $label .= ' ' . ucfirst(str_replace('_', ' ', $suffix));
-                                if ($action === 'view-all-groups') $label = '👑 Voir tous les groupes';
-                                if ($action === 'view-assigned') $label = '👁️ Voir les réclamations assignées';
+if ($action === 'view' && $suffix === 'all')      $label = '👑 Voir tous les groupes';
+if ($action === 'view' && $suffix === 'assigned') {
+    $label = ($parts[0] === 'reportation')
+        ? '👁️ Voir les reportations assignées'
+        : '👁️ Voir les réclamations assignées';
+}
                             @endphp
                             <span class="permission-badge" style="background:{{ $g['color'] }}10; color:{{ $g['color'] }}; border:1px solid {{ $g['color'] }}20;">
                                 {{ $label }}

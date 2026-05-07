@@ -272,54 +272,139 @@ class ReportationController extends Controller
     }
 
     // ── SEND MESSAGE ───────────────────────────────────────
-    public function sendMessage(Request $request, Reportation $reportation): \Illuminate\Http\JsonResponse
-    {
-        $user = auth()->user();
+// ── SEND MESSAGE ───────────────────────────────────────────────
+public function sendMessage(Request $request, Reportation $reportation): \Illuminate\Http\JsonResponse
+{
+    $user = auth()->user();
 
-        $allowed = $reportation->id_user === $user->id
-            || $reportation->assigned_to === $user->id
-            || $user->hasPermissionTo('reportation-manage');
+    $allowed = $reportation->id_user === $user->id
+        || $reportation->assigned_to === $user->id
+        || $user->hasPermissionTo('reportation-manage');
 
-        if (! $allowed) abort(403);
+    if (! $allowed) abort(403);
 
-        $data = $request->validate([
-            'message'    => 'nullable|string|max:1000',
-            'attachment' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,zip',
-        ]);
+    $data = $request->validate([
+        'message'    => 'nullable|string|max:1000',
+        'attachment' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,zip',
+    ]);
 
-        // Must have at least message or attachment
-        if (empty($data['message']) && ! $request->hasFile('attachment')) {
-            return response()->json(['error' => 'Message ou fichier requis.'], 422);
-        }
-
-        $attachmentPath = null;
-        $attachmentName = null;
-        $attachmentType = null;
-
-        if ($request->hasFile('attachment')) {
-            $file           = $request->file('attachment');
-            $attachmentName = $file->getClientOriginalName();
-            $attachmentType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'file';
-            $attachmentPath = $file->store('reportation-attachments', 'local');
-        }
-
-        $msg = ReportationMessage::create([
-            'reportation_id'  => $reportation->id,
-            'user_id'         => $user->id,
-            'message'         => $data['message'] ?? null,
-            'attachment_path' => $attachmentPath,
-            'attachment_name' => $attachmentName,
-            'attachment_type' => $attachmentType,
-        ]);
-
-        $msg->load('user');
-
-        if (class_exists(\App\Events\ReportationMessageSent::class)) {
-            broadcast(new \App\Events\ReportationMessageSent($msg))->toOthers();
-        }
-
-        return response()->json($this->formatMessage($msg));
+    if (empty($data['message']) && ! $request->hasFile('attachment')) {
+        return response()->json(['error' => 'Message ou fichier requis.'], 422);
     }
+
+    $attachmentPath = null;
+    $attachmentName = null;
+    $attachmentType = null;
+
+    if ($request->hasFile('attachment')) {
+        $file           = $request->file('attachment');
+        $attachmentName = $file->getClientOriginalName();
+        $attachmentType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'file';
+        $attachmentPath = $file->store('reportation-attachments', 'local');
+    }
+
+    $msg = ReportationMessage::create([
+        'reportation_id'  => $reportation->id,
+        'user_id'         => $user->id,
+        'message'         => $data['message'] ?? null,
+        'attachment_path' => $attachmentPath,
+        'attachment_name' => $attachmentName,
+        'attachment_type' => $attachmentType,
+    ]);
+
+    $msg->load('user');
+
+    if (class_exists(\App\Events\ReportationMessageSent::class)) {
+        broadcast(new \App\Events\ReportationMessageSent($msg))->toOthers();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // NOTIFICATIONS
+    // ══════════════════════════════════════════════════════════
+    $senderName        = $user->name;
+    $senderIsFormateur = $user->id === $reportation->id_user;
+    $notifUrl          = route('reportations.my');
+
+    $notifMessage = $attachmentPath && empty($data['message'])
+        ? "📎 {$senderName} a joint un fichier dans la reportation #{$reportation->id}."
+        : "💬 Nouveau message de {$senderName} dans la reportation #{$reportation->id}.";
+
+    if ($senderIsFormateur) {
+        // Formateur sent → notify assigned gestionnaire OR all managers
+        $recipientIds = collect();
+
+        if ($reportation->assigned_to) {
+            $recipientIds->push($reportation->assigned_to);
+        } else {
+            $managerIds = \App\Models\User::permission('reportation-manage')
+                ->where('id', '!=', $user->id)
+                ->pluck('id');
+            $recipientIds = $recipientIds->merge($managerIds);
+        }
+
+        foreach ($recipientIds->unique() as $recipientId) {
+            $this->sendOrIncrementReportationNotif(
+                (int) $recipientId,
+                $reportation->id,
+                $notifMessage,
+                $notifUrl
+            );
+        }
+    } else {
+        // Admin / gestionnaire sent → notify the formateur
+        $recipientId = $reportation->id_user;
+
+        if ($recipientId && $recipientId !== $user->id) {
+            $this->sendOrIncrementReportationNotif(
+                (int) $recipientId,
+                $reportation->id,
+                $notifMessage,
+                $notifUrl
+            );
+        }
+    }
+    // ══════════════════════════════════════════════════════════
+
+    return response()->json($this->formatMessage($msg));
+}
+
+// ── PRIVATE HELPER ─────────────────────────────────────────────
+private function sendOrIncrementReportationNotif(
+    int    $recipientId,
+    int    $reportationId,
+    string $message,
+    string $url
+): void {
+    $existing = \App\Models\UserNotification::where('user_id', $recipientId)
+        ->where('type', 'reportation_reply')
+        ->whereNull('read_at')
+        ->whereJsonContains('data->reportation_id', $reportationId)
+        ->latest()
+        ->first();
+
+    if ($existing) {
+        $newCount = $existing->count + 1;
+        $existing->update([
+            'count'   => $newCount,
+            'message' => "+{$newCount} nouveaux messages dans la reportation #{$reportationId}.",
+        ]);
+        broadcast(new \App\Events\NotificationUpdated($existing->fresh()))->toOthers();
+    } else {
+        $notif = \App\Models\UserNotification::create([
+            'user_id' => $recipientId,
+            'type'    => 'reportation_reply',
+            'message' => $message,
+            'url'     => $url,
+            'count'   => 1,
+            'data'    => [
+                'reportation_id' => $reportationId,
+                'sender_name'    => auth()->user()->name,
+                'sender_role'    => auth()->user()->role,
+            ],
+        ]);
+        broadcast(new \App\Events\NotificationCreated($notif->fresh()))->toOthers();
+    }
+}
 
     // ── GET MESSAGES ───────────────────────────────────────
     public function getMessages(Reportation $reportation): \Illuminate\Http\JsonResponse

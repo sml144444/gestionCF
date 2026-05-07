@@ -104,6 +104,7 @@
             'perms' => [
                 'reportation-create' => '📝 Créer une reportation',
                 'reportation-manage' => '⚙️ Gérer toutes les reportations',
+                'reportation-view-assigned' => '👁️ Voir les reportations assignées',
             ]
         ],
         'reclamation' => [

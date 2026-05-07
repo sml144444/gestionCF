@@ -48,52 +48,58 @@ class NotificationService
     }
 
     // ── Private: find a groupable unread notification ──────────────────
-    private static function findGroupable(int $userId, string $type, array $data): ?UserNotification
-    {
-        // Only group message notifications (not assignment, status change, etc.)
-        $groupableTypes = ['reclamation_reply'];
+private static function findGroupable(int $userId, string $type, array $data): ?UserNotification
+{
+    $groupableTypes = ['reclamation_reply', 'reportation_reply']; // ← ADD reportation_reply
 
-        if (! in_array($type, $groupableTypes)) {
-            return null;
-        }
-
-        // Must have a reclamation_id to group on
-        $reclamationId = $data['reclamation_id'] ?? null;
-        if (! $reclamationId) {
-            return null;
-        }
-
-        // Find unread, same type, same reclamation
-        return UserNotification::forUser($userId)
-            ->unread()
-            ->where('type', $type)
-            ->whereJsonContains('data->reclamation_id', $reclamationId)
-            ->latest()
-            ->first();
+    if (! in_array($type, $groupableTypes)) {
+        return null;
     }
 
-    // ── Private: increment existing notification ───────────────────────
-    private static function increment(UserNotification $notification, array $data): UserNotification
-    {
-        $newCount = $notification->count + 1;
-
-        // Build a new message that reflects the count
-        $reclamationId = $data['reclamation_id'] ?? ($notification->data['reclamation_id'] ?? null);
-
-        $message = $reclamationId
-            ? "{$newCount} nouveaux messages dans la réclamation #{$reclamationId}."
-            : "{$newCount} nouveaux messages.";
-
-        $notification->update([
-            'count'   => $newCount,
-            'message' => $message,
-        ]);
-
-        // Broadcast an update (not a create) so frontend patches the existing item
-        broadcast(new NotificationUpdated($notification->fresh()));
-
-        return $notification;
+    // Works for both reclamation_id and reportation_id
+    $entityId = $data['reclamation_id'] ?? $data['reportation_id'] ?? null;
+    if (! $entityId) {
+        return null;
     }
+
+    return UserNotification::forUser($userId)
+        ->unread()
+        ->where('type', $type)
+        ->where(function ($q) use ($data) {
+            if (isset($data['reclamation_id'])) {
+                $q->whereJsonContains('data->reclamation_id', $data['reclamation_id']);
+            } elseif (isset($data['reportation_id'])) {
+                $q->whereJsonContains('data->reportation_id', $data['reportation_id']);
+            }
+        })
+        ->latest()
+        ->first();
+}
+
+private static function increment(UserNotification $notification, array $data): UserNotification
+{
+    $newCount = $notification->count + 1;
+
+    $reclamationId  = $data['reclamation_id']  ?? ($notification->data['reclamation_id']  ?? null);
+    $reportationId  = $data['reportation_id']  ?? ($notification->data['reportation_id']  ?? null);
+
+    if ($reportationId) {
+        $message = "{$newCount} nouveaux messages dans la reportation #{$reportationId}.";
+    } elseif ($reclamationId) {
+        $message = "{$newCount} nouveaux messages dans la réclamation #{$reclamationId}.";
+    } else {
+        $message = "{$newCount} nouveaux messages.";
+    }
+
+    $notification->update([
+        'count'   => $newCount,
+        'message' => $message,
+    ]);
+
+    broadcast(new NotificationUpdated($notification->fresh()));
+
+    return $notification;
+}
 
     // ── Convenience wrappers (unchanged API) ───────────────────────────
 

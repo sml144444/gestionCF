@@ -33,6 +33,7 @@ protected $casts = [
         'reclamation_assigned' => ['icon' => '📋', 'color' => '#7c3aed', 'bg' => '#f5f3ff'],
         'reclamation_status'   => ['icon' => '🔄', 'color' => '#059669', 'bg' => '#ecfdf5'],
         'reclamation_deleted'  => ['icon' => '🗑️', 'color' => '#dc2626', 'bg' => '#fef2f2'],
+        'reportation_reply'    => ['icon' => '📅', 'color' => '#0891b2', 'bg' => '#ecfeff'],  // reportation 
         'note'                 => ['icon' => '📝', 'color' => '#d97706', 'bg' => '#fffbeb'],
         'default'              => ['icon' => '🔔', 'color' => '#64748b', 'bg' => '#f8fafc'],
     ];
