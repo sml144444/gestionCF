@@ -581,4 +581,34 @@ function escapeHtml(text) {
 }
 </script>
 
+<script>
+// ── AUTO-OPEN CHAT FROM NOTIFICATION LINK ─────────────────────
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const openId = parseInt(params.get('open_chat'));
+    if (!openId) return;
+
+    function tryOpen() {
+        const card = document.querySelector('[data-rp-id="' + openId + '"]');
+        if (!card) return; // reportation not on this page/tab
+
+        const label = card.getAttribute('data-module') || 'Support';
+        openChat(openId, label);
+
+        // Clean ?open_chat= from URL without page reload
+        const clean = new URL(window.location);
+        clean.searchParams.delete('open_chat');
+        window.history.replaceState({}, '', clean);
+    }
+
+    // Wait for subscribeAll() and DOM to settle
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(tryOpen, 200));
+    } else {
+        setTimeout(tryOpen, 200);
+    }
+})();
+</script>
+
+
 @endsection

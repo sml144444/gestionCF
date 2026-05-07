@@ -257,21 +257,81 @@ class ReportationController extends Controller
             ->with('success', 'Séance supprimée suite à la demande de report.');
     }
 
-    // ── ASSIGN gestionnaire ────────────────────────────────
-    public function assign(Request $request, Reportation $reportation)
-    {
-        $request->validate(['assigned_to' => 'nullable|exists:users,id']);
+// ── ASSIGN gestionnaire ────────────────────────────────────────
+public function assign(Request $request, Reportation $reportation)
+{
+    $request->validate(['assigned_to' => 'nullable|exists:users,id']);
 
-        $reportation->update(['assigned_to' => $request->assigned_to]);
+    $previousAssignee = $reportation->assigned_to;
 
-        if ($request->assigned_to) {
-            event(new \App\Events\ReportationAssigned($reportation));
-        }
+    $reportation->update(['assigned_to' => $request->assigned_to]);
 
-        return back()->with('success', 'Reportation assignée avec succès.');
+    if ($request->assigned_to) {
+        event(new \App\Events\ReportationAssigned($reportation));
     }
 
+    // ══════════════════════════════════════════════════════════
+    // NOTIFICATIONS
+    // ══════════════════════════════════════════════════════════
+    if ($request->assigned_to) {
+
+        $assignee    = \App\Models\User::find($request->assigned_to);
+        $formateur   = $reportation->formateur;
+        $reportation->load('emploiDuTemps.module');
+        $moduleLabel = $reportation->emploiDuTemps?->module?->nom ?? "reportation #{$reportation->id}";
+
+        // 1. Notify the gestionnaire who was assigned ──────────
+        if ($assignee) {
+            $this->sendOrIncrementReportationNotif(
+                $assignee->id,
+                $reportation->id,
+                "📋 La reportation #{$reportation->id} ({$moduleLabel}) vous a été assignée.",
+                route('reportations.assigned') . '?open_chat=' . $reportation->id  // ← opens chat directly
+            );
+        }
+
+        // 2. Notify the formateur their request has a handler ──
+        if ($formateur && $formateur->id !== auth()->id()) {
+            $this->sendOrIncrementReportationNotif(
+                $formateur->id,
+                $reportation->id,
+                "✅ Votre demande de report #{$reportation->id} a été assignée à un responsable.",
+                route('reportations.my') . '?open_chat=' . $reportation->id  // ← opens chat directly
+            );
+        }
+
+        // 3. Confirm to the admin ───────────────────────────────
+        \App\Models\UserNotification::create([
+            'user_id' => auth()->id(),
+            'type'    => 'reportation_reply',
+            'message' => "Reportation #{$reportation->id} assignée à {$assignee?->name}.",
+            'url'     => route('reportations.index') . '?open_chat=' . $reportation->id,
+            'count'   => 1,
+            'data'    => ['reportation_id' => $reportation->id],
+        ]);
+    }
+
+    // Notify previous assignee if unassigned ───────────────────
+    if (! $request->assigned_to && $previousAssignee) {
+        \App\Models\UserNotification::create([
+            'user_id' => $previousAssignee,
+            'type'    => 'reportation_reply',
+            'message' => "⚠️ Vous avez été retiré de la reportation #{$reportation->id}.",
+            'url'     => route('reportations.assigned'),  // no chat to open here
+            'count'   => 1,
+            'data'    => ['reportation_id' => $reportation->id],
+        ]);
+    }
+    // ══════════════════════════════════════════════════════════
+
+    return back()->with('success', $request->assigned_to
+        ? 'Reportation assignée avec succès.'
+        : 'Assignation retirée.'
+    );
+}
+
     // ── SEND MESSAGE ───────────────────────────────────────
+// ── SEND MESSAGE ───────────────────────────────────────────────
 // ── SEND MESSAGE ───────────────────────────────────────────────
 public function sendMessage(Request $request, Reportation $reportation): \Illuminate\Http\JsonResponse
 {
@@ -318,56 +378,69 @@ public function sendMessage(Request $request, Reportation $reportation): \Illumi
         broadcast(new \App\Events\ReportationMessageSent($msg))->toOthers();
     }
 
-    // ══════════════════════════════════════════════════════════
-    // NOTIFICATIONS
-    // ══════════════════════════════════════════════════════════
-    $senderName        = $user->name;
-    $senderIsFormateur = $user->id === $reportation->id_user;
-    $notifUrl          = route('reportations.my');
+// ══════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════════════════
 
-    $notifMessage = $attachmentPath && empty($data['message'])
-        ? "📎 {$senderName} a joint un fichier dans la reportation #{$reportation->id}."
-        : "💬 Nouveau message de {$senderName} dans la reportation #{$reportation->id}.";
+// ← FIX 1: always refresh to get latest assigned_to from DB
+$reportation->refresh();
 
-    if ($senderIsFormateur) {
-        // Formateur sent → notify assigned gestionnaire OR all managers
-        $recipientIds = collect();
+$senderName        = $user->name;
+$senderIsFormateur = $user->id === $reportation->id_user;
 
-        if ($reportation->assigned_to) {
-            $recipientIds->push($reportation->assigned_to);
-        } else {
-            $managerIds = \App\Models\User::permission('reportation-manage')
-                ->where('id', '!=', $user->id)
-                ->pluck('id');
-            $recipientIds = $recipientIds->merge($managerIds);
-        }
+$notifMessage = $attachmentPath && empty($data['message'])
+    ? "📎 {$senderName} a joint un fichier dans la reportation #{$reportation->id}."
+    : "💬 Nouveau message de {$senderName} dans la reportation #{$reportation->id}.";
 
-        foreach ($recipientIds->unique() as $recipientId) {
-            $this->sendOrIncrementReportationNotif(
-                (int) $recipientId,
-                $reportation->id,
-                $notifMessage,
-                $notifUrl
-            );
-        }
+if ($senderIsFormateur) {
+
+    $recipientIds = collect();
+
+    if ($reportation->assigned_to) {
+        // ← FIX 2: gestionnaire is assigned → ALWAYS notify them directly
+        $recipientIds->push($reportation->assigned_to);
     } else {
-        // Admin / gestionnaire sent → notify the formateur
-        $recipientId = $reportation->id_user;
-
-        if ($recipientId && $recipientId !== $user->id) {
-            $this->sendOrIncrementReportationNotif(
-                (int) $recipientId,
-                $reportation->id,
-                $notifMessage,
-                $notifUrl
-            );
-        }
+        // Not assigned yet → notify all managers
+        $managerIds = \App\Models\User::permission('reportation-manage')
+            ->where('id', '!=', $user->id)
+            ->pluck('id');
+        $recipientIds = $recipientIds->merge($managerIds);
     }
-    // ══════════════════════════════════════════════════════════
+
+    foreach ($recipientIds->unique() as $recipientId) {
+        $recipient = \App\Models\User::find((int) $recipientId);
+        if (! $recipient) continue; // skip if user not found
+
+        $targetUrl = $recipient->hasPermissionTo('reportation-manage')
+            ? route('reportations.index')    . '?open_chat=' . $reportation->id
+            : route('reportations.assigned') . '?open_chat=' . $reportation->id;
+
+        $this->sendOrIncrementReportationNotif(
+            $recipient->id,
+            $reportation->id,
+            $notifMessage,
+            $targetUrl
+        );
+    }
+
+} else {
+    // Admin / gestionnaire sent → notify the formateur
+    $recipientId = $reportation->id_user;
+
+    if ($recipientId && $recipientId !== $user->id) {
+        $this->sendOrIncrementReportationNotif(
+            (int) $recipientId,
+            $reportation->id,
+            $notifMessage,
+            route('reportations.my') . '?open_chat=' . $reportation->id
+        );
+    }
+}
+// ══════════════════════════════════════════════════════════
 
     return response()->json($this->formatMessage($msg));
 }
-
+// ── PRIVATE HELPER ─────────────────────────────────────────────
 // ── PRIVATE HELPER ─────────────────────────────────────────────
 private function sendOrIncrementReportationNotif(
     int    $recipientId,
@@ -388,7 +461,10 @@ private function sendOrIncrementReportationNotif(
             'count'   => $newCount,
             'message' => "+{$newCount} nouveaux messages dans la reportation #{$reportationId}.",
         ]);
-        broadcast(new \App\Events\NotificationUpdated($existing->fresh()))->toOthers();
+
+        // ← FIX 3: removed ->toOthers() — we want the recipient to always receive this
+        broadcast(new \App\Events\NotificationUpdated($existing->fresh()));
+
     } else {
         $notif = \App\Models\UserNotification::create([
             'user_id' => $recipientId,
@@ -402,7 +478,9 @@ private function sendOrIncrementReportationNotif(
                 'sender_role'    => auth()->user()->role,
             ],
         ]);
-        broadcast(new \App\Events\NotificationCreated($notif->fresh()))->toOthers();
+
+        // ← FIX 3: removed ->toOthers() — we want the recipient to always receive this
+        broadcast(new \App\Events\NotificationCreated($notif->fresh()));
     }
 }
 

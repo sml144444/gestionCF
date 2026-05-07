@@ -111,7 +111,9 @@
 <?php $__empty_1 = true; $__currentLoopData = $reportations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 <?php $emploi = $rp->emploiDuTemps; ?>
 
-<div class="rp-card" data-rp-id="<?php echo e($rp->id); ?>">
+<div class="rp-card"
+     data-rp-id="<?php echo e($rp->id); ?>"
+     data-module="<?php echo e(addslashes($rp->emploiDuTemps?->module?->name ?? 'Support')); ?>">
     
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:12px;">
