@@ -360,19 +360,99 @@ class ReportationController extends Controller
     }
 
     // ── HELPER ─────────────────────────────────────────────
-    private function formatMessage(ReportationMessage $m): array
-    {
-        return [
-            'id'              => $m->id,
-            'message'         => $m->message,
-            'user_id'         => $m->user_id,
-            'user_name'       => $m->user->name,
-            'created_at'      => $m->created_at->format('H:i'),
-            'attachment_name' => $m->attachment_name,
-            'attachment_type' => $m->attachment_type,
-            'attachment_url'  => $m->attachment_path
-                ? route('reportations.attachment', $m->id)
-                : null,
-        ];
+private function formatMessage(ReportationMessage $m): array
+{
+    return [
+        'id'              => $m->id,
+        'message'         => $m->message,
+        'user_id'         => $m->user_id,
+        'user_name'       => $m->user->name,
+        'created_at'      => $m->created_at->format('H:i'),
+        'seen_at'         => $m->seen_at?->toISOString(), // ← nouveau
+        'attachment_name' => $m->attachment_name,
+        'attachment_type' => $m->attachment_type,
+        'attachment_url'  => $m->attachment_path
+            ? route('reportations.attachment', $m->id)
+            : null,
+    ];
+}
+
+    // ── MARK SEEN ──────────────────────────────────────────
+public function markSeen(Reportation $reportation): \Illuminate\Http\JsonResponse
+{
+    $user = auth()->user();
+
+    $allowed = $reportation->id_user === $user->id
+        || $reportation->assigned_to === $user->id
+        || $user->hasPermissionTo('reportation-manage');
+
+    if (! $allowed) abort(403);
+
+    // Récupère les IDs AVANT l'update
+    $messageIds = $reportation->messages()
+        ->where('user_id', '!=', $user->id)
+        ->whereNull('seen_at')
+        ->pluck('id')
+        ->toArray();
+
+    if (!empty($messageIds)) {
+        $reportation->messages()
+            ->whereIn('id', $messageIds)
+            ->update(['seen_at' => now()]);
+
+        // 🔥 Broadcaster l'event en temps réel
+        if (class_exists(\App\Events\ReportationMessageSeen::class)) {
+            broadcast(new \App\Events\ReportationMessageSeen(
+                $reportation,
+                $messageIds,
+                $user->id
+            ))->toOthers();
+        }
     }
+
+    return response()->json(['ok' => true, 'seen_ids' => $messageIds]);
+}
+
+// ── DELETE MESSAGE ─────────────────────────────────────
+public function deleteMessage(ReportationMessage $message): \Illuminate\Http\JsonResponse
+{
+    $user = auth()->user();
+
+    if ($message->user_id !== $user->id) abort(403);
+
+    if ($message->seen_at !== null) {
+        return response()->json(['error' => 'Message déjà vu, suppression impossible.'], 403);
+    }
+
+    // Delete attachment from storage if exists
+    if ($message->attachment_path) {
+        \Storage::disk('local')->delete($message->attachment_path);
+    }
+
+    $message->delete();
+
+    return response()->json(['ok' => true]);
+}
+
+// ── EDIT MESSAGE (text only) ───────────────────────────
+public function updateMessage(Request $request, ReportationMessage $message): \Illuminate\Http\JsonResponse
+{
+    $user = auth()->user();
+
+    if ($message->user_id !== $user->id) abort(403);
+
+    if ($message->seen_at !== null) {
+        return response()->json(['error' => 'Message déjà vu, modification impossible.'], 403);
+    }
+
+    if ($message->attachment_path) {
+        return response()->json(['error' => 'Impossible de modifier un message avec pièce jointe.'], 403);
+    }
+
+    $data = $request->validate(['message' => 'required|string|min:1|max:1000']);
+
+    $message->update(['message' => $data['message']]);
+
+    return response()->json(['ok' => true, 'message' => $data['message']]);
+}
 }

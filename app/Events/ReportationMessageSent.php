@@ -36,6 +36,7 @@ public function broadcastWith(): array
         'attachment_url'  => $this->reportationMessage->attachment_path
             ? route('reportations.attachment', $this->reportationMessage->id)
             : null,
+        'seen_at' => $this->reportationMessage->seen_at?->toISOString(),
     ];
 }
 }

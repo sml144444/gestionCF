@@ -223,6 +223,7 @@
 <script>
 let currentReportationId = null;
 
+// ── OPEN CHAT ─────────────────────────────────────────
 function openChat(id, label) {
     currentReportationId = id;
     document.getElementById('chat-title').textContent = '💬 ' + label;
@@ -230,44 +231,51 @@ function openChat(id, label) {
         '<div style="text-align:center;font-size:12px;color:#94a3b8;">Chargement…</div>';
     document.getElementById('chat-modal').style.display = 'flex';
 
-    fetch(`/reportations/${id}/messages`)
-        .then(r => r.json())
-        .then(msgs => {
-            const box = document.getElementById('chat-messages');
-            box.innerHTML = msgs.length === 0
-                ? '<div style="text-align:center;font-size:12px;color:#94a3b8;">Aucun message pour l\'instant.</div>'
-                : '';
-            msgs.forEach(appendMsg);
-            box.scrollTop = box.scrollHeight;
-        });
+    fetch(`/reportations/${id}/messages`, {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(msgs => {
+        const box = document.getElementById('chat-messages');
+        box.innerHTML = msgs.length === 0
+            ? '<div style="text-align:center;font-size:12px;color:#94a3b8;">Aucun message pour l\'instant.</div>'
+            : '';
+        msgs.forEach(appendMsg);
+        box.scrollTop = box.scrollHeight;
+
+        // Mark received messages as seen
+        markAllSeen(id);
+    });
 }
 
 function closeChat() {
     document.getElementById('chat-modal').style.display = 'none';
     currentReportationId = null;
-    clearAttachment(); // Reset attachment when closing
+    clearAttachment();
 }
 
-function onFileSelected(input) {
-    const file = input.files[0];
-    if (!file) return;
-    document.getElementById('file-preview-name').textContent = '📎 ' + file.name;
-    document.getElementById('file-preview-bar').style.display = 'flex';
+// ── MARK SEEN ─────────────────────────────────────────
+function markAllSeen(rpId) {
+    fetch(`/reportations/${rpId}/seen`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    });
 }
 
-function clearAttachment() {
-    document.getElementById('chat-file-input').value = '';
-    document.getElementById('file-preview-bar').style.display = 'none';
-    document.getElementById('file-preview-name').textContent = '';
-}
-
+// ── APPEND MESSAGE ────────────────────────────────────
 function appendMsg(msg) {
-    const me = {{ auth()->id() }};
-    const isMe = msg.user_id == me;
-    const box = document.getElementById('chat-messages');
-    const div = document.createElement('div');
+    const me    = {{ auth()->id() }};
+    const isMe  = msg.user_id == me;
+    const unseen = !msg.seen_at;
+    const box   = document.getElementById('chat-messages');
+    const div   = document.createElement('div');
+    div.id      = 'msg-' + msg.id;
     div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};gap:2px;`;
 
+    // Attachment HTML
     let attachmentHtml = '';
     if (msg.attachment_url) {
         if (msg.attachment_type === 'image') {
@@ -286,15 +294,170 @@ function appendMsg(msg) {
     }
 
     const msgHtml = msg.message
-        ? `<div style="max-width:75%;padding:8px 12px;border-radius:${isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};background:${isMe ? '#1a4f8a' : '#f1f5f9'};color:${isMe ? 'white' : '#1e293b'};font-size:12px;line-height:1.5;">${escapeHtml(msg.message)}</div>`
+        ? `<div id="msg-text-${msg.id}" style="max-width:75%;padding:8px 12px;border-radius:${isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};background:${isMe ? '#1a4f8a' : '#f1f5f9'};color:${isMe ? 'white' : '#1e293b'};font-size:12px;line-height:1.5;">${escapeHtml(msg.message)}</div>`
+        : '';
+
+    // Action buttons (only for MY messages not yet seen by the other)
+// Action buttons — 3-dot kebab menu (only for MY messages not yet seen)
+let actionsHtml = '';
+if (isMe && unseen) {
+    const hasAttachment = !!msg.attachment_url;
+    actionsHtml = `
+        <div id="msg-actions-${msg.id}" style="position:relative;display:flex;justify-content:flex-end;margin-top:2px;">
+            <button onclick="toggleMsgMenu(${msg.id})"
+                id="msg-menu-btn-${msg.id}"
+                title="Options"
+                style="width:26px;height:26px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;font-weight:900;line-height:1;letter-spacing:1px;transition:background .15s;"
+                onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
+                ···
+            </button>
+            <div id="msg-menu-${msg.id}"
+                style="display:none;position:absolute;bottom:30px;right:0;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.1);min-width:130px;z-index:99;overflow:hidden;">
+                ${!hasAttachment ? `
+                <button onclick="closeMsgMenu(${msg.id});startEdit(${msg.id})"
+                    style="width:100%;padding:8px 14px;border:none;background:transparent;color:#334155;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;"
+                    onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                    ✏️ Modifier
+                </button>` : ''}
+                <button onclick="closeMsgMenu(${msg.id});deleteMsg(${msg.id})"
+                    style="width:100%;padding:8px 14px;border:none;background:transparent;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;"
+                    onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">
+                    🗑 Supprimer
+                </button>
+            </div>
+        </div>`;
+}
+
+    // Seen indicator for my messages
+    const seenHtml = isMe
+        ? `<div id="msg-seen-${msg.id}" style="font-size:9px;color:${msg.seen_at ? '#22c55e' : '#94a3b8'};">
+               ${msg.seen_at ? '✓✓ Vu' : '✓ Envoyé'}
+           </div>`
         : '';
 
     div.innerHTML = `
         <div style="font-size:9px;color:#94a3b8;">${escapeHtml(msg.user_name)} · ${escapeHtml(msg.created_at)}</div>
         ${msgHtml}
-        ${attachmentHtml}`;
+        ${attachmentHtml}
+        ${actionsHtml}
+        ${seenHtml}`;
+
     box.appendChild(div);
 }
+
+// ── 3-DOT MENU ────────────────────────────────────────
+function toggleMsgMenu(msgId) {
+    const menu = document.getElementById('msg-menu-' + msgId);
+    const isOpen = menu.style.display === 'block';
+    // Close all other open menus first
+    document.querySelectorAll('[id^="msg-menu-"]').forEach(m => m.style.display = 'none');
+    menu.style.display = isOpen ? 'none' : 'block';
+}
+
+function closeMsgMenu(msgId) {
+    const menu = document.getElementById('msg-menu-' + msgId);
+    if (menu) menu.style.display = 'none';
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[id^="msg-menu-btn-"]') && !e.target.closest('[id^="msg-menu-"]')) {
+        document.querySelectorAll('[id^="msg-menu-"]').forEach(m => m.style.display = 'none');
+    }
+});
+// ── DELETE ────────────────────────────────────────────
+function deleteMsg(msgId) {
+    if (!confirm('Supprimer ce message ?')) return;
+
+    fetch(`/reportations/messages/${msgId}`, {
+        method: 'DELETE',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const el = document.getElementById('msg-' + msgId);
+            if (el) el.remove();
+        } else {
+            alert(data.error || 'Erreur lors de la suppression.');
+        }
+    });
+}
+
+// ── EDIT ──────────────────────────────────────────────
+function startEdit(msgId) {
+    const textEl    = document.getElementById('msg-text-' + msgId);
+    const actionsEl = document.getElementById('msg-actions-' + msgId);
+    const current   = textEl.textContent;
+
+    textEl.innerHTML = `
+        <div style="display:flex;gap:6px;align-items:center;">
+            <input id="edit-input-${msgId}" type="text" value="${escapeHtml(current)}" maxlength="1000"
+                style="flex:1;padding:4px 8px;border-radius:6px;border:1.5px solid #1a4f8a;font-size:12px;outline:none;color:#1e293b;background:white;"
+                onkeydown="if(event.key==='Enter')confirmEdit(${msgId});if(event.key==='Escape')cancelEdit(${msgId}, \`${escapeHtml(current)}\`)">
+            <button onclick="confirmEdit(${msgId})"
+                style="padding:3px 8px;border-radius:6px;border:none;background:#22c55e;color:white;font-size:11px;font-weight:700;cursor:pointer;">✓</button>
+            <button onclick="cancelEdit(${msgId}, \`${escapeHtml(current)}\`)"
+                style="padding:3px 8px;border-radius:6px;border:none;background:#e2e8f0;color:#475569;font-size:11px;font-weight:700;cursor:pointer;">✕</button>
+        </div>`;
+
+    actionsEl.style.display = 'none';
+    document.getElementById('edit-input-' + msgId).focus();
+}
+
+function cancelEdit(msgId, original) {
+    const textEl    = document.getElementById('msg-text-' + msgId);
+    const actionsEl = document.getElementById('msg-actions-' + msgId);
+    textEl.textContent = original;
+    actionsEl.style.display = 'flex';
+}
+
+function confirmEdit(msgId) {
+    const input   = document.getElementById('edit-input-' + msgId);
+    const newText = input.value.trim();
+    if (!newText) return;
+
+    fetch(`/reportations/messages/${msgId}`, {
+        method: 'PATCH',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ message: newText })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const textEl    = document.getElementById('msg-text-' + msgId);
+            const actionsEl = document.getElementById('msg-actions-' + msgId);
+            textEl.textContent = data.message;
+            actionsEl.style.display = 'flex';
+        } else {
+            alert(data.error || 'Erreur lors de la modification.');
+            cancelEdit(msgId, input.value);
+        }
+    });
+}
+
+// ── FILE ATTACHMENT ───────────────────────────────────
+function onFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('file-preview-name').textContent = '📎 ' + file.name;
+    document.getElementById('file-preview-bar').style.display = 'flex';
+}
+
+function clearAttachment() {
+    document.getElementById('chat-file-input').value = '';
+    document.getElementById('file-preview-bar').style.display = 'none';
+    document.getElementById('file-preview-name').textContent = '';
+}
+
+// ── SEND MESSAGE ──────────────────────────────────────
 function sendChatMsg() {
     const input     = document.getElementById('chat-input');
     const fileInput = document.getElementById('chat-file-input');
@@ -314,7 +477,7 @@ function sendChatMsg() {
 
     const socketId = window.Echo?.socketId() ?? null;
     const headers  = {
-        'Accept': 'application/json',   // ← FIX : force Laravel à répondre en JSON
+        'Accept': 'application/json',
     };
     if (socketId) headers['X-Socket-ID'] = socketId;
 
@@ -326,7 +489,7 @@ function sendChatMsg() {
         body: formData
     })
     .then(r => {
-        if (!r.ok) {                    // ← FIX : vérifier le statut HTTP
+        if (!r.ok) {
             return r.json().then(err => {
                 const msg = err?.message || err?.error
                     || Object.values(err?.errors ?? {})[0]?.[0]
@@ -351,7 +514,6 @@ function sendChatMsg() {
     .catch(err => console.error('Erreur envoi:', err));
 }
 
-// Ajouter cette fonction helper dans les 3 blades
 function showSendError(message) {
     const box = document.getElementById('chat-messages');
     const div = document.createElement('div');
@@ -359,8 +521,24 @@ function showSendError(message) {
     div.textContent = '⚠ ' + message;
     box.appendChild(div);
     box.scrollTop = 99999;
-    setTimeout(() => div.remove(), 5000); // disparaît après 5s
+    setTimeout(() => div.remove(), 5000);
 }
+
+// ── HANDLE SEEN EVENT (real-time ✓✓) ─────────────────
+function handleSeenEvent(e) {
+    (e.message_ids || []).forEach(function(id) {
+        // Mettre à jour l'indicateur ✓✓ en temps réel
+        const seenEl = document.getElementById('msg-seen-' + id);
+        if (seenEl) {
+            seenEl.style.color = '#22c55e';
+            seenEl.textContent = '✓✓ Vu';
+        }
+        // Supprimer les boutons modifier/supprimer (message vu = plus modifiable)
+        const actionsEl = document.getElementById('msg-actions-' + id);
+        if (actionsEl) actionsEl.remove();
+    });
+}
+
 // ══════════════════════════════════════════════
 // GLOBAL ECHO — wait for Echo to be ready then subscribe
 // ══════════════════════════════════════════════
@@ -379,9 +557,17 @@ function subscribeAll() {
                 if (empty) empty.remove();
                 appendMsg(e);
                 box.scrollTop = 99999;
+                // Marquer comme vu immédiatement si le chat est ouvert
+                markAllSeen(rpId);
             }
             const badge = document.getElementById('chat-count-' + rpId);
             if (badge) badge.textContent = parseInt(badge.textContent || '0') + 1;
+        })
+        .listen('.messages.seen', function(e) {
+            const rpId = {{ $rp->id }};
+            if (currentReportationId === rpId) {
+                handleSeenEvent(e);
+            }
         });
     @endforeach
 }

@@ -239,6 +239,16 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
     Route::get('reportations/attachment/{message}', [ReportationController::class, 'serveAttachment'])
     ->name('reportations.attachment')
     ->middleware('auth');
+
+    // Dans le groupe Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])
+Route::post('/reportations/{reportation}/seen', [ReportationController::class, 'markSeen'])
+    ->name('reportations.seen');
+
+Route::delete('/reportations/messages/{message}', [ReportationController::class, 'deleteMessage'])
+    ->name('reportations.message.delete');
+
+Route::patch('/reportations/messages/{message}', [ReportationController::class, 'updateMessage'])
+    ->name('reportations.message.update');
 });
 
 // ─────────────────────────────────────────────
