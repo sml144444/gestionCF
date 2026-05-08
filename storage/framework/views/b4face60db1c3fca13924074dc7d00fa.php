@@ -6,7 +6,6 @@
 
 <?php $__env->startSection('content'); ?>
 
-<style>[x-cloak]{display:none!important}</style>
 
 <?php
     $roleColors = [
@@ -598,17 +597,20 @@
                 <?php echo csrf_field(); ?> <?php echo method_field('PUT'); ?>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        <?php if($user->isStagiaire()): ?>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
-                                Nom complet
-                            </label>
-                            <div class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed select-none">
-                                <?php echo e($user->name); ?>
+<?php if($user->isStagiaire()): ?>
+    
+    <input type="hidden" name="name" value="<?php echo e($user->name); ?>">
+    
+    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+        Nom complet
+    </label>
+    <div class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed select-none">
+        <?php echo e($user->name); ?>
 
-                            </div>
-                            <p class="text-[10px] text-slate-400 mt-1">Le nom ne peut pas être modifié. Contactez l'administration.</p>
-                        <?php else: ?>
-                            <?php if (isset($component)) { $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $component; } ?>
+    </div>
+    <p class="text-[10px] text-slate-400 mt-1">Le nom ne peut pas être modifié. Contactez l'administration.</p>
+<?php else: ?>
+    <?php if (isset($component)) { $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.form-field','data' => ['name' => 'name','label' => 'Nom complet','value' => old('name', $user->name),'required' => true]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
 <?php $component->withName('form-field'); ?>
@@ -628,30 +630,46 @@
 <?php $component = $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d; ?>
 <?php unset($__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d); ?>
 <?php endif; ?>
-                        <?php endif; ?>
+<?php endif; ?>
                     </div>
                     <div>
-                        <?php if (isset($component)) { $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.form-field','data' => ['name' => 'phone','label' => 'Téléphone','value' => old('phone', $user->phone)]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? (array) $attributes->getIterator() : [])); ?>
-<?php $component->withName('form-field'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag && $constructor = (new ReflectionClass(Illuminate\View\AnonymousComponent::class))->getConstructor()): ?>
-<?php $attributes = $attributes->except(collect($constructor->getParameters())->map->getName()->all()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['name' => 'phone','label' => 'Téléphone','value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('phone', $user->phone))]); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalf4c8ecf26ef77d4de25edf56eae3a34d)): ?>
-<?php $attributes = $__attributesOriginalf4c8ecf26ef77d4de25edf56eae3a34d; ?>
-<?php unset($__attributesOriginalf4c8ecf26ef77d4de25edf56eae3a34d); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d)): ?>
-<?php $component = $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d; ?>
-<?php unset($__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d); ?>
-<?php endif; ?>
+
+
+<div>
+    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+        Téléphone
+    </label>
+    <input type="tel" name="phone"
+           value="<?php echo e(old('phone', $user->phone)); ?>"
+           inputmode="numeric"
+           pattern="[0-9]*"
+           maxlength="15"
+           placeholder="ex: 0612345678"
+           @input="$event.target.value = $event.target.value.replace(/[^0-9]/g, '')"
+           class="w-full px-3 py-2.5 text-sm border rounded-xl transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                  <?php $__errorArgs = ['phone'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> border-red-400 bg-red-50 <?php else: ?> border-slate-200 <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>">
+    <?php $__errorArgs = ['phone'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+        <p class="mt-1 text-xs text-red-600"><?php echo e($message); ?></p>
+    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+</div>
                     </div>
+
+
                     <div>
                         <?php if (isset($component)) { $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $attributes; } ?>

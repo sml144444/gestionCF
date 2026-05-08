@@ -154,4 +154,37 @@ private static function increment(UserNotification $notification, array $data): 
             ['reclamation_id' => $reclamationId]
         );
     }
+
+    public static function noteAdded(User $recipient, string $moduleName, string $url): UserNotification
+{
+    return self::send(
+        $recipient,
+        'note',
+        "Vos notes pour le module \"{$moduleName}\" ont été mises à jour.",
+        $url,
+        ['module_name' => $moduleName]
+    );
+}
+
+public static function absenceRecorded(User $recipient, string $moduleName, string $url): UserNotification
+{
+    return self::send(
+        $recipient,
+        'absence',
+        "Une absence a été enregistrée pour le module \"{$moduleName}\". Vérifiez et soumettez votre justificatif.",
+        $url,
+        ['module_name' => $moduleName]
+    );
+}
+
+public static function ressourceAdded(User $recipient, string $titre, string $moduleName, string $url): UserNotification
+{
+    return self::send(
+        $recipient,
+        'ressource',
+        "Nouvelle ressource « {$titre} » ajoutée pour le module \"{$moduleName}\".",
+        $url,
+        ['module_name' => $moduleName]
+    );
+}
 }

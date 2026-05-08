@@ -237,6 +237,20 @@ class SeanceController extends Controller
             }
         }
 
+        // ── Notify absent stagiaires (bell notification) ──────────
+$notifUrl = route('absences.index');
+$moduleName = $emploi->module?->name ?? 'Module';
+
+foreach (array_keys($absentStagiaireIds) as $stagiaireId) {
+    $stagiaire = User::find($stagiaireId);
+    if (!$stagiaire) continue;
+    \App\Services\NotificationService::absenceRecorded(
+        $stagiaire,
+        $moduleName,
+        $notifUrl
+    );
+}
+
         $msg = 'Liste de présence enregistrée.';
         if ($sentCount > 0)        $msg .= " Notification d'absence envoyée à {$sentCount} stagiaire(s).";
         if (!empty($failedEmails)) $msg .= ' (' . count($failedEmails) . ' email(s) invalide(s) ignoré(s))';
@@ -310,6 +324,18 @@ class SeanceController extends Controller
                 \Log::error("Erreur email ressource {$stagiaire->email}: " . $e->getMessage());
             }
         }
+
+        // ── Notify stagiaires (bell notification) ─────────────────
+$notifUrl = route('seances.show', $emploi);
+
+foreach ($stagiaires as $stagiaire) {
+    \App\Services\NotificationService::ressourceAdded(
+        $stagiaire,
+        $request->titre,
+        $emploi->module?->name ?? 'Module',
+        $notifUrl
+    );
+}
 
         $msg = "Ressource « {$request->titre} » ajoutée.";
         if ($sentCount > 0)        $msg .= " Notification envoyée à {$sentCount} stagiaire(s).";

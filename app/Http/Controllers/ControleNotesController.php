@@ -308,6 +308,19 @@ class ControleNotesController extends Controller
             }
         }
 
+        // ── Notify affected stagiaires ────────────────────────────
+        $affectedIds = array_keys($notes);
+        $stagiaireUsers = \App\Models\User::whereIn('id', $affectedIds)->get();
+        $notifUrl = route('controles.my-notes');
+
+        foreach ($stagiaireUsers as $stagiaire) {
+            \App\Services\NotificationService::noteAdded(
+                $stagiaire,
+                $module->name,
+                $notifUrl
+            );
+        }
+
         $params = $groupeId ? ['groupe_id' => $groupeId] : [];
         if ($promoFilter) $params['promo'] = $promoFilter;  // ← NEW
 

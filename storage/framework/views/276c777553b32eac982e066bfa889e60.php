@@ -16,13 +16,41 @@
 .status-pill.refuse  { background:#fff1f2; color:#dc2626; border:1px solid #fecdd3; }
 .rp-btn { height:36px; padding:0 14px; border-radius:9px; font-size:12px; font-weight:700; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity .15s; text-decoration:none; }
 .rp-btn:hover { opacity:.85; }
-.rp-btn.ghost { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+.rp-btn.ghost  { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+.rp-btn.green  { background:#16a34a; color:white; }
+.rp-btn.orange { background:#ea580c; color:white; }
+.rp-btn.red    { background:#dc2626; color:white; }
 .tab-pill { padding:7px 14px; border-radius:99px; font-size:12px; font-weight:600; text-decoration:none; border:1.5px solid #e2e8f0; background:white; color:#64748b; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
 .tab-pill:hover { border-color:#1e293b; color:#1e293b; background:#f1f5f9; }
 .tab-pill.active { background:#1e293b; border-color:#1e293b; color:white; }
 .tab-pill .badge { font-size:9px; padding:1px 7px; border-radius:99px; font-weight:800; }
 .tab-pill.active .badge { background:rgba(255,255,255,0.25); color:white; }
 .tab-pill:not(.active) .badge { background:#f1f5f9; color:#1e293b; }
+
+
+
+.rp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.rp-modal-overlay.open {
+    display: flex;
+}
+.rp-modal-box {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 460px;
+    margin: 16px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+}
 </style>
 
 <div class="rp-wrap">
@@ -87,7 +115,9 @@
 
 <div class="rp-card"
      data-rp-id="<?php echo e($rp->id); ?>"
+     data-rp-status="<?php echo e($rp->status); ?>"
      data-module="<?php echo e(addslashes($rp->emploiDuTemps?->module?->name ?? 'Support')); ?>">
+
     
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
         <div style="display:flex;align-items:center;gap:12px;">
@@ -174,7 +204,7 @@
             <?php elseif($rp->status === 'en_attente'): ?>
             <div style="margin-top:10px;padding:12px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fde68a;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                En attente de décision par l'administrateur.
+                En attente de décision.
             </div>
             <?php endif; ?>
         </div>
@@ -182,8 +212,11 @@
 
     
     <div style="padding:10px 20px;border-top:1px solid #f1f5f9;background:#fafafa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+
+        
         <button class="rp-btn ghost"
-                onclick="openChat(<?php echo e($rp->id); ?>, '<?php echo e(addslashes($rp->formateur?->name ?? 'Conversation')); ?>')">
+                onclick="openChat(<?php echo e($rp->id); ?>, '<?php echo e(addslashes($rp->formateur?->name ?? 'Conversation')); ?>', '<?php echo e($rp->status); ?>')"
+                data-module="<?php echo e(addslashes($rp->emploiDuTemps?->module?->name ?? 'Support')); ?>">
             💬 Chat
             <span id="chat-count-<?php echo e($rp->id); ?>" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">
                 <?php echo e($rp->messages?->count() ?? 0); ?>
@@ -191,13 +224,58 @@
             </span>
         </button>
 
-        <?php if($emploi): ?>
-        <a href="<?php echo e(route('emplois.index', ['week' => $emploi->date_debut->toDateString(), 'year' => $emploi->groupe->annee ?? 1])); ?>"
-           style="font-size:11px;color:#1e40af;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;">
-            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            Voir la semaine de cette séance
-        </a>
-        <?php endif; ?>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+
+            
+            <?php if($rp->status === 'en_attente' && $emploi): ?>
+
+                <button class="rp-btn green"
+                        onclick="openAcceptModal(
+                            <?php echo e($rp->id); ?>,
+                            '<?php echo e(addslashes($rp->formateur?->name ?? '')); ?>',
+                            '<?php echo e(addslashes($emploi->module?->name ?? 'Module')); ?>',
+                            '<?php echo e($emploi->date_debut->format('Y-m-d')); ?>',
+                            '<?php echo e($emploi->date_debut->format('H:i')); ?>',
+                            '<?php echo e($emploi->date_fin->format('H:i')); ?>'
+                        )">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Accepter & Choisir la date
+                </button>
+
+<button class="rp-btn orange"
+        onclick="openDeleteModal(
+            <?php echo e($rp->id); ?>,
+            '<?php echo e(addslashes($rp->formateur?->name ?? '')); ?>',
+            '<?php echo e(addslashes($emploi->module?->name ?? 'Module')); ?>',
+            '<?php echo e($emploi->date_debut->translatedFormat('l d M Y')); ?>',
+            '<?php echo e($emploi->date_debut->format('H:i')); ?>',
+            '<?php echo e($emploi->date_fin->format('H:i')); ?>'
+        )">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    Supprimer la séance
+</button>
+
+<button class="rp-btn red"
+        onclick="openRefuseModal(
+            <?php echo e($rp->id); ?>,
+            '<?php echo e(addslashes($rp->formateur?->name ?? '')); ?>',
+            '<?php echo e(addslashes($emploi->module?->name ?? 'Module')); ?>'
+        )">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+    Refuser
+</button>
+
+            <?php endif; ?>
+
+            <?php if($emploi): ?>
+            <a href="<?php echo e(route('emplois.index', ['week' => $emploi->date_debut->toDateString(), 'year' => $emploi->groupe->annee ?? 1])); ?>"
+               style="font-size:11px;color:#1e40af;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;">
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Voir la semaine
+            </a>
+            <?php endif; ?>
+
+        </div>
     </div>
 </div>
 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -230,7 +308,7 @@
             <button onclick="clearAttachment()" style="border:none;background:#fecdd3;color:#dc2626;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
         </div>
 
-        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
+        <div id="chat-input-row" style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
             
             <input type="file" id="chat-file-input"
                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
@@ -253,6 +331,181 @@
                 Envoyer
             </button>
         </div>
+
+        
+        <div id="chat-closed-notice" style="display:none;padding:12px 16px;border-top:1px solid #e2e8f0;background:#f8fafc;text-align:center;font-size:12px;font-weight:600;color:#94a3b8;">
+            🔒 Cette demande est clôturée — la messagerie est désactivée.
+        </div>
+    </div>
+</div>
+
+
+<div id="accept-modal" style="position:fixed;inset:0;z-index:60;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAcceptModal()">
+    <div style="background:white;border-radius:20px;width:100%;max-width:460px;margin:16px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.18);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #1e293b;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" fill="none" stroke="#1e293b" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#1e293b;">Choisir la nouvelle date</div>
+                    <div id="accept-session-label" style="font-size:10px;color:#64748b;margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeAcceptModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;">×</button>
+        </div>
+
+        <div id="accept-current-info" style="padding:10px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fde68a;margin-bottom:16px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Séance actuelle : <strong id="accept-current-date"></strong></span>
+        </div>
+
+        <form id="accept-form" method="POST" style="display:flex;flex-direction:column;gap:14px;">
+            <?php echo csrf_field(); ?>
+            
+            <input type="hidden" name="nouvelle_date_debut" id="accept-debut">
+            <input type="hidden" name="nouvelle_date_fin"   id="accept-fin">
+
+            
+            <div>
+                <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;">Nouvelle date</label>
+                <input type="date" id="accept-date" required
+                       style="width:100%;height:42px;padding:0 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:13px;color:#1e293b;outline:none;box-sizing:border-box;">
+            </div>
+
+            
+            <div>
+                <label style="display:block;font-size:9px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;">Séance</label>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                    <?php $__currentLoopData = [
+                        ['S1','08:30','11:00'],
+                        ['S2','11:00','13:30'],
+                        ['S3','13:30','16:00'],
+                        ['S4','16:00','18:30'],
+                    ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => [$label,$debut,$fin]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <button type="button"
+                            class="accept-slot-btn"
+                            data-index="<?php echo e($i); ?>"
+                            data-debut="<?php echo e($debut); ?>"
+                            data-fin="<?php echo e($fin); ?>"
+                            onclick="toggleSlot(this)"
+                            style="padding:8px 4px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;
+                                   font-size:12px;font-weight:600;color:#475569;cursor:pointer;
+                                   display:flex;flex-direction:column;align-items:center;gap:2px;
+                                   transition:all .15s;">
+                        <span style="font-size:13px;font-weight:800;"><?php echo e($label); ?></span>
+                        <span style="font-size:10px;color:#94a3b8;"><?php echo e($debut); ?></span>
+                        <span style="font-size:10px;color:#94a3b8;"><?php echo e($fin); ?></span>
+                    </button>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+                <div id="accept-slot-error" style="color:#dc2626;font-size:11px;margin-top:5px;display:none;">
+                    Veuillez sélectionner une séance.
+                </div>
+                <div id="accept-range-label" style="display:none;margin-top:6px;padding:7px 12px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:11px;font-weight:700;color:#15803d;text-align:center;"></div>
+            </div>
+            <div style="padding:10px 14px;border-radius:10px;background:#f1f5f9;border:1px solid #e2e8f0;font-size:11px;color:#475569;display:flex;align-items:flex-start;gap:8px;">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Le système vérifiera automatiquement les conflits de groupe, formateur et salle.
+            </div>
+            <div style="display:flex;gap:10px;margin-top:4px;">
+                <button type="button" onclick="closeAcceptModal()"
+                        style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                    Annuler
+                </button>
+                <button type="submit"
+                        style="flex:2;height:44px;border-radius:12px;border:none;background:#1e293b;font-size:13px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Confirmer le déplacement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div id="delete-modal" class="rp-modal-overlay" onclick="if(event.target===this)closeDeleteModal()">
+    <div class="rp-modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #f59e0b;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:12px;background:#fffbeb;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" fill="none" stroke="#f59e0b" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#1e293b;">Supprimer la séance</div>
+                    <div id="delete-session-label" style="font-size:10px;color:#64748b;margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeDeleteModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+
+        
+        <div id="delete-current-info" style="padding:10px 14px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;margin-bottom:16px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Séance : <strong id="delete-current-date"></strong></span>
+        </div>
+
+        
+        <div style="padding:12px 14px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
+            <svg width="16" height="16" fill="none" stroke="#dc2626" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:2px;">Action irréversible</div>
+                <div style="font-size:11px;color:#dc2626;line-height:1.5;">Cette séance sera définitivement supprimée de l'emploi du temps. Le formateur sera notifié.</div>
+            </div>
+        </div>
+
+        <form id="delete-form" method="POST" style="display:flex;gap:10px;">
+            <?php echo csrf_field(); ?>
+            <button type="button" onclick="closeDeleteModal()"
+                    style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                Annuler
+            </button>
+            <button type="submit"
+                    style="flex:2;height:44px;border-radius:12px;border:none;background:#f59e0b;font-size:13px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Confirmer la suppression
+            </button>
+        </form>
+    </div>
+</div>
+
+
+<div id="refuse-modal" class="rp-modal-overlay" onclick="if(event.target===this)closeRefuseModal()">
+    <div class="rp-modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #dc2626;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:12px;background:#fff1f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" fill="none" stroke="#dc2626" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#1e293b;">Refuser la demande</div>
+                    <div id="refuse-session-label" style="font-size:10px;color:#64748b;margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeRefuseModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+
+        
+        <div style="padding:12px 14px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
+            <svg width="16" height="16" fill="none" stroke="#dc2626" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:2px;">Confirmer le refus</div>
+                <div style="font-size:11px;color:#dc2626;line-height:1.5;">La séance restera dans l'emploi du temps. Le formateur sera notifié du refus.</div>
+            </div>
+        </div>
+
+        <form id="refuse-form" method="POST" style="display:flex;gap:10px;">
+            <?php echo csrf_field(); ?>
+            <button type="button" onclick="closeRefuseModal()"
+                    style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                Annuler
+            </button>
+            <button type="submit"
+                    style="flex:2;height:44px;border-radius:12px;border:none;background:#dc2626;font-size:13px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                Confirmer le refus
+            </button>
+        </form>
     </div>
 </div>
 
@@ -260,12 +513,22 @@
 let currentReportationId = null;
 
 // ── OPEN CHAT ─────────────────────────────────────────
-function openChat(id, name) {
+function openChat(id, name, status) {
     currentReportationId = id;
     document.getElementById('chat-title').textContent = '💬 ' + name;
     document.getElementById('chat-messages').innerHTML =
         '<div style="text-align:center;font-size:12px;color:#94a3b8;">Chargement…</div>';
     document.getElementById('chat-modal').style.display = 'flex';
+
+    // Show / hide input area based on status
+    const isClosed = status && status !== 'en_attente';
+    const inputRow    = document.getElementById('chat-input-row');
+    const closedNotice = document.getElementById('chat-closed-notice');
+    if (inputRow)     inputRow.style.display     = isClosed ? 'none' : 'flex';
+    if (closedNotice) closedNotice.style.display  = isClosed ? 'block' : 'none';
+    if (isClosed) {
+        document.getElementById('file-preview-bar').style.display = 'none';
+    }
 
     fetch(`/reportations/${id}/messages`, {
         headers: { 'Accept': 'application/json' }
@@ -278,8 +541,6 @@ function openChat(id, name) {
             : '';
         msgs.forEach(appendMsg);
         box.scrollTop = box.scrollHeight;
-
-        // Mark received messages as seen
         markAllSeen(id);
     });
 }
@@ -311,7 +572,6 @@ function appendMsg(msg) {
     div.id      = 'msg-' + msg.id;
     div.style.cssText = `display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};gap:2px;`;
 
-    // Attachment HTML
     let attachmentHtml = '';
     if (msg.attachment_url) {
         if (msg.attachment_type === 'image') {
@@ -333,38 +593,35 @@ function appendMsg(msg) {
         ? `<div id="msg-text-${msg.id}" style="max-width:75%;padding:8px 12px;border-radius:${isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};background:${isMe ? '#1e293b' : '#f1f5f9'};color:${isMe ? 'white' : '#1e293b'};font-size:12px;line-height:1.5;">${escapeHtml(msg.message)}</div>`
         : '';
 
-    // Action buttons (only for MY messages not yet seen by the other)
-// Action buttons — 3-dot kebab menu (only for MY messages not yet seen)
-let actionsHtml = '';
-if (isMe && unseen) {
-    const hasAttachment = !!msg.attachment_url;
-    actionsHtml = `
-        <div id="msg-actions-${msg.id}" style="position:relative;display:flex;justify-content:flex-end;margin-top:2px;">
-            <button onclick="toggleMsgMenu(${msg.id})"
-                id="msg-menu-btn-${msg.id}"
-                title="Options"
-                style="width:26px;height:26px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;font-weight:900;line-height:1;letter-spacing:1px;transition:background .15s;"
-                onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
-                ···
-            </button>
-            <div id="msg-menu-${msg.id}"
-                style="display:none;position:absolute;bottom:30px;right:0;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.1);min-width:130px;z-index:99;overflow:hidden;">
-                ${!hasAttachment ? `
-                <button onclick="closeMsgMenu(${msg.id});startEdit(${msg.id})"
-                    style="width:100%;padding:8px 14px;border:none;background:transparent;color:#334155;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;"
-                    onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
-                    ✏️ Modifier
-                </button>` : ''}
-                <button onclick="closeMsgMenu(${msg.id});deleteMsg(${msg.id})"
-                    style="width:100%;padding:8px 14px;border:none;background:transparent;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;"
-                    onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">
-                    🗑 Supprimer
+    let actionsHtml = '';
+    if (isMe && unseen) {
+        const hasAttachment = !!msg.attachment_url;
+        actionsHtml = `
+            <div id="msg-actions-${msg.id}" style="position:relative;display:flex;justify-content:flex-end;margin-top:2px;">
+                <button onclick="toggleMsgMenu(${msg.id})"
+                    id="msg-menu-btn-${msg.id}"
+                    title="Options"
+                    style="width:26px;height:26px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;font-weight:900;line-height:1;letter-spacing:1px;transition:background .15s;"
+                    onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f8fafc'">
+                    ···
                 </button>
-            </div>
-        </div>`;
-}
+                <div id="msg-menu-${msg.id}"
+                    style="display:none;position:absolute;bottom:30px;right:0;background:white;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.1);min-width:130px;z-index:99;overflow:hidden;">
+                    ${!hasAttachment ? `
+                    <button onclick="closeMsgMenu(${msg.id});startEdit(${msg.id})"
+                        style="width:100%;padding:8px 14px;border:none;background:transparent;color:#334155;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;"
+                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        ✏️ Modifier
+                    </button>` : ''}
+                    <button onclick="closeMsgMenu(${msg.id});deleteMsg(${msg.id})"
+                        style="width:100%;padding:8px 14px;border:none;background:transparent;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;"
+                        onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">
+                        🗑 Supprimer
+                    </button>
+                </div>
+            </div>`;
+    }
 
-    // Seen indicator for my messages
     const seenHtml = isMe
         ? `<div id="msg-seen-${msg.id}" style="font-size:9px;color:${msg.seen_at ? '#22c55e' : '#94a3b8'};">
                ${msg.seen_at ? '✓✓ Vu' : '✓ Envoyé'}
@@ -385,7 +642,6 @@ if (isMe && unseen) {
 function toggleMsgMenu(msgId) {
     const menu = document.getElementById('msg-menu-' + msgId);
     const isOpen = menu.style.display === 'block';
-    // Close all other open menus first
     document.querySelectorAll('[id^="msg-menu-"]').forEach(m => m.style.display = 'none');
     menu.style.display = isOpen ? 'none' : 'block';
 }
@@ -395,16 +651,15 @@ function closeMsgMenu(msgId) {
     if (menu) menu.style.display = 'none';
 }
 
-// Close menu when clicking outside
 document.addEventListener('click', function(e) {
     if (!e.target.closest('[id^="msg-menu-btn-"]') && !e.target.closest('[id^="msg-menu-"]')) {
         document.querySelectorAll('[id^="msg-menu-"]').forEach(m => m.style.display = 'none');
     }
 });
+
 // ── DELETE ────────────────────────────────────────────
 function deleteMsg(msgId) {
     if (!confirm('Supprimer ce message ?')) return;
-
     fetch(`/reportations/messages/${msgId}`, {
         method: 'DELETE',
         headers: {
@@ -512,9 +767,7 @@ function sendChatMsg() {
     formData.append('_token', '<?php echo e(csrf_token()); ?>');
 
     const socketId = window.Echo?.socketId() ?? null;
-    const headers  = {
-        'Accept': 'application/json',
-    };
+    const headers  = { 'Accept': 'application/json' };
     if (socketId) headers['X-Socket-ID'] = socketId;
 
     clearAttachment();
@@ -569,6 +822,7 @@ function injectAssignedCard(e) {
     const card = document.createElement('div');
     card.className = 'rp-card';
     card.setAttribute('data-rp-id', e.id);
+    card.setAttribute('data-rp-status', e.status || 'en_attente');
     card.style.animation = 'slideIn .3s ease';
     card.innerHTML = `
         <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -606,7 +860,7 @@ function injectAssignedCard(e) {
             </div>
         </div>
         <div style="padding:10px 20px;border-top:1px solid #f1f5f9;background:#fafafa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-            <button class="rp-btn ghost" onclick="openChat(${e.id}, '${escapeHtml(e.formateur)}')">
+            <button class="rp-btn ghost" onclick="openChat(${e.id}, '${escapeHtml(e.formateur)}', '${escapeHtml(e.status || 'en_attente')}')">
                 💬 Chat
                 <span id="chat-count-${e.id}" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">0</span>
             </button>
@@ -659,18 +913,180 @@ function escapeHtml(text) {
 // ── HANDLE SEEN EVENT (real-time ✓✓) ─────────────────
 function handleSeenEvent(e) {
     (e.message_ids || []).forEach(function(id) {
-        // Mettre à jour l'indicateur ✓✓ en temps réel
         const seenEl = document.getElementById('msg-seen-' + id);
         if (seenEl) {
             seenEl.style.color = '#22c55e';
             seenEl.textContent = '✓✓ Vu';
         }
-        // Supprimer les boutons modifier/supprimer (message vu = plus modifiable)
         const actionsEl = document.getElementById('msg-actions-' + id);
         if (actionsEl) actionsEl.remove();
     });
 }
 
+// ── ACCEPT MODAL — contiguous multi-slot selection ────
+const SLOTS = [
+    { debut: '08:30', fin: '11:00' },
+    { debut: '11:00', fin: '13:30' },
+    { debut: '13:30', fin: '16:00' },
+    { debut: '16:00', fin: '18:30' },
+];
+let slotRange = { start: null, end: null };
+
+function renderSlots() {
+    document.querySelectorAll('.accept-slot-btn').forEach(btn => {
+        const i = parseInt(btn.dataset.index);
+        const selected = slotRange.start !== null && i >= slotRange.start && i <= slotRange.end;
+        if (selected) {
+            btn.style.background  = '#f0fdf4';
+            btn.style.borderColor = '#1e293b';
+            btn.style.color       = '#1e293b';
+            btn.querySelectorAll('span').forEach(s => s.style.color = '#1e293b');
+        } else {
+            btn.style.background  = 'white';
+            btn.style.borderColor = '#e2e8f0';
+            btn.style.color       = '#475569';
+            btn.querySelectorAll('span').forEach(s => s.style.color = '');
+        }
+    });
+    const lbl = document.getElementById('accept-range-label');
+    if (lbl) {
+        if (slotRange.start !== null) {
+            const d = SLOTS[slotRange.start].debut;
+            const f = SLOTS[slotRange.end].fin;
+            const n = slotRange.end - slotRange.start + 1;
+            lbl.textContent = n === 1
+                ? `Séance : ${d} → ${f}`
+                : `${n} séances : ${d} → ${f}`;
+            lbl.style.display = 'block';
+        } else {
+            lbl.style.display = 'none';
+        }
+    }
+    updateHiddenDatetimes();
+}
+
+function toggleSlot(btn) {
+    const i = parseInt(btn.dataset.index);
+    document.getElementById('accept-slot-error').style.display = 'none';
+
+    if (slotRange.start === null) {
+        slotRange = { start: i, end: i };
+    } else if (i === slotRange.start && i === slotRange.end) {
+        slotRange = { start: null, end: null };
+    } else if (i === slotRange.start - 1) {
+        slotRange.start = i;
+    } else if (i === slotRange.end + 1) {
+        slotRange.end = i;
+    } else if (i === slotRange.start && slotRange.start < slotRange.end) {
+        slotRange.start++;
+    } else if (i === slotRange.end && slotRange.end > slotRange.start) {
+        slotRange.end--;
+    } else {
+        slotRange = { start: i, end: i };
+    }
+    renderSlots();
+}
+
+function updateHiddenDatetimes() {
+    const dateVal = document.getElementById('accept-date').value;
+    if (!dateVal || slotRange.start === null) return;
+    document.getElementById('accept-debut').value = dateVal + 'T' + SLOTS[slotRange.start].debut;
+    document.getElementById('accept-fin').value   = dateVal + 'T' + SLOTS[slotRange.end].fin;
+}
+
+function selectSlot(btn) { toggleSlot(btn); } // backwards compat
+
+function openAcceptModal(reportationId, formateurName, moduleName, currentDate, heureDebut, heureFin) {
+    document.getElementById('accept-session-label').textContent = formateurName + ' — ' + moduleName;
+    document.getElementById('accept-current-date').textContent  = currentDate + ' · ' + heureDebut + ' → ' + heureFin;
+
+    const [y, m, d] = currentDate.split('-').map(Number);
+    const base = new Date(y, m - 1, d + 7);
+    const pad  = n => String(n).padStart(2, '0');
+    document.getElementById('accept-date').value =
+        `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())}`;
+
+    const matchIdx = SLOTS.findIndex(s => s.debut === heureDebut);
+    slotRange = matchIdx >= 0
+        ? { start: matchIdx, end: matchIdx }
+        : { start: null, end: null };
+    renderSlots();
+
+    document.getElementById('accept-form').action = `/reportations/${reportationId}/accept`;
+    document.getElementById('accept-modal').style.display = 'flex';
+}
+
+function closeAcceptModal() {
+    document.getElementById('accept-modal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════
+// DELETE SESSION MODAL
+// ══════════════════════════════════════════════
+function openDeleteModal(reportationId, formateurName, moduleName, currentDate, heureDebut, heureFin) {
+    document.getElementById('delete-session-label').textContent = formateurName + ' — ' + moduleName;
+    document.getElementById('delete-current-date').textContent  = currentDate + ' · ' + heureDebut + ' → ' + heureFin;
+    document.getElementById('delete-form').action = `/reportations/${reportationId}/delete-session`;
+    document.getElementById('delete-modal').classList.add('open');
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+// REFUSE MODAL
+// ══════════════════════════════════════════════
+function openRefuseModal(reportationId, formateurName, moduleName) {
+    document.getElementById('refuse-session-label').textContent = formateurName + ' — ' + moduleName;
+    document.getElementById('refuse-form').action = `/reportations/${reportationId}/refuse`;
+    document.getElementById('refuse-modal').classList.add('open');
+}
+
+function closeRefuseModal() {
+    document.getElementById('refuse-modal').classList.remove('open');
+}
+
+document.getElementById('accept-date').addEventListener('change', updateHiddenDatetimes);
+
+document.getElementById('accept-form').addEventListener('submit', function(e) {
+    if (slotRange.start === null) {
+        e.preventDefault();
+        document.getElementById('accept-slot-error').style.display = 'block';
+        return;
+    }
+    updateHiddenDatetimes();
+    if (!document.getElementById('accept-debut').value || !document.getElementById('accept-fin').value) {
+        e.preventDefault();
+    }
+});
+
+// ── AUTO-OPEN CHAT FROM NOTIFICATION LINK ────────────────────
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const openId = parseInt(params.get('open_chat'));
+    if (!openId) return;
+
+    function tryOpen() {
+        const card = document.querySelector('[data-rp-id="' + openId + '"]');
+        if (!card) return;
+        const btn    = card.querySelector('[data-module]');
+        const label  = btn ? btn.getAttribute('data-module') : 'Support';
+        const status = card.dataset.rpStatus || 'en_attente';
+        openChat(openId, label, status);
+        const clean = new URL(window.location);
+        clean.searchParams.delete('open_chat');
+        window.history.replaceState({}, '', clean);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(tryOpen, 200));
+    } else {
+        setTimeout(tryOpen, 200);
+    }
+})();
+
+// ── SUBSCRIBE ALL CHANNELS ────────────────────────────
 function subscribeAll() {
     if (!window.Echo) { setTimeout(subscribeAll, 300); return; }
 
@@ -690,7 +1106,6 @@ function subscribeAll() {
                 if (empty) empty.remove();
                 appendMsg(e);
                 box.scrollTop = 99999;
-                // Marquer comme vu immédiatement si le chat est ouvert
                 markAllSeen(rpId);
             }
             const badge = document.getElementById('chat-count-' + rpId);
@@ -708,14 +1123,8 @@ function subscribeAll() {
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
     @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(-20px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
 `;
 document.head.appendChild(styleSheet);

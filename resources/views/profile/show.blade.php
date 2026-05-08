@@ -6,7 +6,6 @@
 
 @section('content')
 
-<style>[x-cloak]{display:none!important}</style>
 
 @php
     $roleColors = [
@@ -316,21 +315,45 @@
                 @csrf @method('PUT')
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        @if($user->isStagiaire())
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
-                                Nom complet
-                            </label>
-                            <div class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed select-none">
-                                {{ $user->name }}
-                            </div>
-                            <p class="text-[10px] text-slate-400 mt-1">Le nom ne peut pas être modifié. Contactez l'administration.</p>
-                        @else
-                            <x-form-field name="name" label="Nom complet" :value="old('name', $user->name)" required />
-                        @endif
+@if($user->isStagiaire())
+    {{-- Hidden input so name is always submitted --}}
+    <input type="hidden" name="name" value="{{ $user->name }}">
+    
+    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+        Nom complet
+    </label>
+    <div class="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed select-none">
+        {{ $user->name }}
+    </div>
+    <p class="text-[10px] text-slate-400 mt-1">Le nom ne peut pas être modifié. Contactez l'administration.</p>
+@else
+    <x-form-field name="name" label="Nom complet" :value="old('name', $user->name)" required />
+@endif
                     </div>
                     <div>
-                        <x-form-field name="phone" label="Téléphone" :value="old('phone', $user->phone)" />
+
+{{-- AFTER --}}
+<div>
+    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+        Téléphone
+    </label>
+    <input type="tel" name="phone"
+           value="{{ old('phone', $user->phone) }}"
+           inputmode="numeric"
+           pattern="[0-9]*"
+           maxlength="15"
+           placeholder="ex: 0612345678"
+           @input="$event.target.value = $event.target.value.replace(/[^0-9]/g, '')"
+           class="w-full px-3 py-2.5 text-sm border rounded-xl transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                  @error('phone') border-red-400 bg-red-50 @else border-slate-200 @enderror">
+    @error('phone')
+        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+    @enderror
+</div>
                     </div>
+
+
                     <div>
                         <x-form-field name="cin" label="CIN" :value="old('cin', $user->cin)" />
                     </div>

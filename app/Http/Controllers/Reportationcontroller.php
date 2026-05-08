@@ -54,7 +54,7 @@ class ReportationController extends Controller
             abort(403);
         }
 
-        $status = trim($request->input('status', ''));
+       $status = trim($request->input('status', 'en_attente'));
 
         $reportations = Reportation::with([
                 'emploiDuTemps.groupe.filiere',
@@ -86,7 +86,7 @@ class ReportationController extends Controller
             abort(403);
         }
 
-        $status = trim($request->input('status', ''));
+        $status = trim($request->input('status', 'en_attente'));
         $search = trim($request->input('search', ''));
 
         $reportations = Reportation::with([
@@ -117,146 +117,215 @@ class ReportationController extends Controller
     }
 
     // ── FORMATEUR SUBMITS — reason only, NO date ───────────
-    public function store(Request $request): RedirectResponse
-    {
-        if (! auth()->user()->hasPermissionTo('reportation-create')) {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'id_emplois_du_temps' => 'required|exists:emplois_du_temps,id',
-            'raison'              => 'required|string|min:10|max:1000',
-        ]);
-
-        $emploi = EmploiDuTemps::findOrFail($data['id_emplois_du_temps']);
-
-        if ($emploi->id_user !== auth()->id()) {
-            abort(403, 'Vous ne pouvez reporter que vos propres séances.');
-        }
-
-        if (Reportation::where('id_emplois_du_temps', $emploi->id)->where('status', 'en_attente')->exists()) {
-            return back()->with('error', 'Une demande de report est déjà en attente pour cette séance.');
-        }
-
-        $reportation = Reportation::create([
-            'id_emplois_du_temps' => $emploi->id,
-            'id_user'             => auth()->id(),
-            'raison'              => $data['raison'],
-            'nouvelle_date_debut' => null,
-            'nouvelle_date_fin'   => null,
-            'status'              => 'en_attente',
-        ]);
-
-        if (class_exists(\App\Events\ReportationCreated::class)) {
-            broadcast(new \App\Events\ReportationCreated($reportation));
-        }
-
-        $week = Carbon::parse($emploi->date_debut)->toDateString();
-        $year = $emploi->groupe->annee ?? 1;
-
-        return redirect()
-            ->route('emplois.index', ['week' => $week, 'year' => $year])
-            ->with('success', 'Demande de report envoyée. L\'administration choisira la nouvelle date.');
+// ── FORMATEUR SUBMITS — reason only, NO date ───────────
+public function store(Request $request): RedirectResponse
+{
+    if (! auth()->user()->hasPermissionTo('reportation-create')) {
+        abort(403);
     }
 
-    // ── ADMIN ACCEPTS — picks new date ─────────────────────
-    public function accept(Request $request, Reportation $reportation): RedirectResponse
-    {
-        if (! auth()->user()->hasPermissionTo('reportation-manage')) {
-            abort(403);
-        }
+    $data = $request->validate([
+        'id_emplois_du_temps' => 'required|exists:emplois_du_temps,id',
+        'raison'              => 'required|string|min:10|max:1000',
+    ]);
 
-        if ($reportation->status !== 'en_attente') {
-            return back()->with('error', 'Cette demande a déjà été traitée.');
-        }
+    $emploi = EmploiDuTemps::findOrFail($data['id_emplois_du_temps']);
 
-        $data = $request->validate([
-            'nouvelle_date_debut' => 'required|date|after:now',
-            'nouvelle_date_fin'   => 'required|date|after:nouvelle_date_debut',
-        ]);
-
-        $emploi   = $reportation->emploiDuTemps;
-        $newDebut = Carbon::parse($data['nouvelle_date_debut']);
-        $newFin   = Carbon::parse($data['nouvelle_date_fin']);
-
-        $overlap = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
-            ->where('id', '!=', $emploi->id)
-            ->where('date_debut', '<', $newFin)
-            ->where('date_fin',   '>', $newDebut)
-            ->where(fn($q) =>
-                $q->where('id_groupe', $emploi->id_groupe)
-                  ->orWhere('id_user', $emploi->id_user)
-                  ->orWhere(fn($q2) =>
-                      $q2->where('id_salle', $emploi->id_salle)
-                         ->whereNotNull('id_salle')
-                  )
-            )
-            ->exists();
-
-        if ($overlap) {
-            return back()->with('error', 'Conflit détecté sur ce créneau (groupe, formateur ou salle déjà occupé). Choisissez une autre date.');
-        }
-
-        $emploi->update([
-            'date_debut' => $newDebut,
-            'date_fin'   => $newFin,
-            'jour'       => EmploiDuTempsController::DAYS[$newDebut->dayOfWeekIso] ?? null,
-        ]);
-
-        $reportation->update([
-            'nouvelle_date_debut' => $newDebut,
-            'nouvelle_date_fin'   => $newFin,
-            'status'              => 'valide',
-            'valide_by'           => auth()->id(),
-        ]);
-
-        return redirect()
-            ->route('reportations.index', ['status' => 'valide'])
-            ->with('success', 'Report accepté — séance déplacée au ' . $newDebut->translatedFormat('l d M Y') . ' à ' . $newDebut->format('H:i') . '.');
+    if ($emploi->id_user !== auth()->id()) {
+        abort(403, 'Vous ne pouvez reporter que vos propres séances.');
     }
 
-    // ── REFUSE ─────────────────────────────────────────────
-    public function refuse(Reportation $reportation): RedirectResponse
-    {
-        if (! auth()->user()->hasPermissionTo('reportation-manage')) {
-            abort(403);
-        }
-
-        if ($reportation->status !== 'en_attente') {
-            return back()->with('error', 'Cette demande a déjà été traitée.');
-        }
-
-        $reportation->update([
-            'status'    => 'refuse',
-            'valide_by' => auth()->id(),
-        ]);
-
-        return redirect()
-            ->route('reportations.index', ['status' => 'refuse'])
-            ->with('success', 'Demande refusée.');
+    if (Reportation::where('id_emplois_du_temps', $emploi->id)->where('status', 'en_attente')->exists()) {
+        return back()->with('error', 'Une demande de report est déjà en attente pour cette séance.');
     }
 
-    // ── DELETE the original session ────────────────────────
-    public function deleteSession(Reportation $reportation): RedirectResponse
-    {
-        if (! auth()->user()->hasPermissionTo('reportation-manage')) {
-            abort(403);
-        }
+    $reportation = Reportation::create([
+        'id_emplois_du_temps' => $emploi->id,
+        'id_user'             => auth()->id(),
+        'raison'              => $data['raison'],
+        'nouvelle_date_debut' => null,
+        'nouvelle_date_fin'   => null,
+        'status'              => 'en_attente',
+    ]);
 
-        $emploi = $reportation->emploiDuTemps;
-
-        $reportation->update([
-            'status'    => 'valide',
-            'valide_by' => auth()->id(),
-        ]);
-
-        $emploi?->delete();
-
-        return redirect()
-            ->route('reportations.index')
-            ->with('success', 'Séance supprimée suite à la demande de report.');
+    if (class_exists(\App\Events\ReportationCreated::class)) {
+        broadcast(new \App\Events\ReportationCreated($reportation));
     }
 
+    // ── Notify all admins with reportation-manage permission ──
+    $admins = \App\Models\User::permission('reportation-manage')->get();
+    $formateurName = $reportation->formateur?->name ?? auth()->user()->name; 
+    foreach ($admins as $admin) {
+        $notif = \App\Models\UserNotification::create([
+            'user_id' => $admin->id,
+            'type'    => 'reportation_new',
+            'message' => "📋 Nouvelle demande de report de {$formateurName}.",
+            'url'     => route('reportations.index') . '?open_chat=' . $reportation->id,
+            'count'   => 1,
+            'data'    => ['reportation_id' => $reportation->id],
+        ]);
+
+        broadcast(new \App\Events\NotificationCreated($notif->fresh()));
+    }
+
+    $week = Carbon::parse($emploi->date_debut)->toDateString();
+    $year = $emploi->groupe->annee ?? 1;
+
+    return redirect()
+        ->route('emplois.index', ['week' => $week, 'year' => $year])
+        ->with('success', 'Demande de report envoyée. L\'administration choisira la nouvelle date.');
+}
+
+// ── ADMIN ACCEPTS — picks new date ─────────────────────
+// ── ADMIN ACCEPTS — picks new date ─────────────────────
+public function accept(Request $request, Reportation $reportation): RedirectResponse
+{
+    $isAssigned = (int) auth()->id() === (int) $reportation->assigned_to;
+    if (! auth()->user()->hasPermissionTo('reportation-manage') && ! $isAssigned) {
+        abort(403);
+    }
+
+    if ($reportation->status !== 'en_attente') {
+        return back()->with('error', 'Cette demande a déjà été traitée.');
+    }
+
+    $data = $request->validate([
+        'nouvelle_date_debut' => 'required|date|after:now',
+        'nouvelle_date_fin'   => 'required|date|after:nouvelle_date_debut',
+    ]);
+
+    $emploi   = $reportation->emploiDuTemps;
+    $newDebut = Carbon::parse($data['nouvelle_date_debut']);
+    $newFin   = Carbon::parse($data['nouvelle_date_fin']);
+
+    $overlap = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
+        ->where('id', '!=', $emploi->id)
+        ->where('date_debut', '<', $newFin)
+        ->where('date_fin',   '>', $newDebut)
+        ->where(fn($q) =>
+            $q->where('id_groupe', $emploi->id_groupe)
+              ->orWhere('id_user', $emploi->id_user)
+              ->orWhere(fn($q2) =>
+                  $q2->where('id_salle', $emploi->id_salle)
+                     ->whereNotNull('id_salle')
+              )
+        )
+        ->exists();
+
+    if ($overlap) {
+        return back()->with('error', 'Conflit détecté sur ce créneau (groupe, formateur ou salle déjà occupé). Choisissez une autre date.');
+    }
+
+    $emploi->update([
+        'date_debut' => $newDebut,
+        'date_fin'   => $newFin,
+        'jour'       => EmploiDuTempsController::DAYS[$newDebut->dayOfWeekIso] ?? null,
+    ]);
+
+    $reportation->update([
+        'nouvelle_date_debut' => $newDebut,
+        'nouvelle_date_fin'   => $newFin,
+        'status'              => 'valide',
+        'valide_by'           => auth()->id(),
+    ]);
+
+    // ── Notify the formateur ──────────────────────────────
+    $formateur = $reportation->formateur;
+    if ($formateur) {
+        $notif = \App\Models\UserNotification::create([
+            'user_id' => $formateur->id,
+            'type'    => 'reportation_reply',
+            'message' => "✅ Votre demande de report a été acceptée. Nouvelle date : " . $newDebut->translatedFormat('l d M Y') . " à " . $newDebut->format('H:i') . ".",
+            'url'     => route('reportations.my') . '?open_chat=' . $reportation->id,
+            'count'   => 1,
+            'data'    => ['reportation_id' => $reportation->id],
+        ]);
+        broadcast(new \App\Events\NotificationCreated($notif->fresh()));
+    }
+
+    $route = auth()->user()->hasPermissionTo('reportation-manage')
+        ? route('reportations.index', ['status' => 'valide'])
+        : route('reportations.assigned');
+
+    return redirect($route)
+        ->with('success', 'Report accepté — séance déplacée au ' . $newDebut->translatedFormat('l d M Y') . ' à ' . $newDebut->format('H:i') . '.');
+}
+
+// ── REFUSE ─────────────────────────────────────────────
+public function refuse(Reportation $reportation): RedirectResponse
+{
+    $isAssigned = (int) auth()->id() === (int) $reportation->assigned_to;
+    if (! auth()->user()->hasPermissionTo('reportation-manage') && ! $isAssigned) {
+        abort(403);
+    }
+
+    if ($reportation->status !== 'en_attente') {
+        return back()->with('error', 'Cette demande a déjà été traitée.');
+    }
+
+    $reportation->update([
+        'status'    => 'refuse',
+        'valide_by' => auth()->id(),
+    ]);
+
+    // ── Notify the formateur ──────────────────────────────
+    $formateur = $reportation->formateur;
+    if ($formateur) {
+        $notif = \App\Models\UserNotification::create([
+            'user_id' => $formateur->id,
+            'type'    => 'reportation_reply',
+            'message' => "❌ Votre demande de report #{$reportation->id} a été refusée.",
+            'url'     => route('reportations.my') . '?open_chat=' . $reportation->id,
+            'count'   => 1,
+            'data'    => ['reportation_id' => $reportation->id],
+        ]);
+        broadcast(new \App\Events\NotificationCreated($notif->fresh()));
+    }
+
+    $route = auth()->user()->hasPermissionTo('reportation-manage')
+        ? route('reportations.index', ['status' => 'refuse'])
+        : route('reportations.assigned');
+
+    return redirect($route)->with('success', 'Demande refusée.');
+}
+
+// ── DELETE the original session ────────────────────────
+public function deleteSession(Reportation $reportation): RedirectResponse
+{
+    $isAssigned = (int) auth()->id() === (int) $reportation->assigned_to;
+    if (! auth()->user()->hasPermissionTo('reportation-manage') && ! $isAssigned) {
+        abort(403);
+    }
+
+    $emploi = $reportation->emploiDuTemps;
+
+    $reportation->update([
+        'status'    => 'valide',
+        'valide_by' => auth()->id(),
+    ]);
+
+    $emploi?->delete();
+
+    // ── Notify the formateur ──────────────────────────────
+    $formateur = $reportation->formateur;
+    if ($formateur) {
+        $notif = \App\Models\UserNotification::create([
+            'user_id' => $formateur->id,
+            'type'    => 'reportation_reply',
+            'message' => "🗑️ Votre demande de report #{$reportation->id} a été traitée — la séance a été supprimée.",
+            'url'     => route('reportations.my') . '?open_chat=' . $reportation->id,
+            'count'   => 1,
+            'data'    => ['reportation_id' => $reportation->id],
+        ]);
+        broadcast(new \App\Events\NotificationCreated($notif->fresh()));
+    }
+
+    $route = auth()->user()->hasPermissionTo('reportation-manage')
+        ? route('reportations.index')
+        : route('reportations.assigned');
+
+    return redirect($route)->with('success', 'Séance supprimée suite à la demande de report.');
+}
 // ── ASSIGN gestionnaire ────────────────────────────────────────
 public function assign(Request $request, Reportation $reportation)
 {

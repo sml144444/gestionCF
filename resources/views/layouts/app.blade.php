@@ -25,6 +25,8 @@
             transition: transform 0.3s ease-in-out;
         }
     </style>
+
+     <style>[x-cloak] { display: none !important; }</style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-screen w-screen overflow-hidden bg-slate-100">

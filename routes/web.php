@@ -196,6 +196,9 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 // REPORTATIONS
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// REPORTATIONS
+// ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
 
     Route::post('/reportations', [ReportationController::class, 'store'])
@@ -214,17 +217,15 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
         ->name('reportations.index')
         ->middleware('can:reportation-manage');
 
+    // ✅ No route-level middleware — controller handles auth via $isAssigned check
     Route::post('/reportations/{reportation}/accept', [ReportationController::class, 'accept'])
-        ->name('reportations.accept')
-        ->middleware('can:reportation-manage');
+        ->name('reportations.accept');
 
     Route::post('/reportations/{reportation}/refuse', [ReportationController::class, 'refuse'])
-        ->name('reportations.refuse')
-        ->middleware('can:reportation-manage');
+        ->name('reportations.refuse');
 
     Route::post('/reportations/{reportation}/delete-session', [ReportationController::class, 'deleteSession'])
-        ->name('reportations.delete-session')
-        ->middleware('can:reportation-manage');
+        ->name('reportations.delete-session');
 
     Route::post('/reportations/{reportation}/assign', [ReportationController::class, 'assign'])
         ->name('reportations.assign')
@@ -235,20 +236,19 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
 
     Route::post('/reportations/{reportation}/message', [ReportationController::class, 'sendMessage'])
         ->name('reportations.message');
-    
+
     Route::get('reportations/attachment/{message}', [ReportationController::class, 'serveAttachment'])
-    ->name('reportations.attachment')
-    ->middleware('auth');
+        ->name('reportations.attachment')
+        ->middleware('auth');
 
-    // Dans le groupe Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])
-Route::post('/reportations/{reportation}/seen', [ReportationController::class, 'markSeen'])
-    ->name('reportations.seen');
+    Route::post('/reportations/{reportation}/seen', [ReportationController::class, 'markSeen'])
+        ->name('reportations.seen');
 
-Route::delete('/reportations/messages/{message}', [ReportationController::class, 'deleteMessage'])
-    ->name('reportations.message.delete');
+    Route::delete('/reportations/messages/{message}', [ReportationController::class, 'deleteMessage'])
+        ->name('reportations.message.delete');
 
-Route::patch('/reportations/messages/{message}', [ReportationController::class, 'updateMessage'])
-    ->name('reportations.message.update');
+    Route::patch('/reportations/messages/{message}', [ReportationController::class, 'updateMessage'])
+        ->name('reportations.message.update');
 });
 
 // ─────────────────────────────────────────────
@@ -494,10 +494,12 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile',          [ProfileController::class, 'show'])          ->name('profile.show');
-    Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
+    // Your web.php uses PUT ✅
+Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::put('/profile/email',    [ProfileController::class, 'updateEmail'])   ->name('profile.email');
     Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // ─────────────────────────────────────────────

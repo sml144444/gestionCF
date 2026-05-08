@@ -77,7 +77,7 @@
 <?php $__empty_1 = true; $__currentLoopData = $reportations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
 <?php $emploi = $rp->emploiDuTemps; ?>
 
-<div class="rp-card" data-rp-id="<?php echo e($rp->id); ?>">
+<div class="rp-card" data-rp-id="<?php echo e($rp->id); ?>" data-rp-status="<?php echo e($rp->status); ?>">
     
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <div style="font-size:11px;color:#64748b;">
@@ -155,7 +155,7 @@
     <div style="padding:10px 20px;border-top:1px solid #f1f5f9;background:#fafafa;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         
         <button class="rp-btn ghost"
-                onclick="openChat(<?php echo e($rp->id); ?>, '<?php echo e(addslashes($rp->emploiDuTemps?->module?->name ?? 'Support')); ?>')">
+                onclick="openChat(<?php echo e($rp->id); ?>, '<?php echo e(addslashes($rp->emploiDuTemps?->module?->name ?? 'Support')); ?>', '<?php echo e($rp->status); ?>')">
             💬 Chat
             <span id="chat-count-<?php echo e($rp->id); ?>" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">
                 <?php echo e($rp->messages?->count() ?? 0); ?>
@@ -202,7 +202,7 @@
             <button onclick="clearAttachment()" style="border:none;background:#fecdd3;color:#dc2626;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
         </div>
 
-        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
+        <div id="chat-input-row" style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
             
             <input type="file" id="chat-file-input"
                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
@@ -225,6 +225,11 @@
                 Envoyer
             </button>
         </div>
+
+        
+        <div id="chat-closed-notice" style="display:none;padding:12px 16px;border-top:1px solid #e2e8f0;background:#f8fafc;text-align:center;font-size:12px;font-weight:600;color:#94a3b8;">
+            🔒 Cette demande est clôturée — la messagerie est désactivée.
+        </div>
     </div>
 </div>
 
@@ -232,12 +237,22 @@
 let currentReportationId = null;
 
 // ── OPEN CHAT ─────────────────────────────────────────
-function openChat(id, label) {
+function openChat(id, label, status) {
     currentReportationId = id;
     document.getElementById('chat-title').textContent = '💬 ' + label;
     document.getElementById('chat-messages').innerHTML =
         '<div style="text-align:center;font-size:12px;color:#94a3b8;">Chargement…</div>';
     document.getElementById('chat-modal').style.display = 'flex';
+
+    // Show / hide input area based on status
+    const isClosed     = status && status !== 'en_attente';
+    const inputRow     = document.getElementById('chat-input-row');
+    const closedNotice = document.getElementById('chat-closed-notice');
+    if (inputRow)      inputRow.style.display     = isClosed ? 'none' : 'flex';
+    if (closedNotice)  closedNotice.style.display  = isClosed ? 'block' : 'none';
+    if (isClosed) {
+        document.getElementById('file-preview-bar').style.display = 'none';
+    }
 
     fetch(`/reportations/${id}/messages`, {
         headers: { 'Accept': 'application/json' }
@@ -600,8 +615,9 @@ function escapeHtml(text) {
         const card = document.querySelector('[data-rp-id="' + openId + '"]');
         if (!card) return; // reportation not on this page/tab
 
-        const label = card.getAttribute('data-module') || 'Support';
-        openChat(openId, label);
+        const label  = card.getAttribute('data-module') || 'Support';
+        const status = card.dataset.rpStatus || 'en_attente';
+        openChat(openId, label, status);
 
         // Clean ?open_chat= from URL without page reload
         const clean = new URL(window.location);

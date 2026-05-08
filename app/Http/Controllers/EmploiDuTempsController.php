@@ -801,59 +801,69 @@ class EmploiDuTempsController extends Controller
         }
     }
 
-    private function tryMergeOnStore(array $data, Carbon $debut, Carbon $fin): bool
-    {
-        $q = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
-            ->where('id_user',   $data['id_user'])
-            ->where('id_groupe', $data['id_groupe'])
-            ->whereDate('date_debut', $debut->toDateString());
+private function tryMergeOnStore(array $data, Carbon $debut, Carbon $fin): bool
+{
+    $q = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
+        ->where('id_user',   $data['id_user'])
+        ->where('id_groupe', $data['id_groupe'])
+        ->when(
+            is_null($data['id_module'] ?? null),
+            fn($q) => $q->whereNull('id_module'),
+            fn($q) => $q->where('id_module', $data['id_module'])
+        )
+        ->whereDate('date_debut', $debut->toDateString());
 
-        $previous = (clone $q)->where('date_fin', $debut)->first();
-        if ($previous && $previous->mode === $data['mode']) {
-            $previous->update(['date_fin' => $fin]);
-            return true;
-        }
-
-        $next = (clone $q)->where('date_debut', $fin)->first();
-        if ($next && $next->mode === $data['mode']) {
-            EmploiDuTemps::create([
-                'id_groupe'     => $data['id_groupe'],
-                'id_salle'      => $data['id_salle'] ?? null,
-                'id_user'       => $data['id_user'],
-                'id_module'     => $data['id_module'] ?? null,
-                'date_debut'    => $debut,
-                'date_fin'      => $next->date_fin,
-                'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
-                'statut'        => 'brouillon',
-                'mode'          => $data['mode'],
-                'lien_distance' => $data['lien_distance'] ?? null,
-            ]);
-            $next->delete();
-            return true;
-        }
-
-        return false;
+    $previous = (clone $q)->where('date_fin', $debut)->first();
+    if ($previous && $previous->mode === $data['mode']) {
+        $previous->update(['date_fin' => $fin]);
+        return true;
     }
 
-    private function tryMergeAdjacent(EmploiDuTemps $emploi): void
-    {
-        $q = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
-            ->where('id', '!=', $emploi->id)
-            ->where('id_user',   $emploi->id_user)
-            ->where('id_groupe', $emploi->id_groupe)
-            ->whereDate('date_debut', $emploi->date_debut->toDateString());
-
-        $previous = (clone $q)->where('date_fin', $emploi->date_debut)->first();
-        if ($previous && $previous->mode === $emploi->mode) {
-            $previous->update(['date_fin' => $emploi->date_fin]);
-            $emploi->delete();
-            return;
-        }
-
-        $next = (clone $q)->where('date_debut', $emploi->date_fin)->first();
-        if ($next && $next->mode === $emploi->mode) {
-            $emploi->update(['date_fin' => $next->date_fin]);
-            $next->delete();
-        }
+    $next = (clone $q)->where('date_debut', $fin)->first();
+    if ($next && $next->mode === $data['mode']) {
+        EmploiDuTemps::create([
+            'id_groupe'     => $data['id_groupe'],
+            'id_salle'      => $data['id_salle'] ?? null,
+            'id_user'       => $data['id_user'],
+            'id_module'     => $data['id_module'] ?? null,
+            'date_debut'    => $debut,
+            'date_fin'      => $next->date_fin,
+            'jour'          => self::DAYS[$debut->dayOfWeekIso] ?? null,
+            'statut'        => 'brouillon',
+            'mode'          => $data['mode'],
+            'lien_distance' => $data['lien_distance'] ?? null,
+        ]);
+        $next->delete();
+        return true;
     }
+
+    return false;
+}
+
+private function tryMergeAdjacent(EmploiDuTemps $emploi): void
+{
+    $q = EmploiDuTemps::whereIn('statut', ['actif', 'brouillon'])
+        ->where('id', '!=', $emploi->id)
+        ->where('id_user',   $emploi->id_user)
+        ->where('id_groupe', $emploi->id_groupe)
+        ->when(
+            is_null($emploi->id_module),
+            fn($q) => $q->whereNull('id_module'),
+            fn($q) => $q->where('id_module', $emploi->id_module)
+        )
+        ->whereDate('date_debut', $emploi->date_debut->toDateString());
+
+    $previous = (clone $q)->where('date_fin', $emploi->date_debut)->first();
+    if ($previous && $previous->mode === $emploi->mode) {
+        $previous->update(['date_fin' => $emploi->date_fin]);
+        $emploi->delete();
+        return;
+    }
+
+    $next = (clone $q)->where('date_debut', $emploi->date_fin)->first();
+    if ($next && $next->mode === $emploi->mode) {
+        $emploi->update(['date_fin' => $next->date_fin]);
+        $next->delete();
+    }
+}
 }

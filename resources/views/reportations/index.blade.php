@@ -109,6 +109,7 @@
 
 <div class="rp-card"
      data-rp-id="{{ $rp->id }}"
+     data-rp-status="{{ $rp->status }}"
      data-module="{{ addslashes($rp->emploiDuTemps?->module?->name ?? 'Support') }}">
     {{-- Header --}}
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -195,22 +196,44 @@
     {{-- Assign + Chat --}}
     <div style="padding:12px 20px;border-top:1px solid #f1f5f9;background:#fafafa;">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            {{-- Assign gestionnaire --}}
-            <form method="POST" action="{{ route('reportations.assign', $rp) }}" style="display:flex;gap:6px;align-items:center;">
+            {{-- Assign gestionnaire — only while pending --}}
+            @if($rp->status === 'en_attente')
+            <form method="POST" action="{{ route('reportations.assign', $rp) }}"
+                  style="display:flex;flex-direction:column;gap:4px;"
+                  onsubmit="
+                    var sel = this.querySelector('select[name=assigned_to]');
+                    var err = this.querySelector('.assign-error');
+                    if (!sel.value) {
+                        err.style.display = 'block';
+                        sel.style.borderColor = '#dc2626';
+                        sel.focus();
+                        return false;
+                    }
+                    err.style.display = 'none';
+                    sel.style.borderColor = '';
+                  ">
                 @csrf
-                @php $gestionnaires = \App\Models\User::role('gestionnaire')->get(); @endphp
-                <select name="assigned_to" class="rp-input" style="width:200px;">
-                    <option value="">— Assigner un gestionnaire —</option>
-                    @foreach($gestionnaires as $g)
-                        <option value="{{ $g->id }}" {{ $rp->assigned_to == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
-                    @endforeach
-                </select>
-                <button type="submit" class="rp-btn ghost">✔ Assigner</button>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    @php $gestionnaires = \App\Models\User::role('gestionnaire')->get(); @endphp
+                    <select name="assigned_to" class="rp-input" style="width:200px;"
+                            onchange="this.style.borderColor='';this.closest('form').querySelector('.assign-error').style.display='none'">
+                        <option value="">— Assigner un gestionnaire —</option>
+                        @foreach($gestionnaires as $g)
+                            <option value="{{ $g->id }}" {{ $rp->assigned_to == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="rp-btn ghost">✔ Assigner</button>
+                </div>
+                <span class="assign-error"
+                      style="display:none;font-size:10px;font-weight:600;color:#dc2626;padding-left:2px;">
+                    ⚠ Veuillez choisir un gestionnaire avant d'assigner.
+                </span>
             </form>
+            @endif
 
             {{-- Chat button --}}
             <button class="rp-btn ghost"
-                    onclick="openChat({{ $rp->id }}, '{{ addslashes($rp->formateur?->name ?? 'Conversation') }}')">
+                    onclick="openChat({{ $rp->id }}, '{{ addslashes($rp->formateur?->name ?? 'Conversation') }}', '{{ $rp->status }}')">
                 💬 Chat
                 <span id="chat-count-{{ $rp->id }}" style="background:#e2e8f0;border-radius:99px;padding:1px 7px;font-size:10px;">
                     {{ $rp->messages?->count() ?? 0 }}
@@ -239,23 +262,28 @@
             Accepter & Choisir la date
         </button>
 
-        <form method="POST" action="{{ route('reportations.delete-session', $rp) }}"
-              onsubmit="return confirm('Supprimer définitivement la séance ?')">
-            @csrf
-            <button type="submit" class="rp-btn orange">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                Supprimer la séance
-            </button>
-        </form>
+<button class="rp-btn orange"
+        onclick="openDeleteModal(
+            {{ $rp->id }},
+            '{{ addslashes($rp->formateur?->name ?? '') }}',
+            '{{ addslashes($emploi->module?->name ?? 'Module') }}',
+            '{{ $emploi->date_debut->translatedFormat('l d M Y') }}',
+            '{{ $emploi->date_debut->format('H:i') }}',
+            '{{ $emploi->date_fin->format('H:i') }}'
+        )">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    Supprimer la séance
+</button>
 
-        <form method="POST" action="{{ route('reportations.refuse', $rp) }}"
-              onsubmit="return confirm('Refuser cette demande ?')">
-            @csrf
-            <button type="submit" class="rp-btn red">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                Refuser
-            </button>
-        </form>
+<button class="rp-btn red"
+        onclick="openRefuseModal(
+            {{ $rp->id }},
+            '{{ addslashes($rp->formateur?->name ?? '') }}',
+            '{{ addslashes($emploi->module?->name ?? 'Module') }}'
+        )">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+    Refuser
+</button>
 
         <a href="{{ route('emplois.index', ['week' => $emploi->date_debut->toDateString(), 'year' => $emploi->groupe->annee ?? 1]) }}"
            class="rp-btn ghost">
@@ -297,15 +325,47 @@
         </div>
         <form id="accept-form" method="POST" style="display:flex;flex-direction:column;gap:14px;">
             @csrf
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div>
-                    <label class="rp-label">Nouvelle date et heure de début</label>
-                    <input type="datetime-local" name="nouvelle_date_debut" id="accept-debut" required class="rp-modal-input">
+            {{-- Hidden inputs sent to controller --}}
+            <input type="hidden" name="nouvelle_date_debut" id="accept-debut">
+            <input type="hidden" name="nouvelle_date_fin"   id="accept-fin">
+
+            {{-- Date picker --}}
+            <div>
+                <label class="rp-label">Nouvelle date</label>
+                <input type="date" id="accept-date" required class="rp-modal-input"
+                       style="width:100%;box-sizing:border-box;">
+            </div>
+
+            {{-- Session slot selector --}}
+            <div>
+                <label class="rp-label">Séance</label>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;">
+                    @foreach([
+                        ['S1','08:30','11:00'],
+                        ['S2','11:00','13:30'],
+                        ['S3','13:30','16:00'],
+                        ['S4','16:00','18:30'],
+                    ] as $i => [$label,$debut,$fin])
+                    <button type="button"
+                            class="accept-slot-btn"
+                            data-index="{{ $i }}"
+                            data-debut="{{ $debut }}"
+                            data-fin="{{ $fin }}"
+                            onclick="toggleSlot(this)"
+                            style="padding:8px 4px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;
+                                   font-size:12px;font-weight:600;color:#475569;cursor:pointer;
+                                   display:flex;flex-direction:column;align-items:center;gap:2px;
+                                   transition:all .15s;">
+                        <span style="font-size:13px;font-weight:800;">{{ $label }}</span>
+                        <span style="font-size:10px;color:#94a3b8;">{{ $debut }}</span>
+                        <span style="font-size:10px;color:#94a3b8;">{{ $fin }}</span>
+                    </button>
+                    @endforeach
                 </div>
-                <div>
-                    <label class="rp-label">Heure de fin</label>
-                    <input type="datetime-local" name="nouvelle_date_fin" id="accept-fin" required class="rp-modal-input">
+                <div id="accept-slot-error" style="color:#dc2626;font-size:11px;margin-top:5px;display:none;">
+                    Veuillez sélectionner une séance.
                 </div>
+                <div id="accept-range-label" style="display:none;margin-top:6px;padding:7px 12px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:11px;font-weight:700;color:#15803d;text-align:center;"></div>
             </div>
             <div style="padding:10px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:11px;color:#15803d;display:flex;align-items:flex-start;gap:8px;">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -326,6 +386,92 @@
     </div>
 </div>
 
+{{-- ════ MODAL DELETE SESSION ════ --}}
+<div id="delete-modal" class="rp-modal-overlay" onclick="if(event.target===this)closeDeleteModal()">
+    <div class="rp-modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #f59e0b;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:12px;background:#fffbeb;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" fill="none" stroke="#f59e0b" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#1e293b;">Supprimer la séance</div>
+                    <div id="delete-session-label" style="font-size:10px;color:#64748b;margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeDeleteModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+
+        {{-- Session info --}}
+        <div id="delete-current-info" style="padding:10px 14px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;margin-bottom:16px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Séance : <strong id="delete-current-date"></strong></span>
+        </div>
+
+        {{-- Warning --}}
+        <div style="padding:12px 14px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
+            <svg width="16" height="16" fill="none" stroke="#dc2626" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:2px;">Action irréversible</div>
+                <div style="font-size:11px;color:#dc2626;line-height:1.5;">Cette séance sera définitivement supprimée de l'emploi du temps. Le formateur sera notifié.</div>
+            </div>
+        </div>
+
+        <form id="delete-form" method="POST" style="display:flex;gap:10px;">
+            @csrf
+            <button type="button" onclick="closeDeleteModal()"
+                    style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                Annuler
+            </button>
+            <button type="submit"
+                    style="flex:2;height:44px;border-radius:12px;border:none;background:#f59e0b;font-size:13px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Confirmer la suppression
+            </button>
+        </form>
+    </div>
+</div>
+
+{{-- ════ MODAL REFUSE ════ --}}
+<div id="refuse-modal" class="rp-modal-overlay" onclick="if(event.target===this)closeRefuseModal()">
+    <div class="rp-modal-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #dc2626;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:12px;background:#fff1f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="20" height="20" fill="none" stroke="#dc2626" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#1e293b;">Refuser la demande</div>
+                    <div id="refuse-session-label" style="font-size:10px;color:#64748b;margin-top:1px;"></div>
+                </div>
+            </div>
+            <button onclick="closeRefuseModal()" style="width:28px;height:28px;border-radius:8px;border:none;background:#f1f5f9;color:#64748b;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+
+        {{-- Warning --}}
+        <div style="padding:12px 14px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
+            <svg width="16" height="16" fill="none" stroke="#dc2626" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:2px;">Confirmer le refus</div>
+                <div style="font-size:11px;color:#dc2626;line-height:1.5;">La séance restera dans l'emploi du temps. Le formateur sera notifié du refus.</div>
+            </div>
+        </div>
+
+        <form id="refuse-form" method="POST" style="display:flex;gap:10px;">
+            @csrf
+            <button type="button" onclick="closeRefuseModal()"
+                    style="flex:1;height:44px;border-radius:12px;border:1.5px solid #e2e8f0;background:white;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                Annuler
+            </button>
+            <button type="submit"
+                    style="flex:2;height:44px;border-radius:12px;border:none;background:#dc2626;font-size:13px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <svg width="13" height="13" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                Confirmer le refus
+            </button>
+        </form>
+    </div>
+</div>
+
 {{-- ════ CHAT MODAL ════ --}}
 <div id="chat-modal" style="position:fixed;inset:0;z-index:70;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeChat()">
     <div style="background:white;border-radius:20px;width:100%;max-width:480px;margin:16px;display:flex;flex-direction:column;height:520px;box-shadow:0 24px 60px rgba(0,0,0,0.18);">
@@ -342,7 +488,7 @@
             <button onclick="clearAttachment()" style="border:none;background:#fecdd3;color:#dc2626;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;">×</button>
         </div>
 
-        <div style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
+        <div id="chat-input-row" style="padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;">
             {{-- Hidden file input --}}
             <input type="file" id="chat-file-input"
                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
@@ -365,6 +511,11 @@
                 Envoyer
             </button>
         </div>
+
+        {{-- Closed notice (shown when valide / refuse) --}}
+        <div id="chat-closed-notice" style="display:none;padding:12px 16px;border-top:1px solid #e2e8f0;background:#f8fafc;text-align:center;font-size:12px;font-weight:600;color:#94a3b8;">
+            🔒 Cette demande est clôturée — la messagerie est désactivée.
+        </div>
     </div>
 </div>
 
@@ -377,12 +528,22 @@ let currentReportationId = null;
 // CHAT FUNCTIONS (UPDATED)
 // ══════════════════════════════════════════════
 
-function openChat(id, name) {
+function openChat(id, name, status) {
     currentReportationId = id;
     document.getElementById('chat-title').textContent = '💬 ' + name;
     document.getElementById('chat-messages').innerHTML =
         '<div style="text-align:center;font-size:12px;color:#94a3b8;">Chargement…</div>';
     document.getElementById('chat-modal').style.display = 'flex';
+
+    // Show / hide input area based on status
+    const isClosed     = status && status !== 'en_attente';
+    const inputRow     = document.getElementById('chat-input-row');
+    const closedNotice = document.getElementById('chat-closed-notice');
+    if (inputRow)      inputRow.style.display     = isClosed ? 'none' : 'flex';
+    if (closedNotice)  closedNotice.style.display  = isClosed ? 'block' : 'none';
+    if (isClosed) {
+        document.getElementById('file-preview-bar').style.display = 'none';
+    }
 
     fetch(`/reportations/${id}/messages`, {
         headers: { 'Accept': 'application/json' }
@@ -750,19 +911,105 @@ function injectNewCard(e) {
 }
 
 // ══════════════════════════════════════════════
-// ACCEPT MODAL (unchanged)
+// ACCEPT MODAL — contiguous multi-slot selection
 // ══════════════════════════════════════════════
+const SLOTS = [
+    { debut: '08:30', fin: '11:00' },
+    { debut: '11:00', fin: '13:30' },
+    { debut: '13:30', fin: '16:00' },
+    { debut: '16:00', fin: '18:30' },
+];
+let slotRange = { start: null, end: null }; // indices
+
+function renderSlots() {
+    const btns = document.querySelectorAll('.accept-slot-btn');
+    btns.forEach(btn => {
+        const i = parseInt(btn.dataset.index);
+        const selected = slotRange.start !== null && i >= slotRange.start && i <= slotRange.end;
+        if (selected) {
+            btn.style.background  = '#f0fdf4';
+            btn.style.borderColor = '#16a34a';
+            btn.style.color       = '#16a34a';
+            btn.querySelectorAll('span').forEach(s => s.style.color = '#16a34a');
+        } else {
+            btn.style.background  = 'white';
+            btn.style.borderColor = '#e2e8f0';
+            btn.style.color       = '#475569';
+            btn.querySelectorAll('span').forEach(s => s.style.color = '');
+        }
+    });
+    // Update label showing total range
+    const lbl = document.getElementById('accept-range-label');
+    if (lbl) {
+        if (slotRange.start !== null) {
+            const d = SLOTS[slotRange.start].debut;
+            const f = SLOTS[slotRange.end].fin;
+            const n = slotRange.end - slotRange.start + 1;
+            lbl.textContent = n === 1
+                ? `Séance : ${d} → ${f}`
+                : `${n} séances : ${d} → ${f}`;
+            lbl.style.display = 'block';
+        } else {
+            lbl.style.display = 'none';
+        }
+    }
+    updateHiddenDatetimes();
+}
+
+function toggleSlot(btn) {
+    const i = parseInt(btn.dataset.index);
+    document.getElementById('accept-slot-error').style.display = 'none';
+
+    if (slotRange.start === null) {
+        // Nothing selected → start new
+        slotRange = { start: i, end: i };
+    } else if (i === slotRange.start && i === slotRange.end) {
+        // Clicked the only selected → deselect
+        slotRange = { start: null, end: null };
+    } else if (i === slotRange.start - 1) {
+        // Extend left
+        slotRange.start = i;
+    } else if (i === slotRange.end + 1) {
+        // Extend right
+        slotRange.end = i;
+    } else if (i === slotRange.start && slotRange.start < slotRange.end) {
+        // Shrink from left
+        slotRange.start++;
+    } else if (i === slotRange.end && slotRange.end > slotRange.start) {
+        // Shrink from right
+        slotRange.end--;
+    } else {
+        // Non-adjacent → reset to single
+        slotRange = { start: i, end: i };
+    }
+    renderSlots();
+}
+
+function updateHiddenDatetimes() {
+    const dateVal = document.getElementById('accept-date').value;
+    if (!dateVal || slotRange.start === null) return;
+    document.getElementById('accept-debut').value = dateVal + 'T' + SLOTS[slotRange.start].debut;
+    document.getElementById('accept-fin').value   = dateVal + 'T' + SLOTS[slotRange.end].fin;
+}
+
 function openAcceptModal(reportationId, formateurName, moduleName, currentDate, heureDebut, heureFin) {
     document.getElementById('accept-session-label').textContent = formateurName + ' — ' + moduleName;
     document.getElementById('accept-current-date').textContent  = currentDate + ' · ' + heureDebut + ' → ' + heureFin;
+
+    // Pre-fill date = current date + 7 days
     const [y, m, d] = currentDate.split('-').map(Number);
     const base = new Date(y, m - 1, d + 7);
     const pad  = n => String(n).padStart(2, '0');
-    const fmt  = (dt, h, mi) => `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(h)}:${pad(mi)}`;
-    const [dh, dm] = heureDebut.split(':').map(Number);
-    const [fh, fm] = heureFin.split(':').map(Number);
-    document.getElementById('accept-debut').value = fmt(base, dh, dm);
-    document.getElementById('accept-fin').value   = fmt(base, fh, fm);
+    document.getElementById('accept-date').value =
+        `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())}`;
+
+    // Auto-select matching slot
+    const matchIdx = SLOTS.findIndex(s => s.debut === heureDebut);
+    slotRange = matchIdx >= 0
+        ? { start: matchIdx, end: matchIdx }
+        : { start: null, end: null };
+    renderSlots();
+
     document.getElementById('accept-form').action = `/reportations/${reportationId}/accept`;
     document.getElementById('accept-modal').classList.add('open');
 }
@@ -771,18 +1018,45 @@ function closeAcceptModal() {
     document.getElementById('accept-modal').classList.remove('open');
 }
 
-document.getElementById('accept-debut').addEventListener('change', function() {
-    const debut = new Date(this.value);
-    if (!debut || isNaN(debut)) return;
-    const fin = document.getElementById('accept-fin');
-    const oldFin = new Date(fin.value);
-    if (!oldFin || isNaN(oldFin)) return;
-    const durMs = oldFin - new Date(this._prevValue || this.value);
-    this._prevValue = this.value;
-    if (durMs > 0) {
-        const newFin = new Date(debut.getTime() + durMs);
-        const pad = n => String(n).padStart(2,'0');
-        fin.value = `${newFin.getFullYear()}-${pad(newFin.getMonth()+1)}-${pad(newFin.getDate())}T${pad(newFin.getHours())}:${pad(newFin.getMinutes())}`;
+// ══════════════════════════════════════════════
+// DELETE SESSION MODAL
+// ══════════════════════════════════════════════
+function openDeleteModal(reportationId, formateurName, moduleName, currentDate, heureDebut, heureFin) {
+    document.getElementById('delete-session-label').textContent = formateurName + ' — ' + moduleName;
+    document.getElementById('delete-current-date').textContent  = currentDate + ' · ' + heureDebut + ' → ' + heureFin;
+    document.getElementById('delete-form').action = `/reportations/${reportationId}/delete-session`;
+    document.getElementById('delete-modal').classList.add('open');
+}
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════
+// REFUSE MODAL
+// ══════════════════════════════════════════════
+function openRefuseModal(reportationId, formateurName, moduleName) {
+    document.getElementById('refuse-session-label').textContent = formateurName + ' — ' + moduleName;
+    document.getElementById('refuse-form').action = `/reportations/${reportationId}/refuse`;
+    document.getElementById('refuse-modal').classList.add('open');
+}
+
+function closeRefuseModal() {
+    document.getElementById('refuse-modal').classList.remove('open');
+}
+
+document.getElementById('accept-date').addEventListener('change', updateHiddenDatetimes);
+
+// Validate on submit
+document.getElementById('accept-form').addEventListener('submit', function(e) {
+    if (slotRange.start === null) {
+        e.preventDefault();
+        document.getElementById('accept-slot-error').style.display = 'block';
+        return;
+    }
+    updateHiddenDatetimes();
+    if (!document.getElementById('accept-debut').value || !document.getElementById('accept-fin').value) {
+        e.preventDefault();
     }
 });
 
@@ -852,6 +1126,30 @@ function escapeHtml(text) {
     div.textContent = String(text);
     return div.innerHTML;
 }
+
+// ── AUTO-OPEN CHAT FROM NOTIFICATION LINK ─────────────────────
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const openId = parseInt(params.get('open_chat'));
+    if (!openId) return;
+
+    function tryOpen() {
+        const card = document.querySelector('[data-rp-id="' + openId + '"]');
+        if (!card) return;
+        const label  = card.getAttribute('data-module') || 'Conversation';
+        const status = card.dataset.rpStatus || 'en_attente';
+        openChat(openId, label, status);
+        const clean = new URL(window.location);
+        clean.searchParams.delete('open_chat');
+        window.history.replaceState({}, '', clean);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(tryOpen, 200));
+    } else {
+        setTimeout(tryOpen, 200);
+    }
+})();
 </script>
 
 @endsection

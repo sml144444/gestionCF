@@ -36,8 +36,7 @@ class ProfileController extends Controller
 
         $rules = [
             'name'           => 'required|string|max:255',
-            'email'          => 'required|email|unique:users,email,' . $user->id,
-            'phone'          => 'nullable|string|max:30',
+            'phone'          => 'nullable|digits_between:6,15',
             'cin'            => 'nullable|string|max:50',
             'date_naissance' => 'nullable|date',
         ];
