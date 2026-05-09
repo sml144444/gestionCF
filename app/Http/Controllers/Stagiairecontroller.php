@@ -299,4 +299,41 @@ class StagiaireController extends Controller
 
         return str_shuffle($password);
     }
+
+// Fix the URL returned by search() — change route('stagiaire.index') to route('stagiaire.show', $u->id)
+public function search(Request $request)
+{
+    $q = trim($request->get('q', ''));
+
+    if (strlen($q) < 2) {
+        return response()->json([]);
+    }
+
+    $results = \App\Models\User::where('role', 'stagiaire')
+        ->where('name', 'like', "%{$q}%")
+        ->with(['groupe', 'filiere'])
+        ->orderBy('name')
+        ->limit(8)
+        ->get()
+        ->map(fn($u) => [
+            'id'     => $u->id,
+            'name'   => $u->name,
+            'filiere'=> $u->filiere?->name ?? '—',
+            'groupe' => $u->groupe?->name  ?? '—',
+            'promo'  => $u->groupe?->promo_label ?? '—',
+            'url'    => route('stagiaire.show', $u->id), // ← CHANGED
+        ]);
+
+    return response()->json($results);
+}
+
+// Add this new method:
+public function show(\App\Models\User $user)
+{
+    abort_if(! $user->isStagiaire(), 404);
+
+    $user->load(['filiere', 'groupe', 'absences', 'notes', 'reclamations']);
+
+    return view('stagiaire.show', compact('user'));
+}
 }

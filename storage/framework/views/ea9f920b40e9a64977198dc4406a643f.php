@@ -1,9 +1,9 @@
-@extends('layouts.app')
-@section('title', 'Nouveau rôle')
-@section('page-title', 'Nouveau rôle')
 
-@section('content')
-@php
+<?php $__env->startSection('title', 'Modifier le rôle'); ?>
+<?php $__env->startSection('page-title', 'Modifier le rôle'); ?>
+
+<?php $__env->startSection('content'); ?>
+<?php
     $user = Auth::user();
     $userRole = $user->role;
 
@@ -14,6 +14,8 @@
         'stagiaire'    => ['primary'=>'#ea580c','medium'=>'#f97316','light'=>'#fff7ed','lighter'=>'#fffbeb','text'=>'#9a3412','border'=>'#fed7aa','shadow'=>'rgba(234,88,12,0.15)','gradient'=>'linear-gradient(135deg,#ea580c 0%,#f97316 100%)'],
     ];
     $p = $palettes[$userRole] ?? $palettes['gestionnaire'];
+
+    $isSystem = in_array($role->name, ['admin','gestionnaire','formateur','stagiaire']);
 
     $groupLabels = [
         'emploi' => [
@@ -140,6 +142,7 @@
                 'absence-justify'  => '✅ Justifier / modifier une absence',
             ]
         ],
+        // ── ADDED: was missing from edit.blade.php ───────────────
         'controle' => [
             'label' => 'Contrôles & Notes',
             'icon'  => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
@@ -150,6 +153,7 @@
                 'mes-notes-view' => '🎓 Voir ses propres notes (stagiaire)',
             ]
         ],
+        // ── ADDED: was missing from edit.blade.php ───────────────
         'bulletin' => [
             'label' => 'Bulletins de notes',
             'icon'  => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
@@ -159,18 +163,18 @@
             ]
         ],
     ];
-@endphp
+?>
 
 <style>
 :root {
-    --accent:    {{ $p['primary'] }};
-    --accent-md: {{ $p['medium'] }};
-    --accent-lt: {{ $p['light'] }};
-    --accent-ltr:{{ $p['lighter'] }};
-    --accent-tx: {{ $p['text'] }};
-    --accent-bd: {{ $p['border'] }};
-    --accent-sh: {{ $p['shadow'] }};
-    --accent-gr: {{ $p['gradient'] }};
+    --accent:    <?php echo e($p['primary']); ?>;
+    --accent-md: <?php echo e($p['medium']); ?>;
+    --accent-lt: <?php echo e($p['light']); ?>;
+    --accent-ltr:<?php echo e($p['lighter']); ?>;
+    --accent-tx: <?php echo e($p['text']); ?>;
+    --accent-bd: <?php echo e($p['border']); ?>;
+    --accent-sh: <?php echo e($p['shadow']); ?>;
+    --accent-gr: <?php echo e($p['gradient']); ?>;
 }
 * { box-sizing:border-box; }
 .rc-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:900px; margin:0 auto; }
@@ -179,7 +183,8 @@
 .rc-hero { display:flex; align-items:center; gap:16px; margin-bottom:20px; padding:20px 24px; background:var(--accent-gr); border-radius:16px; }
 .rc-hero-icon { width:48px; height:48px; border-radius:14px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .rc-hero-title { font-size:18px; font-weight:800; color:white; margin:0; }
-.rc-hero-sub { font-size:12px; color:rgba(255,255,255,0.75); margin:3px 0 0; }
+.rc-hero-sub { font-size:12px; color:rgba(255,255,255,0.75); margin:3px 0 0; text-transform:capitalize; }
+.rc-system-badge { margin-left:auto; font-size:11px; font-weight:700; padding:6px 12px; border-radius:99px; background:rgba(255,255,255,0.2); color:white; white-space:nowrap; }
 .rc-card { background:white; border-radius:16px; border:1px solid #e2e8f0; overflow:hidden; }
 .rc-name-field { padding:20px 24px; border-bottom:1px solid #f1f5f9; }
 .rc-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
@@ -193,6 +198,7 @@
 .rc-perm-group-icon { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .rc-perm-group-body { display:flex; flex-wrap:wrap; gap:8px; padding:4px 24px 16px; }
 .rc-perm-item { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; border:1.5px solid #e2e8f0; cursor:pointer; transition:all .15s; background:white; }
+.rc-perm-item.active { border-color:var(--accent-bd); background:var(--accent-ltr); }
 .rc-perm-item:hover { border-color:var(--accent-bd); background:var(--accent-ltr); }
 .rc-perm-item input[type=checkbox] { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
 .rc-perm-item label { font-size:12px; font-weight:600; color:#374151; cursor:pointer; }
@@ -207,100 +213,123 @@
 </style>
 
 <div class="rc-wrap">
-    <a href="{{ route('roles.index') }}" class="rc-back">
+    <a href="<?php echo e(route('roles.index')); ?>" class="rc-back">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         Retour aux rôles
     </a>
 
-    @if($errors->any())
+    <?php if($errors->any()): ?>
         <div class="flash-err">
-            @foreach($errors->all() as $error)
-                <p style="font-size:12px;color:#be123c;margin:0;">✕ {{ $error }}</p>
-            @endforeach
+            <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <p style="font-size:12px;color:#be123c;margin:0;">✕ <?php echo e($error); ?></p>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
-    @endif
+    <?php endif; ?>
 
     <div class="rc-hero">
         <div class="rc-hero-icon">
             <svg width="24" height="24" fill="none" stroke="white" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
             </svg>
         </div>
         <div>
-            <h1 class="rc-hero-title">Créer un nouveau rôle</h1>
-            <p class="rc-hero-sub">Définissez le nom et les permissions de ce rôle</p>
+            <h1 class="rc-hero-title">Modifier le rôle</h1>
+            <p class="rc-hero-sub"><?php echo e($role->name); ?></p>
         </div>
+        <?php if($isSystem): ?>
+            <span class="rc-system-badge">🔒 Rôle système</span>
+        <?php endif; ?>
     </div>
 
     <div class="rc-card">
-        <form action="{{ route('roles.store') }}" method="POST">
-            @csrf
+        <form action="<?php echo e(route('roles.update', $role)); ?>" method="POST">
+            <?php echo csrf_field(); ?> <?php echo method_field('PUT'); ?>
 
-            {{-- NOM --}}
+            
             <div class="rc-name-field">
                 <label class="rc-label" for="name">Nom du rôle <span style="color:#dc2626">*</span></label>
                 <input type="text" id="name" name="name" class="rc-input"
-                    value="{{ old('name') }}"
-                    placeholder="ex: coordinateur, observateur..."
-                    style="max-width:400px;" required>
+                    value="<?php echo e(old('name', $role->name)); ?>"
+                    style="max-width:400px;<?php echo e($isSystem ? 'background:#f8fafc;color:#94a3b8;' : ''); ?>"
+                    <?php echo e($isSystem ? 'readonly' : ''); ?> required>
+                <?php if($isSystem): ?>
+                    <p style="font-size:11px;color:#f59e0b;margin-top:6px;">
+                        ⚠️ Le nom d'un rôle système ne peut pas être modifié, mais ses permissions oui.
+                    </p>
+                <?php endif; ?>
             </div>
 
-            {{-- PERMISSIONS --}}
+            
             <div style="padding:20px 24px 8px;">
                 <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px;">Permissions</div>
-                <div style="font-size:11px;color:#94a3b8;">Cochez les permissions à attribuer à ce rôle</div>
+                <div style="font-size:11px;color:#94a3b8;">
+                    <?php echo e($role->permissions->count()); ?> permission(s) actuellement assignée(s)
+                </div>
             </div>
 
-            @foreach($groupLabels as $groupKey => $group)
-            <div class="rc-perm-group">
-                <div class="rc-perm-group-header" onclick="toggleGroup('{{ $groupKey }}')">
-                    <div class="rc-perm-group-label">
-                        <div class="rc-perm-group-icon" style="background:{{ $group['bg'] }};">
-                            <svg width="18" height="18" fill="none" stroke="{{ $group['color'] }}" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ $group['icon'] }}"/>
+            <?php $__currentLoopData = $groupLabels; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $groupKey => $group): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
+                    $activeCount = collect($group['perms'])->keys()
+                        ->filter(fn($p) => in_array($p, old('permission', $rolePermissions)))
+                        ->count();
+                ?>
+                <div class="rc-perm-group">
+                    <div class="rc-perm-group-header" onclick="toggleGroup('<?php echo e($groupKey); ?>')">
+                        <div class="rc-perm-group-label">
+                            <div class="rc-perm-group-icon" style="background:<?php echo e($group['bg']); ?>;">
+                                <svg width="18" height="18" fill="none" stroke="<?php echo e($group['color']); ?>" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="<?php echo e($group['icon']); ?>"/>
+                                </svg>
+                            </div>
+                            <span style="color:<?php echo e($group['color']); ?>;"><?php echo e($group['label']); ?></span>
+                            <?php if($activeCount > 0): ?>
+                                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:<?php echo e($group['bg']); ?>;color:<?php echo e($group['color']); ?>;">
+                                    <?php echo e($activeCount); ?> actif
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button type="button" class="rc-select-all"
+                                onclick="event.stopPropagation();selectAll('<?php echo e($groupKey); ?>', true)">Tout</button>
+                            <button type="button" class="rc-select-all"
+                                onclick="event.stopPropagation();selectAll('<?php echo e($groupKey); ?>', false)">Aucun</button>
+                            <svg id="chevron-<?php echo e($groupKey); ?>" width="16" height="16" fill="none" stroke="#94a3b8"
+                                viewBox="0 0 24 24"
+                                style="transition:.2s;transform:rotate(<?php echo e($activeCount > 0 ? '180' : '0'); ?>deg);">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </div>
-                        <span style="color:{{ $group['color'] }};">{{ $group['label'] }}</span>
-                        <span style="font-size:10px;color:#94a3b8;font-weight:500;">
-                            {{ count($group['perms']) }} permission(s)
-                        </span>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <button type="button" class="rc-select-all"
-                            onclick="event.stopPropagation();selectAll('{{ $groupKey }}', true)">Tout</button>
-                        <button type="button" class="rc-select-all"
-                            onclick="event.stopPropagation();selectAll('{{ $groupKey }}', false)">Aucun</button>
-                        <svg id="chevron-{{ $groupKey }}" width="16" height="16" fill="none" stroke="#94a3b8"
-                            viewBox="0 0 24 24" style="transition:.2s;transform:rotate(0deg);">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                        </svg>
+                    <div id="group-<?php echo e($groupKey); ?>" class="rc-perm-group-body"
+                        style="<?php echo e($activeCount === 0 ? 'display:none;' : ''); ?>">
+                        <?php $__currentLoopData = $group['perms']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $permName => $permLabel): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
+                                $isChecked = in_array($permName, old('permission', $rolePermissions));
+                                $cbId = 'cb-' . str_replace(['-', '.', ' '], '_', $permName);
+                            ?>
+                            <div class="rc-perm-item <?php echo e($isChecked ? 'active' : ''); ?>"
+                                onclick="toggleCheck('<?php echo e($cbId); ?>')">
+                                <input type="checkbox"
+                                    id="<?php echo e($cbId); ?>"
+                                    name="permission[]"
+                                    value="<?php echo e($permName); ?>"
+                                    data-group="<?php echo e($groupKey); ?>"
+                                    <?php echo e($isChecked ? 'checked' : ''); ?>>
+                                <label for="<?php echo e($cbId); ?>"><?php echo e($permLabel); ?></label>
+                            </div>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
                 </div>
-                <div id="group-{{ $groupKey }}" class="rc-perm-group-body" style="display:none;">
-                    @foreach($group['perms'] as $permName => $permLabel)
-                        @php $cbId = 'cb-' . str_replace(['-','.',' '], '_', $permName); @endphp
-                        <div class="rc-perm-item" onclick="toggleCheck('{{ $cbId }}')">
-                            <input type="checkbox"
-                                id="{{ $cbId }}"
-                                name="permission[]"
-                                value="{{ $permName }}"
-                                data-group="{{ $groupKey }}"
-                                {{ in_array($permName, old('permission', [])) ? 'checked' : '' }}>
-                            <label for="{{ $cbId }}">{{ $permLabel }}</label>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-            {{-- FOOTER --}}
+            
             <div class="rc-footer">
-                <a href="{{ route('roles.index') }}" class="btn-outline">Annuler</a>
+                <a href="<?php echo e(route('roles.index')); ?>" class="btn-outline">Annuler</a>
                 <button type="submit" class="btn-primary">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                     </svg>
-                    Créer le rôle
+                    Enregistrer
                 </button>
             </div>
         </form>
@@ -329,4 +358,5 @@ function toggleCheck(id) {
     }
 }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/roles/edit.blade.php ENDPATH**/ ?>

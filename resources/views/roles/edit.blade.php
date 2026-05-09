@@ -49,10 +49,11 @@
             'icon'  => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
             'color' => '#0891b2', 'bg' => '#ecfeff',
             'perms' => [
-                'stagiaire-list'   => '👥 Voir la liste des stagiaires',
-                'stagiaire-create' => '➕ Créer un stagiaire',
-                'stagiaire-edit'   => '✏️ Modifier un stagiaire',
-                'stagiaire-delete' => '🗑️ Supprimer un stagiaire',
+                'stagiaire-list'    => '👥 Voir la liste des stagiaires',
+                'stagiaire-create'  => '➕ Créer un stagiaire',
+                'stagiaire-edit'    => '✏️ Modifier un stagiaire',
+                'stagiaire-delete'  => '🗑️ Supprimer un stagiaire',
+                'search-stagiaires' => '🔍 Rechercher des stagiaires (barre de recherche)', // ← NEW
             ]
         ],
         'groupe' => [
@@ -102,8 +103,8 @@
             'icon'  => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
             'color' => '#7c3aed', 'bg' => '#f5f3ff',
             'perms' => [
-                'reportation-create' => '📝 Créer une reportation',
-                'reportation-manage' => '⚙️ Gérer toutes les reportations',
+                'reportation-create'        => '📝 Créer une reportation',
+                'reportation-manage'        => '⚙️ Gérer toutes les reportations',
                 'reportation-view-assigned' => '👁️ Voir les reportations assignées',
             ]
         ],
@@ -139,6 +140,26 @@
                 'absence-view'     => '👁️ Consulter ses absences',
                 'absence-view-all' => '📋 Voir toutes les absences',
                 'absence-justify'  => '✅ Justifier / modifier une absence',
+            ]
+        ],
+        // ── ADDED: was missing from edit.blade.php ───────────────
+        'controle' => [
+            'label' => 'Contrôles & Notes',
+            'icon'  => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+            'color' => '#0369a1', 'bg' => '#f0f9ff',
+            'perms' => [
+                'controle-view'  => '📋 Consulter les contrôles & notes',
+                'controle-save'  => '💾 Saisir / modifier les notes',
+                'mes-notes-view' => '🎓 Voir ses propres notes (stagiaire)',
+            ]
+        ],
+        // ── ADDED: was missing from edit.blade.php ───────────────
+        'bulletin' => [
+            'label' => 'Bulletins de notes',
+            'icon'  => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+            'color' => '#065f46', 'bg' => '#ecfdf5',
+            'perms' => [
+                'bulletin-view' => '📄 Consulter les bulletins de notes',
             ]
         ],
     ];
@@ -248,7 +269,6 @@
 
             @foreach($groupLabels as $groupKey => $group)
                 @php
-                    // Count how many perms in this group are currently active on the role
                     $activeCount = collect($group['perms'])->keys()
                         ->filter(fn($p) => in_array($p, old('permission', $rolePermissions)))
                         ->count();
@@ -280,7 +300,6 @@
                             </svg>
                         </div>
                     </div>
-                    {{-- ✅ Always rendered — no $exists guard --}}
                     <div id="group-{{ $groupKey }}" class="rc-perm-group-body"
                         style="{{ $activeCount === 0 ? 'display:none;' : '' }}">
                         @foreach($group['perms'] as $permName => $permLabel)

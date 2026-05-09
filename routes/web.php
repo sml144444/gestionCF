@@ -533,6 +533,22 @@ Route::middleware(['auth', 'role:stagiaire'])->group(function () {
         ->middleware('can:mes-notes-view');
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/stagiaires/search', [\App\Http\Controllers\StagiaireController::class, 'search'])
+        ->name('stagiaires.search')
+        ->middleware('can:search-stagiaires');
+});
+
+// In the STAGIAIRES section, add:
+Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+    Route::get('/stagiaire', [StagiaireController::class, 'index'])
+        ->name('stagiaire.index')
+        ->middleware('can:stagiaire-list');
+
+    Route::get('/stagiaire/{user}', [StagiaireController::class, 'show']) // ← ADD THIS
+        ->name('stagiaire.show')
+        ->middleware('can:stagiaire-list');
+});
 // ─────────────────────────────────────────────
 // BULLETINS DE NOTES
 // ─────────────────────────────────────────────

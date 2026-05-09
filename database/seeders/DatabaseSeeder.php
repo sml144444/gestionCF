@@ -84,20 +84,22 @@ class DatabaseSeeder extends Seeder
             'news-list', 'news-create', 'news-edit', 'news-delete',
             'news-comment', 'news-like',
             'absence-view', 'absence-view-all', 'absence-justify',
-            // NEW PERMISSIONS ADDED HERE
-            'controle-view',        // <── ADDED
-            'controle-save',        // <── ADDED
-            'mes-notes-view',       // <── ADDED
-            'bulletin-view',        // <── ADDED
+            'controle-view',
+            'controle-save',
+            'mes-notes-view',
+            'bulletin-view',
+            'search-stagiaires', // ← NEW
         ];
 
         foreach ($permissions as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
+        // ── ADMIN — gets ALL permissions automatically ────────────
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions(Permission::all());
 
+        // ── GESTIONNAIRE ──────────────────────────────────────────
         $gestionnaireRole = Role::firstOrCreate(['name' => 'gestionnaire', 'guard_name' => 'web']);
         $gestionnaireRole->syncPermissions([
             'emploi-view', 'emploi-view-all-groups', 'emploi-create',
@@ -111,12 +113,13 @@ class DatabaseSeeder extends Seeder
             'reclamation-manage',
             'news-list', 'news-create', 'news-edit', 'news-delete', 'news-comment', 'news-like',
             'absence-view', 'absence-view-all', 'absence-justify',
-            // NEW PERMISSIONS FOR GESTIONNAIRE
-            'controle-view',        // <── ADDED
-            'controle-save',        // <── ADDED
-            'bulletin-view',        // <── ADDED
+            'controle-view',
+            'controle-save',
+            'bulletin-view',
+            'search-stagiaires', // ← NEW
         ]);
 
+        // ── FORMATEUR ─────────────────────────────────────────────
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
         $formateurRole->syncPermissions([
             'emploi-view', 'emploi-lien',
@@ -126,19 +129,20 @@ class DatabaseSeeder extends Seeder
             'news-list', 'news-comment', 'news-like',
             'absence-view', 'absence-view-all',
             'reclamation-view-assigned',
-            // NEW PERMISSIONS FOR FORMATEUR
-            'controle-view',        // <── ADDED
-            'controle-save',        // <── ADDED
+            'controle-view',
+            'controle-save',
+            'search-stagiaires', // ← NEW
         ]);
 
+        // ── STAGIAIRE ─────────────────────────────────────────────
+        // Stagiaires cannot search other stagiaires — permission NOT added here
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
         $stagiaireRole->syncPermissions([
             'emploi-view',
             'reclamation-create', 'reclamation-list',
             'news-list', 'news-comment', 'news-like',
             'absence-view',
-            // NEW PERMISSION FOR STAGIAIRE
-            'mes-notes-view',       // <── ADDED
+            'mes-notes-view',
         ]);
 
         User::all()->each(fn(User $u) => $u->syncRoles([$u->role]));
@@ -149,14 +153,14 @@ class DatabaseSeeder extends Seeder
         // 3. SALLES
         // ════════════════════════════════════════════════════════════
         $salles = [
-            ['name' => 'Salle A101',     'capacity' => 30],
-            ['name' => 'Salle A102',     'capacity' => 30],
-            ['name' => 'Salle B201',     'capacity' => 28],
-            ['name' => 'Salle B202',     'capacity' => 28],
-            ['name' => 'Labo Info 1',    'capacity' => 25],
-            ['name' => 'Labo Info 2',    'capacity' => 25],
-            ['name' => 'Labo Réseau',    'capacity' => 20],
-            ['name' => 'Amphi Principal','capacity' => 100],
+            ['name' => 'Salle A101',      'capacity' => 30],
+            ['name' => 'Salle A102',      'capacity' => 30],
+            ['name' => 'Salle B201',      'capacity' => 28],
+            ['name' => 'Salle B202',      'capacity' => 28],
+            ['name' => 'Labo Info 1',     'capacity' => 25],
+            ['name' => 'Labo Info 2',     'capacity' => 25],
+            ['name' => 'Labo Réseau',     'capacity' => 20],
+            ['name' => 'Amphi Principal', 'capacity' => 100],
         ];
 
         foreach ($salles as $salle) {
