@@ -13,11 +13,10 @@
     
     <button id="notif-bell"
             onclick="toggleNotifDropdown()"
-            class="w-8 h-8 flex items-center justify-center rounded-lg
-                   text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all">
-        <svg id="bell-icon" class="w-[17px] h-[17px] transition-transform"
+            class="notif-bell-btn w-9 h-9 flex items-center justify-center rounded-xl transition-all">
+        <svg id="bell-icon" class="w-[18px] h-[18px] transition-transform"
              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
                   d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11
                      a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341
                      C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436
@@ -27,147 +26,339 @@
 
     
     <span id="notif-badge"
-          class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center
-                 rounded-full text-[9px] font-bold text-white bg-red-500 pointer-events-none
-                 transition-all duration-200"
-          style="<?php echo e($unreadCount === 0 ? 'display:none;' : ''); ?>">
+          class="notif-badge absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1
+                 flex items-center justify-center rounded-full
+                 text-[9px] font-bold text-white pointer-events-none"
+          style="<?php echo e($unreadCount === 0 ? 'opacity:0;transform:scale(0);' : ''); ?>">
         <span id="notif-badge-count"><?php echo e($unreadCount > 9 ? '9+' : $unreadCount); ?></span>
     </span>
 
     
+    
     <div id="notif-dropdown"
-         class="absolute right-0 top-10 w-80 bg-white rounded-2xl shadow-xl
-                border border-slate-100 z-50 overflow-hidden"
+         class="notif-panel absolute right-0 top-12 w-[340px] rounded-2xl"
          style="display:none; transform-origin:top right;">
 
         
-        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
-            <span class="text-xs font-bold text-slate-700">Notifications</span>
-            <button onclick="markAllRead()"
-                    class="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-                Tout marquer lu
-            </button>
+        <div class="notif-header flex items-center justify-between px-5 py-3.5">
+            <div class="flex items-center gap-2">
+                <div class="notif-header-dot w-1.5 h-1.5 rounded-full"></div>
+                <span class="text-[11px] font-bold text-slate-700 tracking-widest uppercase">Notifications</span>
+                <?php if($unreadCount > 0): ?>
+                    <span class="notif-count-pill text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white">
+                        <?php echo e($unreadCount > 9 ? '9+' : $unreadCount); ?>
+
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="markAllRead()" class="notif-action-btn text-[10px] font-semibold transition-colors">
+                    Tout lire
+                </button>
+                <span class="text-slate-200 select-none text-xs">│</span>
+                <button onclick="deleteAllNotifications()" class="text-[10px] font-semibold text-slate-400 hover:text-red-400 transition-colors">
+                    Effacer
+                </button>
+            </div>
         </div>
 
         
-        <div id="notif-list" class="max-h-72 overflow-y-auto divide-y divide-slate-50">
+        <div id="notif-list" class="notif-list max-h-72 overflow-y-auto">
             <?php $__empty_1 = true; $__currentLoopData = $latest; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $n): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <?php $cfg = $n->type_config; ?>
                 <div id="notif-item-<?php echo e($n->id); ?>"
-                     class="notif-item group flex items-start gap-3 px-4 py-3
-                            hover:bg-slate-50 cursor-pointer transition-colors relative
-                            <?php echo e($n->is_read ? 'opacity-60' : ''); ?>"
+                     class="notif-item group flex items-start gap-3 px-4 py-3.5 cursor-pointer relative
+                            <?php echo e($n->is_read ? 'notif-read' : 'notif-unread'); ?>"
                      data-id="<?php echo e($n->id); ?>"
                      data-url="<?php echo e($n->url ?? ''); ?>"
                      onclick="handleNotifClick(this)">
 
                     
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm"
+                    <?php if(!$n->is_read): ?>
+                        <div class="notif-accent-bar absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"></div>
+                    <?php endif; ?>
+
+                    
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
                          style="background:<?php echo e($cfg['bg']); ?>;">
                         <?php echo e($cfg['icon']); ?>
 
                     </div>
 
                     
-                    <div class="flex-1 min-w-0">
-                        <p class="notif-message text-xs text-slate-700 leading-snug <?php echo e($n->is_read ? '' : 'font-semibold'); ?>">
+                    <div class="flex-1 min-w-0 pt-0.5">
+                        <p class="notif-message text-[12px] leading-snug text-slate-700
+                                  <?php echo e($n->is_read ? 'font-normal opacity-60' : 'font-semibold'); ?>">
                             <?php echo e($n->message); ?>
 
                         </p>
-                        <p class="notif-time text-[10px] text-slate-400 mt-0.5">
+                        <p class="notif-time text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                            <span class="w-1 h-1 rounded-full bg-slate-300 inline-block"></span>
                             <?php echo e($n->updated_at->diffForHumans()); ?>
 
                         </p>
                     </div>
 
                     
-                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
-                        
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
                         <button onclick="deleteNotification(event, <?php echo e($n->id); ?>)"
-                                class="opacity-0 group-hover:opacity-100 transition-opacity
-                                       w-5 h-5 flex items-center justify-center rounded
-                                       text-slate-300 hover:text-red-400 hover:bg-red-50">
+                                class="notif-delete-btn opacity-0 group-hover:opacity-100 transition-all
+                                       w-5 h-5 flex items-center justify-center rounded-lg">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                       d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
 
                         <?php if($n->count > 1): ?>
                             <span class="notif-count-badge text-[9px] font-bold px-1.5 py-0.5
-                                         rounded-full bg-blue-500 text-white">
+                                         rounded-full text-white">
                                 <?php echo e($n->count); ?>
 
                             </span>
                         <?php elseif(! $n->is_read): ?>
-                            <span class="notif-unread-dot w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span class="notif-unread-dot w-2 h-2 rounded-full mt-1"></span>
                         <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                <div id="notif-empty" class="text-center py-10">
-                    <div class="text-3xl mb-2">🔔</div>
-                    <p class="text-xs text-slate-400 font-medium">Aucune notification</p>
+                <div id="notif-empty" class="notif-empty-state flex flex-col items-center justify-center py-12 px-6">
+                    <div class="notif-empty-icon w-12 h-12 rounded-2xl flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11
+                                     a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341
+                                     C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436
+                                     L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                    </div>
+                    <p class="text-[12px] font-semibold text-slate-500">Tout est à jour</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Aucune notification pour l'instant</p>
                 </div>
             <?php endif; ?>
         </div>
 
-
-<div class="px-4 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-    <button id="notif-load-all-btn"
-            onclick="loadAllNotifications()"
-            class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-        Voir tout →
-    </button>
-    <button id="notif-collapse-btn"
-            onclick="collapseNotifications()"
-            class="text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
-            style="display:none;">
-        Réduire ↑
-    </button>
-</div>
+        
+        <div class="notif-footer flex items-center justify-between px-5 py-2.5">
+            <button id="notif-load-all-btn"
+                    onclick="loadAllNotifications()"
+                    class="notif-action-btn text-[11px] font-semibold transition-colors flex items-center gap-1">
+                <span>Voir tout</span>
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+            <button id="notif-collapse-btn"
+                    onclick="collapseNotifications()"
+                    class="text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1"
+                    style="display:none;">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+                </svg>
+                <span>Réduire</span>
+            </button>
+        </div>
     </div>
+
+    
+    <div id="notif-confirm-modal"
+         onclick="if(event.target===this) closeConfirmModal()"
+         style="display:none;position:fixed;inset:0;z-index:9999;
+                align-items:center;justify-content:center;
+                background:rgba(15,23,42,0.5);backdrop-filter:blur(8px);">
+        <div class="notif-modal-card"
+             style="background:white;border-radius:20px;padding:28px;
+                    width:min(340px,90vw);
+                    animation:ncmIn .22s cubic-bezier(.34,1.4,.64,1);">
+
+            <div class="notif-modal-icon w-11 h-11 rounded-2xl flex items-center justify-center mb-4 text-lg">
+                🗑️
+            </div>
+
+            <p style="font-size:15px;font-weight:800;color:#1e293b;margin:0 0 6px;">
+                Effacer tout ?
+            </p>
+            <p style="font-size:12px;color:#94a3b8;margin:0 0 22px;line-height:1.7;">
+                Toutes vos notifications seront supprimées définitivement.
+                Cette action est irréversible.
+            </p>
+
+            <div style="display:flex;gap:8px;">
+                <button onclick="closeConfirmModal()"
+                        class="notif-modal-btn-cancel flex-1 py-2.5 rounded-xl text-xs font-bold transition-all">
+                    Annuler
+                </button>
+                <button onclick="confirmDeleteAll()"
+                        class="notif-modal-btn-confirm flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all">
+                    Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<?php if (! $__env->hasRenderedOnce('69f841fa-b640-4ef2-aadd-b076f2f1e792')): $__env->markAsRenderedOnce('69f841fa-b640-4ef2-aadd-b076f2f1e792'); ?>
+<?php if (! $__env->hasRenderedOnce('b5493f78-d68c-49a5-b234-b4606f3364db')): $__env->markAsRenderedOnce('b5493f78-d68c-49a5-b234-b4606f3364db'); ?>
 <?php $__env->startPush('scripts'); ?>
 <style>
+/* ══ Role-color token ══════════════════════════════════════════════ */
+:root {
+    --rc: var(--role-color, #1a4f8a);
+    --rc-10: color-mix(in srgb, var(--rc) 10%, transparent);
+    --rc-15: color-mix(in srgb, var(--rc) 15%, transparent);
+    --rc-20: color-mix(in srgb, var(--rc) 20%, transparent);
+}
+
+/* ══ Bell button ══════════════════════════════════════════════════ */
+.notif-bell-btn {
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+}
+.notif-bell-btn:hover {
+    color: var(--rc);
+    background: var(--rc-10);
+    border-color: var(--rc-20);
+}
+.notif-bell-btn:active { transform: scale(.92); }
+
+/* ══ Badge ════════════════════════════════════════════════════════ */
+.notif-badge {
+    background: var(--rc);
+    transition: transform .2s cubic-bezier(.34,1.6,.64,1), opacity .2s ease;
+}
+
+/* ══ Panel ════════════════════════════════════════════════════════ */
+/* FIX: overflow:hidden removed — use overflow:visible so the list
+        can expand beyond the initial panel height when "Voir tout" is clicked.
+        border-radius still clips corners fine without it.               */
+.notif-panel {
+    background: white;
+    border: 1px solid #f1f5f9;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.03),
+        0 4px 16px rgba(0,0,0,0.06),
+        0 20px 48px rgba(0,0,0,0.10);
+    overflow: visible;
+    transition: max-height .3s ease;
+}
+
+/* ══ Header ═══════════════════════════════════════════════════════ */
+.notif-header {
+    background: #fafbfc;
+    border-bottom: 1px solid #f1f5f9;
+    /* Keep header corners rounded when panel overflow is visible */
+    border-radius: 1rem 1rem 0 0;
+}
+.notif-header-dot { background: var(--rc); }
+.notif-count-pill { background: var(--rc); }
+.notif-action-btn { color: var(--rc); }
+.notif-action-btn:hover { opacity: .75; }
+
+/* ══ List ═════════════════════════════════════════════════════════ */
+.notif-list::-webkit-scrollbar { width: 3px; }
+.notif-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+.notif-list {
+    transition: max-height .3s ease;
+    overflow-y: auto;
+}
+
+/* ══ Items ════════════════════════════════════════════════════════ */
+.notif-item {
+    border-bottom: 1px solid #f8fafc;
+    transition: background .12s ease;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: #fafbfc; }
+.notif-unread { background: color-mix(in srgb, var(--rc) 3%, white); }
+.notif-unread:hover { background: color-mix(in srgb, var(--rc) 5%, white); }
+
+.notif-accent-bar { background: var(--rc); }
+.notif-unread-dot { background: var(--rc); }
+.notif-count-badge { background: var(--rc); }
+
+/* ══ Delete button ════════════════════════════════════════════════ */
+.notif-delete-btn {
+    color: #cbd5e1;
+    background: transparent;
+}
+.notif-delete-btn:hover {
+    color: #ef4444;
+    background: #fff1f2;
+}
+
+/* ══ Empty state ══════════════════════════════════════════════════ */
+.notif-empty-state { background: #fafbfc; }
+.notif-empty-icon {
+    background: var(--rc-10);
+    color: var(--rc);
+}
+
+/* ══ Footer ═══════════════════════════════════════════════════════ */
+.notif-footer {
+    background: #fafbfc;
+    border-top: 1px solid #f1f5f9;
+    /* Keep footer corners rounded */
+    border-radius: 0 0 1rem 1rem;
+}
+
+/* ══ Modal ════════════════════════════════════════════════════════ */
+.notif-modal-card { border: 1px solid #f1f5f9; }
+.notif-modal-icon { background: #fff1f2; }
+.notif-modal-btn-cancel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+}
+.notif-modal-btn-cancel:hover { background: #f1f5f9; }
+.notif-modal-btn-confirm { background: #ef4444; border: none; }
+.notif-modal-btn-confirm:hover { opacity: .87; }
+
+/* ══ Animations ═══════════════════════════════════════════════════ */
 @keyframes bellShake {
-    0%,100%{transform:rotate(0)}
-    15%{transform:rotate(12deg)}
-    30%{transform:rotate(-10deg)}
-    45%{transform:rotate(8deg)}
-    60%{transform:rotate(-6deg)}
-    75%{transform:rotate(4deg)}
+    0%,100%{ transform:rotate(0) }
+    15%{ transform:rotate(12deg) }
+    30%{ transform:rotate(-10deg) }
+    45%{ transform:rotate(8deg) }
+    60%{ transform:rotate(-6deg) }
+    75%{ transform:rotate(4deg) }
 }
 .bell-ring { animation: bellShake .5s ease; }
 
 @keyframes notifSlideIn {
-    from { opacity:0; transform:translateY(-6px) scale(.97); }
+    from { opacity:0; transform:translateY(-8px) scale(.96); }
     to   { opacity:1; transform:translateY(0) scale(1); }
 }
-#notif-dropdown.open { animation: notifSlideIn .15s ease; }
+#notif-dropdown.open { animation: notifSlideIn .18s cubic-bezier(.34,1.2,.64,1); }
 
 @keyframes notifItemIn {
-    from { opacity:0; transform:translateX(10px); }
+    from { opacity:0; transform:translateX(12px); }
     to   { opacity:1; transform:translateX(0); }
 }
 .notif-item-new { animation: notifItemIn .25s ease; }
 
 @keyframes countPop {
-    0%  { transform: scale(1); }
-    50% { transform: scale(1.4); }
-    100%{ transform: scale(1); }
+    0%  { transform:scale(1); }
+    50% { transform:scale(1.45); }
+    100%{ transform:scale(1); }
 }
 .count-pop { animation: countPop .25s ease; }
 
-#notif-list::-webkit-scrollbar { width:4px; }
-#notif-list::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:99px; }
-#notif-list { transition: max-height .3s ease; }
+@keyframes ncmIn {
+    from { opacity:0; transform:translateY(14px) scale(.95); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+@keyframes badgePop {
+    0%  { transform:scale(0); opacity:0; }
+    60% { transform:scale(1.3); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+}
+.badge-pop { animation: badgePop .3s cubic-bezier(.34,1.6,.64,1); }
 </style>
 
 <script>
-// ── Dropdown toggle ────────────────────────────────────────────
+/* ── Dropdown toggle ─────────────────────────────────────── */
 let _notifOpen = false;
 
 function toggleNotifDropdown() { _notifOpen ? closeNotifDropdown() : openNotifDropdown(); }
@@ -177,7 +368,7 @@ function openNotifDropdown() {
     dd.style.display = 'block';
     dd.classList.add('open');
     _notifOpen = true;
-    setTimeout(() => dd.classList.remove('open'), 200);
+    setTimeout(() => dd.classList.remove('open'), 220);
 }
 
 function closeNotifDropdown() {
@@ -186,11 +377,16 @@ function closeNotifDropdown() {
 }
 
 document.addEventListener('click', function(e) {
-    const wrapper = document.getElementById('notif-wrapper');
-    if (wrapper && !wrapper.contains(e.target)) closeNotifDropdown();
+    const w = document.getElementById('notif-wrapper');
+    // FIX: if the clicked element was removed from the DOM by its own handler
+    // (e.g. btn.innerHTML swap in loadAllNotifications), e.target becomes a
+    // detached node — document.contains() returns false for it, so we'd
+    // wrongly close the dropdown. Guard against that here.
+    if (!document.contains(e.target)) return;
+    if (w && !w.contains(e.target)) closeNotifDropdown();
 });
 
-// ── Badge helpers ──────────────────────────────────────────────
+/* ── Badge helpers ──────────────────────────────────────── */
 function getUnreadCount() {
     const el = document.getElementById('notif-badge-count');
     if (!el) return 0;
@@ -202,8 +398,17 @@ function setUnreadCount(n) {
     const badge = document.getElementById('notif-badge');
     const count = document.getElementById('notif-badge-count');
     if (!badge || !count) return;
-    if (n <= 0) { badge.style.display = 'none'; }
-    else        { badge.style.display = 'flex'; count.textContent = n > 9 ? '9+' : n; }
+    if (n <= 0) {
+        badge.style.opacity   = '0';
+        badge.style.transform = 'scale(0)';
+    } else {
+        badge.style.opacity   = '1';
+        badge.style.transform = 'scale(1)';
+        count.textContent = n > 9 ? '9+' : n;
+        badge.classList.remove('badge-pop');
+        void badge.offsetWidth;
+        badge.classList.add('badge-pop');
+    }
 }
 
 function ringBell() {
@@ -215,7 +420,7 @@ function ringBell() {
     icon.addEventListener('animationend', () => icon.classList.remove('bell-ring'), { once: true });
 }
 
-// ── Play a tiny ping ───────────────────────────────────────────
+/* ── Ping sound ─────────────────────────────────────────── */
 function playPing() {
     try {
         const ctx  = new (window.AudioContext || window.webkitAudioContext)();
@@ -223,13 +428,13 @@ function playPing() {
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
         osc.type = 'sine'; osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.setValueAtTime(0.07, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
         osc.start(); osc.stop(ctx.currentTime + 0.4);
     } catch(_) {}
 }
 
-// ── Mark one as read ───────────────────────────────────────────
+/* ── Mark one as read ───────────────────────────────────── */
 function handleNotifClick(el) {
     const id  = el.dataset.id;
     const url = el.dataset.url;
@@ -237,45 +442,50 @@ function handleNotifClick(el) {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept':       'application/json',
+            'Accept': 'application/json',
         },
     })
     .then(r => r.json())
     .then(data => {
-        el.classList.add('opacity-60');
+        el.classList.remove('notif-unread');
+        el.classList.add('notif-read');
+        el.querySelector('.notif-accent-bar')?.remove();
         el.querySelector('.notif-unread-dot')?.remove();
         el.querySelector('.notif-count-badge')?.remove();
-        el.querySelector('.notif-message')?.classList.replace('font-semibold', 'font-normal');
+        const msg = el.querySelector('.notif-message');
+        if (msg) { msg.classList.remove('font-semibold'); msg.classList.add('font-normal', 'opacity-60'); }
         setUnreadCount(data.unread_count ?? Math.max(0, getUnreadCount() - 1));
         if (url) window.location.href = url;
     });
 }
 
-// ── Mark all as read ───────────────────────────────────────────
+/* ── Mark all as read ───────────────────────────────────── */
 function markAllRead() {
     fetch('/notifications/read-all', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept':       'application/json',
+            'Accept': 'application/json',
         },
     })
     .then(r => r.json())
     .then(() => {
         setUnreadCount(0);
         document.querySelectorAll('.notif-item').forEach(el => {
-            el.classList.add('opacity-60');
+            el.classList.remove('notif-unread');
+            el.classList.add('notif-read');
+            el.querySelector('.notif-accent-bar')?.remove();
             el.querySelector('.notif-unread-dot')?.remove();
             el.querySelector('.notif-count-badge')?.remove();
-            el.querySelector('.notif-message')?.classList.replace('font-semibold', 'font-normal');
+            const msg = el.querySelector('.notif-message');
+            if (msg) { msg.classList.remove('font-semibold'); msg.classList.add('font-normal', 'opacity-60'); }
         });
     });
 }
 
-// ── Delete a single notification ──────────────────────────────
+/* ── Delete single ──────────────────────────────────────── */
 function deleteNotification(event, id) {
-    event.stopPropagation(); // don't trigger handleNotifClick
-
+    event.stopPropagation();
     const item = document.getElementById('notif-item-' + id);
     if (!item) return;
 
@@ -283,222 +493,250 @@ function deleteNotification(event, id) {
         method: 'DELETE',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept':       'application/json',
+            'Accept': 'application/json',
         },
     })
     .then(r => r.json())
     .then(data => {
-        // Animate out
-        item.style.transition = 'opacity .2s ease, transform .2s ease';
+        item.style.transition = 'opacity .2s ease, transform .2s ease, max-height .25s ease';
         item.style.opacity    = '0';
-        item.style.transform  = 'translateX(10px)';
+        item.style.transform  = 'translateX(12px)';
+        item.style.maxHeight  = item.offsetHeight + 'px';
+        setTimeout(() => { item.style.maxHeight = '0'; item.style.paddingTop = '0'; item.style.paddingBottom = '0'; }, 50);
         setTimeout(() => {
             item.remove();
-            // Show empty state if list is now empty
             const list = document.getElementById('notif-list');
             if (list && !list.querySelector('.notif-item')) {
-                list.innerHTML = `
-                    <div id="notif-empty" class="text-center py-10">
-                        <div class="text-3xl mb-2">🔔</div>
-                        <p class="text-xs text-slate-400 font-medium">Aucune notification</p>
-                    </div>`;
+                list.innerHTML = _emptyHtml();
             }
-        }, 200);
-
+        }, 280);
         setUnreadCount(data.unread_count);
     })
     .catch(() => {});
 }
 
-// ── Prepend a brand-new notification item ─────────────────────
-function prependNotification(e) {
-    ringBell();
-    playPing();
+/* ── Confirm modal ──────────────────────────────────────── */
+function deleteAllNotifications() {
+    document.getElementById('notif-confirm-modal').style.display = 'flex';
+}
+function closeConfirmModal() {
+    document.getElementById('notif-confirm-modal').style.display = 'none';
+}
+function confirmDeleteAll() {
+    closeConfirmModal();
+    fetch('/notifications', {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(() => {
+        const items = document.querySelectorAll('.notif-item');
+        items.forEach((item, i) => {
+            item.style.transition = `opacity .18s ease ${i * 35}ms, transform .18s ease ${i * 35}ms`;
+            item.style.opacity    = '0';
+            item.style.transform  = 'translateX(12px)';
+        });
+        setTimeout(() => {
+            const list = document.getElementById('notif-list');
+            if (list) list.innerHTML = _emptyHtml();
+            setUnreadCount(0);
+        }, items.length * 35 + 220);
+    })
+    .catch(() => {});
+}
 
-    document.getElementById('notif-empty')?.remove();
-    const list = document.getElementById('notif-list');
-    if (!list) return;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeConfirmModal(); });
 
-    const item = document.createElement('div');
-    item.id        = 'notif-item-' + e.id;
-    item.className = 'notif-item notif-item-new group flex items-start gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors';
-    item.dataset.id  = e.id;
-    item.dataset.url = e.url ?? '';
-    item.setAttribute('onclick', 'handleNotifClick(this)');
-    item.innerHTML = `
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm"
-             style="background:${e.bg};">
-            ${e.icon}
+/* ── Empty state HTML ───────────────────────────────────── */
+function _emptyHtml() {
+    return `<div id="notif-empty" class="notif-empty-state flex flex-col items-center justify-center py-12 px-6">
+        <div class="notif-empty-icon w-12 h-12 rounded-2xl flex items-center justify-center mb-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11
+                         a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341
+                         C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436
+                         L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
         </div>
-        <div class="flex-1 min-w-0">
-            <p class="notif-message text-xs text-slate-700 leading-snug font-semibold">
+        <p class="text-[12px] font-semibold text-slate-500">Tout est à jour</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Aucune notification pour l'instant</p>
+    </div>`;
+}
+
+/* ── Item HTML builder ──────────────────────────────────── */
+function _buildItem(e, isNew = false) {
+    const cls = isNew ? 'notif-item-new' : '';
+    return `
+    <div id="notif-item-${e.id}"
+         class="notif-item notif-unread ${cls} group flex items-start gap-3 px-4 py-3.5 cursor-pointer relative"
+         data-id="${e.id}" data-url="${e.url ?? ''}" onclick="handleNotifClick(this)">
+        <div class="notif-accent-bar absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"></div>
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
+             style="background:${e.bg};">${e.icon}</div>
+        <div class="flex-1 min-w-0 pt-0.5">
+            <p class="notif-message text-[12px] leading-snug text-slate-700 font-semibold">
                 ${escN(e.message)}
             </p>
-            <p class="notif-time text-[10px] text-slate-400 mt-0.5">${escN(e.created_at)}</p>
+            <p class="notif-time text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                <span class="w-1 h-1 rounded-full bg-slate-300 inline-block"></span>
+                ${escN(e.created_at)}
+            </p>
         </div>
-        <div class="flex flex-col items-end gap-1 flex-shrink-0">
+        <div class="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
             <button onclick="deleteNotification(event, ${e.id})"
-                    class="opacity-0 group-hover:opacity-100 transition-opacity
-                           w-5 h-5 flex items-center justify-center rounded
-                           text-slate-300 hover:text-red-400 hover:bg-red-50">
+                    class="notif-delete-btn opacity-0 group-hover:opacity-100 transition-all
+                           w-5 h-5 flex items-center justify-center rounded-lg">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                           d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
-            <span class="notif-unread-dot w-2 h-2 rounded-full bg-blue-500"></span>
+            <span class="notif-unread-dot w-2 h-2 rounded-full mt-1"></span>
         </div>
-    `;
+    </div>`;
+}
 
-    list.prepend(item);
+/* ── Prepend new notification ───────────────────────────── */
+function prependNotification(e) {
+    ringBell(); playPing();
+    document.getElementById('notif-empty')?.remove();
+    const list = document.getElementById('notif-list');
+    if (!list) return;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = _buildItem(e, true);
+    list.prepend(wrapper.firstElementChild);
     const items = list.querySelectorAll('.notif-item');
     if (items.length > 5) items[items.length - 1].remove();
-
     setUnreadCount(getUnreadCount() + 1);
 }
 
-// ── Patch an EXISTING notification item (count incremented) ───
+/* ── Patch existing notification ────────────────────────── */
 function patchNotification(e) {
-    ringBell();
-    playPing();
-
+    ringBell(); playPing();
     const item = document.getElementById('notif-item-' + e.id);
+    if (!item) { prependNotification(e); return; }
 
-    if (!item) {
-        // Item not in the visible list (may have been pushed out) → prepend it fresh
-        prependNotification(e);
-        return;
-    }
-
-    // Update message text
     const msgEl = item.querySelector('.notif-message');
     if (msgEl) msgEl.textContent = e.message;
-
-    // Update timestamp
     const timeEl = item.querySelector('.notif-time');
-    if (timeEl) timeEl.textContent = e.created_at;
+    if (timeEl) timeEl.innerHTML = `<span class="w-1 h-1 rounded-full bg-slate-300 inline-block"></span> ${escN(e.created_at)}`;
 
-    // Update the count badge (create if missing, update if exists)
-    const container = item.querySelector('.flex.flex-col.items-end.gap-1');
+    const container = item.querySelector('.flex.flex-col.items-end');
     if (container) {
-        // Preserve the delete button
         const deleteBtn = container.querySelector('button');
         container.innerHTML = `
             ${deleteBtn ? deleteBtn.outerHTML : `
                 <button onclick="deleteNotification(event, ${e.id})"
-                        class="opacity-0 group-hover:opacity-100 transition-opacity
-                               w-5 h-5 flex items-center justify-center rounded
-                               text-slate-300 hover:text-red-400 hover:bg-red-50">
+                        class="notif-delete-btn opacity-0 group-hover:opacity-100 transition-all
+                               w-5 h-5 flex items-center justify-center rounded-lg">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                               d="M6 18L18 6M6 6l12 12"/>
                     </svg>
-                </button>
-            `}
-            <span class="notif-count-badge count-pop text-[9px] font-bold px-1.5 py-0.5
-                         rounded-full bg-blue-500 text-white">
+                </button>`}
+            <span class="notif-count-badge count-pop text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white">
                 ${e.count}
-            </span>
-        `;
+            </span>`;
     }
 
-    // Move item to top of list (most recent)
     const list = document.getElementById('notif-list');
     if (list && item.parentElement === list) list.prepend(item);
-
-    // Bell badge stays the same (still same 1 unread notification, just updated)
-    // No increment needed — it was already counted when first created
 }
 
-// ── Load ALL notifications into the dropdown ───────────────────
+/* ── Load all ───────────────────────────────────────────── */
+// FIX: also expand the panel itself (not just the inner list) so content is visible
 function loadAllNotifications() {
-    const btn  = document.getElementById('notif-load-all-btn');
-    const list = document.getElementById('notif-list');
-    if (!btn || !list) return;
+    const btn   = document.getElementById('notif-load-all-btn');
+    const list  = document.getElementById('notif-list');
+    const panel = document.getElementById('notif-dropdown');
+    if (!btn || !list || !panel) return;
 
-    btn.textContent = 'Chargement…';
-    btn.disabled    = true;
+    btn.innerHTML = '<span>Chargement…</span>';
+    btn.disabled  = true;
 
     fetch('/notifications?all=1', {
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept':       'application/json',
+            'Accept': 'application/json',
         },
     })
     .then(r => r.json())
     .then(data => {
         list.innerHTML = '';
-
         if (!data.notifications.length) {
-            list.innerHTML = `
-                <div class="text-center py-10">
-                    <div class="text-3xl mb-2">🔔</div>
-                    <p class="text-xs text-slate-400 font-medium">Aucune notification</p>
-                </div>`;
+            list.innerHTML = _emptyHtml();
         } else {
             data.notifications.forEach(n => {
                 const item = document.createElement('div');
                 item.id        = 'notif-item-' + n.id;
-                item.className = 'notif-item group flex items-start gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors ' + (n.is_read ? 'opacity-60' : '');
+                item.className = `notif-item group flex items-start gap-3 px-4 py-3.5 cursor-pointer relative ${n.is_read ? 'notif-read' : 'notif-unread'}`;
                 item.dataset.id  = n.id;
                 item.dataset.url = n.url ?? '';
                 item.setAttribute('onclick', 'handleNotifClick(this)');
                 item.innerHTML = `
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm"
+                    ${!n.is_read ? '<div class="notif-accent-bar absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"></div>' : ''}
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
                          style="background:${escN(n.bg)};">${escN(n.icon)}</div>
-                    <div class="flex-1 min-w-0">
-                        <p class="notif-message text-xs text-slate-700 leading-snug ${n.is_read ? 'font-normal' : 'font-semibold'}">
+                    <div class="flex-1 min-w-0 pt-0.5">
+                        <p class="notif-message text-[12px] leading-snug text-slate-700 ${n.is_read ? 'font-normal opacity-60' : 'font-semibold'}">
                             ${escN(n.message)}
                         </p>
-                        <p class="notif-time text-[10px] text-slate-400 mt-0.5">${escN(n.created_at)}</p>
+                        <p class="notif-time text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                            <span class="w-1 h-1 rounded-full bg-slate-300 inline-block"></span>
+                            ${escN(n.created_at)}
+                        </p>
                     </div>
-                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
                         <button onclick="deleteNotification(event, ${n.id})"
-                                class="opacity-0 group-hover:opacity-100 transition-opacity
-                                       w-5 h-5 flex items-center justify-center rounded
-                                       text-slate-300 hover:text-red-400 hover:bg-red-50">
+                                class="notif-delete-btn opacity-0 group-hover:opacity-100 transition-all
+                                       w-5 h-5 flex items-center justify-center rounded-lg">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                       d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
                         ${n.count > 1
-                            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">${n.count}</span>`
+                            ? `<span class="notif-count-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white">${n.count}</span>`
                             : !n.is_read
-                            ? `<span class="notif-unread-dot w-2 h-2 rounded-full bg-blue-500"></span>`
+                            ? `<span class="notif-unread-dot w-2 h-2 rounded-full mt-1"></span>`
                             : ''}
-                    </div>
-                `;
+                    </div>`;
                 list.appendChild(item);
             });
         }
 
-        // Expand the list height to show everything
-       list.style.maxHeight = '70vh';
+        // FIX: expand both list AND panel
+        list.style.maxHeight  = '60vh';
+        list.style.overflowY  = 'auto';
+        panel.style.maxHeight = '80vh';
 
-        // Swap buttons
         btn.style.display = 'none';
-        document.getElementById('notif-collapse-btn').style.display = 'block';
+        document.getElementById('notif-collapse-btn').style.display = 'flex';
     })
     .catch(() => {
-        btn.textContent = 'Voir tout →';
-        btn.disabled    = false;
+        btn.innerHTML = '<span>Voir tout</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>';
+        btn.disabled  = false;
     });
 }
 
-// ── Collapse back to 5 items ───────────────────────────────────
+/* ── Collapse ───────────────────────────────────────────── */
+// FIX: also reset the panel max-height when collapsing
 function collapseNotifications() {
-    const list = document.getElementById('notif-list');
-    if (list) list.style.maxHeight = '18rem';
+    const list  = document.getElementById('notif-list');
+    const panel = document.getElementById('notif-dropdown');
+    if (list)  { list.style.maxHeight = '18rem'; }
+    if (panel) { panel.style.maxHeight = ''; }   // reset panel to natural height
 
-    // Reset the load button so it works again
     const btn = document.getElementById('notif-load-all-btn');
     if (btn) {
-        btn.textContent = 'Voir tout →';
-        btn.disabled    = false;
-        btn.style.display = 'block';
+        btn.innerHTML = '<span>Voir tout</span><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>';
+        btn.disabled  = false;
+        btn.style.display = 'flex';
     }
-
     document.getElementById('notif-collapse-btn').style.display = 'none';
 }
 

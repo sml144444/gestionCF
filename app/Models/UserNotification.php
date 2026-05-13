@@ -18,27 +18,34 @@ class UserNotification extends Model
         'url',
         'data',
         'read_at',
-        'count',   // ← ajouter ça
+        'count',
     ];
 
-protected $casts = [
-    'data'    => 'array',
-    'read_at' => 'datetime',
-    'count'   => 'integer',  // ← correct
-];
+    protected $casts = [
+        'data'    => 'array',
+        'read_at' => 'datetime',
+        'count'   => 'integer',
+    ];
 
-    // ── Notification type → icon / color mapping (used in blade) ─
+    // ── Notification type → icon / color mapping ──────────────
     public const TYPES = [
-        'reclamation_reply'    => ['icon' => '💬', 'color' => '#2563eb', 'bg' => '#eff6ff'],
-        'reclamation_assigned' => ['icon' => '📋', 'color' => '#7c3aed', 'bg' => '#f5f3ff'],
-        'reclamation_status'   => ['icon' => '🔄', 'color' => '#059669', 'bg' => '#ecfdf5'],
-        'reclamation_deleted'  => ['icon' => '🗑️', 'color' => '#dc2626', 'bg' => '#fef2f2'],
-        'reportation_reply'    => ['icon' => '📅', 'color' => '#0891b2', 'bg' => '#ecfeff'],  // reportation 
-        'reportation_new'      => ['icon' => '🆕', 'color' => '#d97706', 'bg' => '#fffbeb'],  
-        'note'                 => ['icon' => '📝', 'color' => '#d97706', 'bg' => '#fffbeb'],
-        'absence' => ['icon' => '⚠️', 'color' => '#dc2626', 'bg' => '#fff1f2'],
-        'ressource' => ['icon' => '📎', 'color' => '#0369a1', 'bg' => '#f0f9ff'],
-        'default'              => ['icon' => '🔔', 'color' => '#64748b', 'bg' => '#f8fafc'],
+        'reclamation_reply'      => ['icon' => '💬', 'color' => '#2563eb', 'bg' => '#eff6ff'],
+        'reclamation_assigned'   => ['icon' => '📋', 'color' => '#7c3aed', 'bg' => '#f5f3ff'],
+        'reclamation_status'     => ['icon' => '🔄', 'color' => '#059669', 'bg' => '#ecfdf5'],
+        'reclamation_deleted'    => ['icon' => '🗑️', 'color' => '#dc2626', 'bg' => '#fef2f2'],
+        'reportation_reply'      => ['icon' => '📅', 'color' => '#0891b2', 'bg' => '#ecfeff'],
+        'reportation_new'        => ['icon' => '🆕', 'color' => '#d97706', 'bg' => '#fffbeb'],
+        'note'                   => ['icon' => '📝', 'color' => '#d97706', 'bg' => '#fffbeb'],
+        'absence'                => ['icon' => '⚠️',  'color' => '#dc2626', 'bg' => '#fff1f2'],
+        'ressource'              => ['icon' => '📎', 'color' => '#0369a1', 'bg' => '#f0f9ff'],
+
+        // ✅ NEW — sent to admins when a stagiaire uploads a justification
+        'absence_justification'  => ['icon' => '📄', 'color' => '#d97706', 'bg' => '#fffbeb'],
+    'absence_autorisee'              => ['icon' => '🔓', 'color' => '#d97706', 'bg' => '#fffbeb'],
+    'absence_justification_accepted' => ['icon' => '✅', 'color' => '#059669', 'bg' => '#ecfdf5'],
+    'absence_justification_refused'  => ['icon' => '❌', 'color' => '#dc2626', 'bg' => '#fef2f2'],
+
+        'default'                => ['icon' => '🔔', 'color' => '#64748b', 'bg' => '#f8fafc'],
     ];
 
     public function getTypeConfigAttribute(): array

@@ -114,4 +114,15 @@ public function destroy(UserNotification $notification): JsonResponse
         'unread_count' => $unreadCount,
     ]);
 }
+
+/**
+ * DELETE /notifications
+ * Hard-delete ALL notifications of the current user.
+ */
+public function destroyAll(): JsonResponse
+{
+    UserNotification::forUser(Auth::id())->delete();
+
+    return response()->json(['ok' => true, 'unread_count' => 0]);
+}
 }

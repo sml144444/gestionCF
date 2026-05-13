@@ -367,15 +367,15 @@ Route::middleware(['auth'])->group(function () {
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
 
-        
     
     // ── NOTIFICATIONS ────────────────────────────────────
     Route::get('/notifications',                          [NotificationController::class, 'index'])    ->name('notifications.index');
     Route::post('/notifications/read-all',                [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::post('/notifications/{notification}/read',     [NotificationController::class, 'markRead'])  ->name('notifications.read');
      Route::post('notifications/reclamation/{reclamationId}/read', [NotificationController::class, 'markReadByReclamation'])->name('notifications.readByReclamation');
-     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
-    ->name('notifications.destroy');
+     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
+     Route::delete('/notifications',       [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 });
 
 // ─────────────────────────────────────────────
