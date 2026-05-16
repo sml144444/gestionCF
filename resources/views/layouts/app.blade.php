@@ -216,15 +216,13 @@
         display: flex; align-items: center; justify-content: center;
         font-size: 14px; font-weight: 700; color: white;
         flex-shrink: 0;
-        background: linear-gradient(135deg, #1a4f8a 0%, #3b82f6 100%);
     }
     .sp-name { font-size: 13px; font-weight: 600; color: #1e293b; letter-spacing: -0.01em; }
     .sp-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
     .sp-promo {
         font-size: 10px; font-weight: 700;
         padding: 3px 9px; border-radius: 99px;
-        background: #eff6ff; color: #2563eb;
-        border: 0.5px solid #bfdbfe; flex-shrink: 0;
+        flex-shrink: 0;
     }
     .sp-arrow {
         color: #cbd5e1; opacity: 0; transform: translateX(-6px);
@@ -317,13 +315,14 @@
 </aside>
 
 {{-- ════ SEARCH MODAL ════ --}}
-@can('search-stagiaires')
+{{-- Visible to: admin, gestionnaire, formateur (anyone with search-users permission) --}}
+@can('search-users')
 <div id="search-modal" onclick="if(event.target===this)closeSearch()">
     <div id="search-panel">
 
         <div class="sp-input-row">
             <i class="ti ti-search" style="font-size:16px;color:#94a3b8;flex-shrink:0;" aria-hidden="true"></i>
-            <input id="sp-input" type="text" placeholder="Rechercher un stagiaire…"
+            <input id="sp-input" type="text" placeholder="Rechercher un utilisateur…"
                    oninput="spSearch(this.value)" autocomplete="off" spellcheck="false">
             <div id="sp-spinner" style="display:none;flex-shrink:0;">
                 <svg class="spin" style="width:15px;height:15px;color:#94a3b8;" fill="none" viewBox="0 0 24 24">
@@ -338,9 +337,9 @@
 
         <div id="sp-results">
             <div class="sp-empty">
-                <div class="sp-empty-icon">🎓</div>
-                <p class="sp-empty-title">Trouver un stagiaire</p>
-                <p class="sp-empty-sub">Tapez au moins 2 caractères pour commencer la recherche</p>
+                <div class="sp-empty-icon">🔍</div>
+                <p class="sp-empty-title">Rechercher un utilisateur</p>
+                <p class="sp-empty-sub">Tapez au moins 2 caractères (nom, email, CIN…)</p>
             </div>
         </div>
 
@@ -378,11 +377,11 @@
         </div>
 
         {{-- CENTER: Search bar (desktop) --}}
-        @can('search-stagiaires')
+        @can('search-users')
         <div class="hidden md:flex" style="flex:1;justify-content:center;padding:0 24px;">
-            <button class="search-cmd" onclick="openSearch()" aria-label="Rechercher un stagiaire">
+            <button class="search-cmd" onclick="openSearch()" aria-label="Rechercher un utilisateur">
                 <i class="ti ti-search" style="font-size:14px;color:#94a3b8;flex-shrink:0;" aria-hidden="true"></i>
-                <span class="search-cmd-text">Rechercher un stagiaire…</span>
+                <span class="search-cmd-text">Rechercher un utilisateur…</span>
                 <span class="search-kbd">Ctrl K</span>
             </button>
         </div>
@@ -392,7 +391,7 @@
         <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
 
             {{-- Mobile search icon --}}
-            @can('search-stagiaires')
+            @can('search-users')
             <button class="icon-btn md:hidden" onclick="openSearch()" title="Rechercher" aria-label="Rechercher">
                 <i class="ti ti-search" style="font-size:16px;" aria-hidden="true"></i>
             </button>
@@ -468,68 +467,111 @@ function closeSearch() {
     if(i) i.value='';
     document.getElementById('sp-results').innerHTML=`
         <div class="sp-empty">
-            <div class="sp-empty-icon">🎓</div>
-            <p class="sp-empty-title">Trouver un stagiaire</p>
-            <p class="sp-empty-sub">Tapez au moins 2 caractères pour commencer la recherche</p>
+            <div class="sp-empty-icon">🔍</div>
+            <p class="sp-empty-title">Rechercher un utilisateur</p>
+            <p class="sp-empty-sub">Tapez au moins 2 caractères (nom, email, CIN…)</p>
         </div>`;
 }
 
+/* ── Role colours ── */
+const _roleColor = {
+    stagiaire:    '#2563eb',
+    formateur:    '#7c3aed',
+    gestionnaire: '#0f766e',
+    admin:        '#dc2626',
+};
+const _roleLabel = {
+    stagiaire:    'Stagiaire',
+    formateur:    'Formateur',
+    gestionnaire: 'Gestionnaire',
+    admin:        'Admin',
+};
+
 function spSearch(q) {
     clearTimeout(_spTimer);
-    const box=document.getElementById('sp-results'), spin=document.getElementById('sp-spinner');
-    if(q.length<2){
-        if(spin) spin.style.display='none';
-        box.innerHTML=`
+    const box  = document.getElementById('sp-results');
+    const spin = document.getElementById('sp-spinner');
+
+    if (q.length < 2) {
+        if (spin) spin.style.display = 'none';
+        box.innerHTML = `
             <div class="sp-empty">
-                <div class="sp-empty-icon">🎓</div>
-                <p class="sp-empty-title">Trouver un stagiaire</p>
-                <p class="sp-empty-sub">Tapez au moins 2 caractères pour commencer la recherche</p>
+                <div class="sp-empty-icon">🔍</div>
+                <p class="sp-empty-title">Rechercher un utilisateur</p>
+                <p class="sp-empty-sub">Tapez au moins 2 caractères (nom, email, CIN…)</p>
             </div>`;
         return;
     }
-    if(spin) spin.style.display='block';
-    _spTimer=setTimeout(()=>{
-        fetch('/stagiaires/search?q='+encodeURIComponent(q),{headers:{'X-Requested-With':'XMLHttpRequest'}})
-        .then(r=>r.json())
-        .then(data=>{
-            if(spin) spin.style.display='none';
-            if(!data.length){
-                box.innerHTML=`
+
+    if (spin) spin.style.display = 'block';
+
+    _spTimer = setTimeout(() => {
+        fetch('/users/search?q=' + encodeURIComponent(q), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (spin) spin.style.display = 'none';
+
+            if (!data.length) {
+                box.innerHTML = `
                     <div class="sp-empty">
                         <div class="sp-empty-icon">😕</div>
                         <p class="sp-empty-title">Aucun résultat</p>
-                        <p class="sp-empty-sub">Aucun stagiaire ne correspond à "<strong>${escHtml(q)}</strong>"</p>
+                        <p class="sp-empty-sub">Aucun utilisateur ne correspond à "<strong>${escHtml(q)}</strong>"</p>
                     </div>`;
                 return;
             }
-            box.innerHTML=data.map(s=>`
+
+            box.innerHTML = data.map(s => {
+                const color  = _roleColor[s.role]  ?? '#64748b';
+                const label  = _roleLabel[s.role]  ?? s.role;
+                const avatar = `linear-gradient(135deg, ${color}, ${color}99)`;
+                return `
                 <a href="${s.url}" class="sp-item">
-                    <div class="sp-avatar">${s.name.charAt(0).toUpperCase()}</div>
+                    <div class="sp-avatar" style="background:${avatar};">
+                        ${escHtml(s.name.charAt(0).toUpperCase())}
+                    </div>
                     <div style="flex:1;min-width:0;">
-                        <div class="sp-name">${hlMatch(s.name,q)}</div>
+                        <div class="sp-name">${hlMatch(s.name, q)}</div>
                         <div class="sp-meta">${escHtml(s.filiere)} · ${escHtml(s.groupe)}</div>
                     </div>
-                    <span class="sp-promo">${escHtml(s.promo)}</span>
+                    <span class="sp-promo"
+                          style="background:${color}18;color:${color};border:0.5px solid ${color}33;">
+                        ${escHtml(label)}
+                    </span>
                     <i class="ti ti-chevron-right sp-arrow" style="font-size:14px;" aria-hidden="true"></i>
-                </a>`).join('');
+                </a>`;
+            }).join('');
         })
-        .catch(()=>{
-            if(spin) spin.style.display='none';
-            box.innerHTML=`<div class="sp-empty"><p class="sp-empty-sub" style="color:#f87171;">Erreur — réessayez.</p></div>`;
+        .catch(() => {
+            if (spin) spin.style.display = 'none';
+            box.innerHTML = `<div class="sp-empty"><p class="sp-empty-sub" style="color:#f87171;">Erreur — réessayez.</p></div>`;
         });
-    },260);
+    }, 260);
 }
 
-function hlMatch(text,q){
-    const esc=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-    return escHtml(text).replace(new RegExp(`(${esc})`,'gi'),'<mark>$1</mark>');
+function hlMatch(text, q) {
+    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escHtml(text).replace(new RegExp(`(${esc})`, 'gi'), '<mark>$1</mark>');
 }
-function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
-/* ── Keyboard ── */
-document.addEventListener('keydown',e=>{
-    if((e.ctrlKey||e.metaKey)&&e.key==='k'){ e.preventDefault(); _spOpen?closeSearch():openSearch(); }
-    if(e.key==='Escape'){ closeSidebar(); if(_spOpen) closeSearch(); }
+/* ── Keyboard shortcuts ── */
+document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        _spOpen ? closeSearch() : openSearch();
+    }
+    if (e.key === 'Escape') {
+        closeSidebar();
+        if (_spOpen) closeSearch();
+    }
 });
 </script>
 
@@ -537,25 +579,25 @@ document.addEventListener('keydown',e=>{
 <script src="https://js.pusher.com/8.4/pusher.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
 <script>
-window.Pusher=Pusher;
-window.Echo=new Echo({
-    broadcaster:'reverb',
-    key:'{{ env("REVERB_APP_KEY") }}',
-    wsHost:'{{ env("REVERB_HOST","localhost") }}',
-    wsPort:{{ env("REVERB_PORT",8080) }},
-    wssPort:{{ env("REVERB_PORT",8080) }},
-    forceTLS:false,
-    enabledTransports:['ws','wss'],
+window.Pusher = Pusher;
+window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key:         '{{ env("REVERB_APP_KEY") }}',
+    wsHost:      '{{ env("REVERB_HOST","localhost") }}',
+    wsPort:      {{ env("REVERB_PORT",8080) }},
+    wssPort:     {{ env("REVERB_PORT",8080) }},
+    forceTLS:    false,
+    enabledTransports: ['ws', 'wss'],
 });
 
-function showToast(icon,title,body,url){
-    const c=document.getElementById('toast-container');
-    const t=document.createElement('div');
-    t.style.cssText=`pointer-events:auto;background:white;border-radius:12px;border:0.5px solid #e2e8f0;
+function showToast(icon, title, body, url) {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.style.cssText = `pointer-events:auto;background:white;border-radius:12px;border:0.5px solid #e2e8f0;
         padding:12px 14px;min-width:270px;max-width:340px;
         box-shadow:0 8px 24px rgba(0,0,0,0.09);display:flex;gap:10px;align-items:flex-start;
-        animation:_slide-in .28s ease;cursor:${url?'pointer':'default'};font-family:'DM Sans',sans-serif;`;
-    t.innerHTML=`
+        animation:_slide-in .28s ease;cursor:${url ? 'pointer' : 'default'};font-family:'DM Sans',sans-serif;`;
+    t.innerHTML = `
         <div style="font-size:18px;flex-shrink:0;margin-top:1px;">${icon}</div>
         <div style="flex:1;">
             <div style="font-size:12.5px;font-weight:700;color:#1e293b;margin-bottom:3px;">${title}</div>
@@ -563,57 +605,57 @@ function showToast(icon,title,body,url){
         </div>
         <button onclick="this.parentElement.remove()"
                 style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:0;line-height:1;flex-shrink:0;">×</button>`;
-    if(url) t.addEventListener('click',e=>{ if(e.target.tagName!=='BUTTON') location.href=url; });
+    if (url) t.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') location.href = url; });
     c.appendChild(t);
-    setTimeout(()=>{ t.style.animation='_fade-out .3s ease forwards'; setTimeout(()=>t.remove(),300); },5700);
+    setTimeout(() => { t.style.animation = '_fade-out .3s ease forwards'; setTimeout(() => t.remove(), 300); }, 5700);
 }
 
 @auth
 window.Echo.private('user.{{ Auth::id() }}')
-    .listen('.ReclamationAssigned',e=>showToast('📋','Réclamation assignée',`Réclamation #${e.reclamation_id} de ${e.stagiaire} vous a été assignée.`,e.url))
-    .listen('.ReclamationDeleted',e=>{
-        showToast('🗑️','Réclamation supprimée',`La réclamation #${e.reclamation_id} a été supprimée.`,null);
-        const row=document.getElementById('rec-row-'+e.reclamation_id);
-        if(row){row.style.animation='_fade-out .4s ease forwards';setTimeout(()=>row.remove(),400);}
-        if(location.href.includes('/reclamations/'+e.reclamation_id)) setTimeout(()=>location.href='{{ route("reclamations.index") }}',2000);
+    .listen('.ReclamationAssigned', e => showToast('📋', 'Réclamation assignée', `Réclamation #${e.reclamation_id} de ${e.stagiaire} vous a été assignée.`, e.url))
+    .listen('.ReclamationDeleted', e => {
+        showToast('🗑️', 'Réclamation supprimée', `La réclamation #${e.reclamation_id} a été supprimée.`, null);
+        const row = document.getElementById('rec-row-' + e.reclamation_id);
+        if (row) { row.style.animation = '_fade-out .4s ease forwards'; setTimeout(() => row.remove(), 400); }
+        if (location.href.includes('/reclamations/' + e.reclamation_id)) setTimeout(() => location.href = '{{ route("reclamations.index") }}', 2000);
     })
-    .listen('.NotificationCreated',e=>{
-        const cur=window.__currentReclamationId??null;
-        if(cur&&e.data?.reclamation_id&&cur===e.data.reclamation_id){
-            fetch(`/notifications/${e.id}/read`,{method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'}})
-                .then(r=>r.json()).then(d=>{if(typeof setUnreadCount==='function')setUnreadCount(d.unread_count??0);});
+    .listen('.NotificationCreated', e => {
+        const cur = window.__currentReclamationId ?? null;
+        if (cur && e.data?.reclamation_id && cur === e.data.reclamation_id) {
+            fetch(`/notifications/${e.id}/read`, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+                .then(r => r.json()).then(d => { if (typeof setUnreadCount === 'function') setUnreadCount(d.unread_count ?? 0); });
             return;
         }
-        if(typeof prependNotification==='function') prependNotification(e);
+        if (typeof prependNotification === 'function') prependNotification(e);
     })
-    .listen('.NotificationUpdated',e=>{
-        const cur=window.__currentReclamationId??null;
-        if(cur&&e.data?.reclamation_id&&cur===e.data.reclamation_id){
-            fetch(`/notifications/${e.id}/read`,{method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'}})
-                .then(r=>r.json()).then(d=>{if(typeof setUnreadCount==='function')setUnreadCount(d.unread_count??0);});
+    .listen('.NotificationUpdated', e => {
+        const cur = window.__currentReclamationId ?? null;
+        if (cur && e.data?.reclamation_id && cur === e.data.reclamation_id) {
+            fetch(`/notifications/${e.id}/read`, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+                .then(r => r.json()).then(d => { if (typeof setUnreadCount === 'function') setUnreadCount(d.unread_count ?? 0); });
             return;
         }
-        if(typeof patchNotification==='function') patchNotification(e);
+        if (typeof patchNotification === 'function') patchNotification(e);
     });
 
 @can('reclamation-manage')
 window.Echo.channel('reclamations.admin')
-    .listen('.ReclamationCreated',e=>{
-        showToast(e.type_icon,'Nouvelle réclamation',`${e.stagiaire} : ${e.description}`,e.url);
-        const b=document.getElementById('reclamations-count');
-        if(b) b.textContent=parseInt(b.textContent||0)+1;
+    .listen('.ReclamationCreated', e => {
+        showToast(e.type_icon, 'Nouvelle réclamation', `${e.stagiaire} : ${e.description}`, e.url);
+        const b = document.getElementById('reclamations-count');
+        if (b) b.textContent = parseInt(b.textContent || 0) + 1;
     })
-    .listen('.ReclamationDeleted',e=>{
-        showToast('🗑️','Réclamation supprimée',`Réclamation #${e.reclamation_id} supprimée.`,null);
-        const row=document.getElementById('rec-row-'+e.reclamation_id);
-        if(row){row.style.animation='_fade-out .4s ease forwards';setTimeout(()=>row.remove(),400);}
+    .listen('.ReclamationDeleted', e => {
+        showToast('🗑️', 'Réclamation supprimée', `Réclamation #${e.reclamation_id} supprimée.`, null);
+        const row = document.getElementById('rec-row-' + e.reclamation_id);
+        if (row) { row.style.animation = '_fade-out .4s ease forwards'; setTimeout(() => row.remove(), 400); }
     })
-    .listen('.ReclamationStatusUpdated',e=>{
-        const row=document.getElementById('rec-row-'+e.reclamation_id);
-        if(!row) return;
-        const badge=row.querySelector('.status-badge');
-        if(badge){badge.textContent=e.icon+' '+e.label;badge.style.background=e.bg;badge.style.color=e.color;badge.style.border='1px solid '+e.border;}
-        showToast(e.icon,'Statut mis à jour',`Réclamation #${e.reclamation_id} → ${e.label}`,null);
+    .listen('.ReclamationStatusUpdated', e => {
+        const row = document.getElementById('rec-row-' + e.reclamation_id);
+        if (!row) return;
+        const badge = row.querySelector('.status-badge');
+        if (badge) { badge.textContent = e.icon + ' ' + e.label; badge.style.background = e.bg; badge.style.color = e.color; badge.style.border = '1px solid ' + e.border; }
+        showToast(e.icon, 'Statut mis à jour', `Réclamation #${e.reclamation_id} → ${e.label}`, null);
     });
 @endcan
 @endauth

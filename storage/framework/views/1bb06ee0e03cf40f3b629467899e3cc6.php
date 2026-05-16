@@ -1,9 +1,9 @@
 
-<?php $__env->startSection('title', 'Nouvel utilisateur'); ?>
-<?php $__env->startSection('page-title', 'Nouvel utilisateur'); ?>
+<?php $__env->startSection('title', 'Modifier l\'utilisateur'); ?>
+<?php $__env->startSection('page-title', 'Modifier l\'utilisateur'); ?>
 
 <?php $__env->startSection('content'); ?>
-<div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:1100px; margin:0 auto;">
+<div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:800px;">
 
 
 <a href="<?php echo e(route('users.management.index')); ?>"
@@ -13,23 +13,34 @@
     ← Retour à la liste
 </a>
 
-<div style="margin-bottom:24px;">
-    <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;">Créer un utilisateur</h1>
-    <p style="font-size:12px; color:#64748b; margin:4px 0 0;">Formateur ou Gestionnaire</p>
-</div>
 
-
-<div style="margin-bottom:20px; padding:14px 18px; border-radius:14px;
-            background:#f0fdf4; border:1.5px solid #bbf7d0; display:flex; align-items:flex-start; gap:12px;">
-    <span style="font-size:20px; flex-shrink:0; margin-top:1px;">📧</span>
+<?php
+    $rc = $user->role === 'formateur'
+        ? ['bg'=>'#fdf4ff','text'=>'#9333ea','border'=>'#e9d5ff']
+        : ['bg'=>'#eff6ff','text'=>'#2563eb','border'=>'#bfdbfe'];
+    $initials = strtoupper(substr($user->name,0,1))
+              . strtoupper(substr(explode(' ',$user->name)[1] ?? '',0,1));
+?>
+<div style="display:flex; align-items:center; gap:14px; margin-bottom:24px;">
+    <div style="width:50px; height:50px; border-radius:14px; background:<?php echo e($rc['bg']); ?>;
+                border:2px solid <?php echo e($rc['border']); ?>; display:flex; align-items:center;
+                justify-content:center; font-size:17px; font-weight:800;
+                color:<?php echo e($rc['text']); ?>; flex-shrink:0;"><?php echo e($initials); ?></div>
     <div>
-        <div style="font-size:12px; font-weight:700; color:#15803d; margin-bottom:3px;">
-            Mot de passe & Matricule générés automatiquement
-        </div>
-        <div style="font-size:11px; color:#166534; line-height:1.6;">
-            Un mot de passe sécurisé (majuscules, chiffres, caractères spéciaux) et un matricule unique
-            seront générés automatiquement. Les identifiants seront envoyés à l'adresse e-mail renseignée.
-        </div>
+        <h1 style="font-size:20px; font-weight:800; color:#0f172a; margin:0;"><?php echo e($user->name); ?></h1>
+        <p style="font-size:12px; color:#64748b; margin:3px 0 0;">
+            <?php echo e($user->email); ?>
+
+            &nbsp;·&nbsp;
+            <span style="font-weight:700; color:<?php echo e($rc['text']); ?>; text-transform:capitalize;">
+                <?php echo e($user->role); ?>
+
+            </span>
+            <?php if($user->modules->count()): ?>
+            &nbsp;·&nbsp;
+            <span style="color:#9333ea;"><?php echo e($user->modules->count()); ?> module(s)</span>
+            <?php endif; ?>
+        </p>
     </div>
 </div>
 
@@ -44,8 +55,10 @@
 </div>
 <?php endif; ?>
 
-<form method="POST" action="<?php echo e(route('users.management.store')); ?>" enctype="multipart/form-data">
+
+<form method="POST" action="<?php echo e(route('users.management.update', $user)); ?>" enctype="multipart/form-data">
 <?php echo csrf_field(); ?>
+<?php echo method_field('PUT'); ?>
 
 
 <div style="display:flex; gap:8px; margin-bottom:24px;">
@@ -53,9 +66,7 @@
         'formateur'    => ['#9333ea','#fdf4ff','🎓'],
         'gestionnaire' => ['#2563eb','#eff6ff','🏢'],
     ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $r => [$col,$bg,$icon]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-    
-    <?php if($r === 'gestionnaire' && !$canManageGestionnaire): ?> <?php continue; ?> <?php endif; ?>
-    <?php $active = old('role', $role) === $r; ?>
+    <?php $active = old('role', $user->role) === $r; ?>
     <label style="flex:1; cursor:pointer;">
         <input type="radio" name="role" value="<?php echo e($r); ?>"
                <?php echo e($active ? 'checked' : ''); ?>
@@ -87,28 +98,59 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
             <div style="grid-column:1/-1;">
                 <?php echo $__env->make('users._field',['label'=>'Nom complet','name'=>'name','type'=>'text',
-                    'placeholder'=>'Ex : Amine Benali','required'=>true], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                    'value'=>old('name',$user->name),'required'=>true], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             </div>
             <div>
                 <?php echo $__env->make('users._field',['label'=>'Adresse e-mail','name'=>'email','type'=>'email',
-                    'placeholder'=>'exemple@ofppt.ma','required'=>true], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                    'value'=>old('email',$user->email),'required'=>true], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             </div>
+            <?php if($user->role !== 'stagiaire'): ?>
             <div>
                 <?php echo $__env->make('users._field',['label'=>'CIN','name'=>'cin','type'=>'text',
-                    'placeholder'=>'AB123456'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                    'value'=>old('cin',$user->cin)], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+            </div>
+            <?php endif; ?>
+            <div>
+                <?php echo $__env->make('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'tel','value'=>old('phone',$user->phone)], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             </div>
             <div>
-                <?php echo $__env->make('users._field',['label'=>'Téléphone','name'=>'phone','type'=>'tel'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
-            </div>
-            <div>
-                <?php echo $__env->make('users._field',['label'=>'Date de naissance','name'=>'date_naissance','type'=>'date'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                <?php echo $__env->make('users._field',['label'=>'Date de naissance','name'=>'date_naissance','type'=>'date',
+                    'value'=>old('date_naissance',$user->date_naissance?->format('Y-m-d'))], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             </div>
         </div>
 
+        
+        <div style="margin-top:16px; padding:14px 16px; border-radius:12px;
+                    background:#f8fafc; border:1px solid #e2e8f0;">
+            <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase;
+                        letter-spacing:1px; margin-bottom:10px;">
+                Changer le mot de passe
+                <span style="font-weight:400; text-transform:none; color:#94a3b8;">(laisser vide pour ne pas modifier)</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                    <?php echo $__env->make('users._field',['label'=>'Nouveau mot de passe','name'=>'password',
+                        'type'=>'password','placeholder'=>'Min. 8 caractères'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                </div>
+                <div>
+                    <?php echo $__env->make('users._field',['label'=>'Confirmation','name'=>'password_confirmation',
+                        'type'=>'password'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                </div>
+            </div>
+        </div>
+
+        
         <div style="margin-top:14px;">
-            <label style="font-size:11px; font-weight:700; color:#475569; display:block; margin-bottom:5px;">
-                Photo <span style="color:#94a3b8; font-weight:400;">(optionnel)</span>
+            <label style="font-size:11px; font-weight:700; color:#475569; display:block; margin-bottom:6px;">
+                Photo
             </label>
+            <?php if($user->photo): ?>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <img src="<?php echo e(asset('storage/'.$user->photo)); ?>" alt="photo"
+                     style="width:44px; height:44px; border-radius:10px; object-fit:cover; border:2px solid #e2e8f0;">
+                <span style="font-size:11px; color:#64748b;">Photo actuelle — remplacer :</span>
+            </div>
+            <?php endif; ?>
             <input type="file" name="photo" accept="image/*"
                    style="font-size:12px; color:#475569; cursor:pointer;">
         </div>
@@ -117,7 +159,7 @@
     
     <div id="formateur-section"
          style="padding:22px 24px; border-bottom:1px solid #f1f5f9;
-                display:<?php echo e(old('role',$role) === 'formateur' ? 'block' : 'none'); ?>;">
+                display:<?php echo e(old('role',$user->role) === 'formateur' ? 'block' : 'none'); ?>;">
 
         <div style="font-size:9px; font-weight:800; color:#9333ea; letter-spacing:1.5px;
                     text-transform:uppercase; margin-bottom:16px;">Infos Formateur</div>
@@ -125,25 +167,29 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px;">
             
             <div style="grid-column:1/-1;">
-                <div style="padding:12px 16px; border-radius:10px; background:#f8fafc;
-                            border:1.5px dashed #cbd5e1; display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:18px;">🪪</span>
-                    <div>
-                        <div style="font-size:10px; font-weight:700; color:#9333ea;
-                                    text-transform:uppercase; letter-spacing:1px;">Matricule formateur</div>
-                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                            Généré automatiquement après création
-                            <span style="color:#9333ea; font-weight:600;">(F + ID + horodatage)</span>
-                        </div>
-                    </div>
+                <label style="display:block; font-size:11px; font-weight:700; color:#475569; margin-bottom:5px;">
+                    Matricule formateur
+                </label>
+                <div style="display:flex; align-items:center; gap:10px; height:40px; padding:0 14px;
+                            border-radius:10px; background:#f8fafc; border:1.5px solid #e2e8f0;">
+                    <span style="font-size:15px;">🪪</span>
+                    <span style="font-size:13px; font-weight:700; color:#334155;
+                                 font-family:'Courier New',monospace; letter-spacing:1px;">
+                        <?php echo e($user->matricule_formateur ?? '—'); ?>
+
+                    </span>
+                    <span style="margin-left:auto; font-size:10px; color:#94a3b8; font-style:italic;">
+                        Non modifiable
+                    </span>
                 </div>
             </div>
             <div>
-                <?php echo $__env->make('users._field',['label'=>"Date d'embauche",'name'=>'date_embauche','type'=>'date'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                <?php echo $__env->make('users._field',['label'=>"Date d'embauche",'name'=>'date_embauche','type'=>'date',
+                    'value'=>old('date_embauche',$user->date_embauche?->format('Y-m-d'))], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             </div>
             <div>
                 <?php echo $__env->make('users._field',['label'=>"Limite d'heures / semaine",'name'=>'nbr_heure_limit',
-                    'type'=>'number','value'=>old('nbr_heure_limit', 30),'placeholder'=>'Ex : 30'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+                    'type'=>'number','value'=>old('nbr_heure_limit',$user->nbr_heure_limit ?? 30)], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
             </div>
         </div>
 
@@ -157,7 +203,7 @@
                 <span id="mod-counter"
                       style="font-size:10px; font-weight:700; padding:2px 10px; border-radius:99px;
                              background:#fdf4ff; color:#9333ea; border:1px solid #e9d5ff;">
-                    0 sélectionné(s)
+                    <?php echo e(count($assignedModIds)); ?> sélectionné(s)
                 </span>
             </div>
 
@@ -173,7 +219,7 @@
                  style="display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
                         gap:8px; max-height:260px; overflow-y:auto; padding:2px;">
                 <?php $__empty_1 = true; $__currentLoopData = $modules; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mod): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <?php $chk = in_array($mod->id, old('modules', [])); ?>
+                <?php $chk = in_array($mod->id, old('modules', $assignedModIds)); ?>
                 <label class="mod-card" data-name="<?php echo e(strtolower($mod->name)); ?>"
                        style="display:flex; align-items:center; gap:8px; padding:10px 12px;
                               border-radius:10px; cursor:pointer; transition:all 0.12s; user-select:none;
@@ -210,25 +256,48 @@
     </div>
 
     
-    <div style="padding:16px 24px; background:#f8fafc; display:flex; gap:10px; justify-content:flex-end;">
-        <a href="<?php echo e(route('users.management.index')); ?>"
-           style="height:42px; padding:0 18px; border-radius:12px; border:1.5px solid #e2e8f0;
-                  background:white; font-size:13px; font-weight:600; color:#64748b;
-                  text-decoration:none; display:inline-flex; align-items:center;">
-            Annuler
-        </a>
-        <button type="submit"
-                style="height:42px; padding:0 24px; border-radius:12px; border:none;
-                       background:#0a6640; color:white; font-size:13px; font-weight:700;
-                       cursor:pointer; box-shadow:0 4px 12px rgba(10,102,64,0.25);"
-                onmouseover="this.style.background='#065f38'"
-                onmouseout="this.style.background='#0a6640'">
-            ✓ Créer l'utilisateur
-        </button>
-    </div>
-</div>
+    <div style="padding:16px 24px; background:#f8fafc;
+                display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
 
+        <button type="button"
+                onclick="confirmDelete()"
+                style="height:42px; padding:0 16px; border-radius:12px;
+                       border:1.5px solid #fecaca; background:white;
+                       font-size:12px; font-weight:600; color:#dc2626; cursor:pointer;"
+                onmouseover="this.style.background='#fef2f2'"
+                onmouseout="this.style.background='white'">
+            🗑 Supprimer cet utilisateur
+        </button>
+
+        <div style="display:flex; gap:10px;">
+            <a href="<?php echo e(route('users.management.index')); ?>"
+               style="height:42px; padding:0 18px; border-radius:12px; border:1.5px solid #e2e8f0;
+                      background:white; font-size:13px; font-weight:600; color:#64748b;
+                      text-decoration:none; display:inline-flex; align-items:center;">
+                Annuler
+            </a>
+            <button type="submit"
+                    style="height:42px; padding:0 24px; border-radius:12px; border:none;
+                           background:#0a6640; color:white; font-size:13px; font-weight:700;
+                           cursor:pointer; box-shadow:0 4px 12px rgba(10,102,64,0.25);"
+                    onmouseover="this.style.background='#065f38'"
+                    onmouseout="this.style.background='#0a6640'">
+                ✓ Enregistrer les modifications
+            </button>
+        </div>
+    </div>
+
+</div>
 </form>
+
+<form id="delete-user-form"
+      method="POST"
+      action="<?php echo e(route('users.management.destroy', $user)); ?>"
+      style="display:none;">
+    <?php echo csrf_field(); ?>
+    <?php echo method_field('DELETE'); ?>
+</form>
+
 </div>
 
 <script>
@@ -240,15 +309,20 @@ const TAB_COLORS = {
 function switchRole(role) {
     document.getElementById('formateur-section').style.display =
         role === 'formateur' ? 'block' : 'none';
-
     Object.keys(TAB_COLORS).forEach(r => {
         const active = r === role;
-        const tab    = document.getElementById('tab-' + r);
-        const lbl    = document.getElementById('tab-label-' + r);
+        const tab = document.getElementById('tab-' + r);
+        const lbl = document.getElementById('tab-label-' + r);
         tab.style.borderColor = active ? TAB_COLORS[r].col : '#e2e8f0';
         tab.style.background  = active ? TAB_COLORS[r].bg  : 'white';
         lbl.style.color       = active ? TAB_COLORS[r].col : '#64748b';
     });
+}
+
+function confirmDelete() {
+    if (confirm('Supprimer définitivement « <?php echo e(addslashes($user->name)); ?> » ?')) {
+        document.getElementById('delete-user-form').submit();
+    }
 }
 
 function syncModCard(cb) {
@@ -276,9 +350,6 @@ function filterMods() {
         c.style.display = c.dataset.name.includes(q) ? '' : 'none'
     );
 }
-
-document.querySelectorAll('.mod-cb:checked').forEach(cb => syncModCard(cb));
-updateModCount();
 </script>
 <?php $__env->stopSection(); ?>
-<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/users/create.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\Project\gestion-CF\resources\views/users/edit.blade.php ENDPATH**/ ?>

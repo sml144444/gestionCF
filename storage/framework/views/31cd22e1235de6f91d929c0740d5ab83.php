@@ -9,6 +9,7 @@
         'admin'        => ['primary' => '#0a6640', 'light' => '#e8f5ee', 'text' => '#065f38', 'shadow' => 'rgba(10,102,64,0.2)'],
         'gestionnaire' => ['primary' => '#1e293b', 'light' => '#f1f5f9', 'text' => '#1e293b', 'shadow' => 'rgba(30,41,59,0.2)'],
         'formateur'    => ['primary' => '#1d4ed8', 'light' => '#eff6ff', 'text' => '#1e40af', 'shadow' => 'rgba(29,78,216,0.2)'],
+        'stagiaire'    => ['primary' => '#0a6640', 'light' => '#e8f5ee', 'text' => '#065f38', 'shadow' => 'rgba(10,102,64,0.2)'],
     ];
     $p      = $palettes[Auth::user()->role] ?? $palettes['gestionnaire'];
     $accent = $p['primary'];
@@ -16,10 +17,16 @@
     $text   = $p['text'];
     $shadow = $p['shadow'];
 
-    // General average: only show if EVERY module has a moduleGrade
-    // (discipline is always calculated so it never blocks the average)
     $allGraded = $modulesWithNotes->isNotEmpty()
         && $modulesWithNotes->every(fn($m) => $m['moduleGrade'] !== null);
+
+    $totalModules = $modulesWithNotes->count();
+    $notedModules = $modulesWithNotes->filter(fn($m) => $m['moduleGrade'] !== null)->count();
+
+    // EFF /100 → /20 conversion for formula display
+    $effNoteConverted = $effNote !== null ? round($effNote / 5, 2) : null;
+
+    $progressPct = $totalModules > 0 ? round(($notedModules / $totalModules) * 100) : 0;
 ?>
 
 <style>
@@ -43,8 +50,8 @@
 .bl-table tbody tr:hover td { background:#fafbff; }
 .bl-table tbody tr:hover td.col-module-cell { background:#fafbff; }
 
-/* Discipline row highlight */
-.discipline-row td { background:#fefce8 !important; border-top:2px solid #fde047 !important; }
+/* Discipline row */
+.discipline-row td { background:#fefce8 !important;border-top:2px solid #fde047 !important; }
 .discipline-row:hover td { background:#fef9c3 !important; }
 .discipline-row td.col-module-cell { background:#fefce8 !important; }
 
@@ -67,7 +74,6 @@
 .moy-low   { background:#fff1f2;color:#dc2626;border:1.5px solid #fecdd3; }
 .moy-none  { background:#f8fafc;color:#94a3b8;border:1.5px solid #e2e8f0; }
 
-/* Discipline note badge */
 .disc-badge { display:inline-flex;align-items:center;justify-content:center;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:800; }
 .disc-high  { background:#fefce8;color:#713f12;border:1.5px solid #fde047; }
 .disc-mid   { background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa; }
@@ -89,6 +95,35 @@
 
 /* Pending notice */
 .pending-notice { border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:10px;background:#fffbeb;border:1.5px solid #fde68a;color:#92400e;font-size:12px;font-weight:600;margin-top:4px; }
+
+/* ── EFF lock styles ── */
+.eff-lock-notice {
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:10px;
+    color:#92400e;
+    margin-top:6px;
+    background:#fef3c7;
+    padding:3px 9px;
+    border-radius:6px;
+    border:1px solid #fde68a;
+    font-weight:600;
+}
+.eff-progress-bar-wrap {
+    height:5px;
+    border-radius:99px;
+    background:#e2e8f0;
+    overflow:hidden;
+    width:180px;
+}
+.eff-progress-bar-fill {
+    height:100%;
+    border-radius:99px;
+    background: <?php echo e($allGraded ? '#16a34a' : '#f59e0b'); ?>;
+    width: <?php echo e($progressPct); ?>%;
+    transition: width .4s ease;
+}
 </style>
 
 <div class="bls-wrap">
@@ -100,15 +135,21 @@
         'filiere_id' => $filiereFilter ?? null,
         'promo'      => $promoFilter ?? null,
     ]);
+    $isStagiaire = Auth::user()->role === 'stagiaire';
 ?>
+
 <div class="breadcrumb">
-    <a href="<?php echo e(route('bulletin.index')); ?>">Bulletins</a>
-    <span style="color:#cbd5e1;">›</span>
-    <?php if($groupeId): ?>
-    <a href="<?php echo e(route('bulletin.index', $backParams)); ?>"><?php echo e($groupe?->name ?? 'Groupe'); ?></a>
-    <span style="color:#cbd5e1;">›</span>
+    <?php if($isStagiaire): ?>
+        <span style="color:#1e293b;font-weight:600;">Mon Bulletin</span>
+    <?php else: ?>
+        <a href="<?php echo e(route('bulletin.index')); ?>">Bulletins</a>
+        <span style="color:#cbd5e1;">›</span>
+        <?php if($groupeId): ?>
+        <a href="<?php echo e(route('bulletin.index', $backParams)); ?>"><?php echo e($groupe?->name ?? 'Groupe'); ?></a>
+        <span style="color:#cbd5e1;">›</span>
+        <?php endif; ?>
+        <span style="color:#1e293b;font-weight:600;"><?php echo e($stagiaire->name); ?></span>
     <?php endif; ?>
-    <span style="color:#1e293b;font-weight:600;"><?php echo e($stagiaire->name); ?></span>
 </div>
 
 
@@ -125,7 +166,7 @@
             <?php endif; ?>
         </div>
     </div>
-    <?php if($groupeId): ?>
+    <?php if(!$isStagiaire && $groupeId): ?>
     <a href="<?php echo e(route('bulletin.index', $backParams)); ?>"
        style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;font-size:11px;font-weight:700;border-radius:10px;background:white;border:1.5px solid #e2e8f0;color:#475569;text-decoration:none;">
         ← Retour au groupe
@@ -146,15 +187,6 @@
 <?php else: ?>
 
 
-<?php
-    $totalModules = $modulesWithNotes->count();
-    $notedModules = $modulesWithNotes->filter(fn($m) => $m['moduleGrade'] !== null)->count();
-
-    // Discipline badge class (still used by discipline stat card)
-    $discClass = $disciplineNote === null ? 'disc-high'
-        : ($disciplineNote >= 15 ? 'disc-high' : ($disciplineNote >= 10 ? 'disc-mid' : 'disc-low'));
-?>
-
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:22px;">
     <div class="stat-card">
         <div class="stat-icon" style="background:<?php echo e($light); ?>;">
@@ -169,15 +201,11 @@
         <div><div class="stat-val"><?php echo e($notedModules); ?>/<?php echo e($totalModules); ?></div><div class="stat-lbl">Complétés</div></div>
     </div>
 
-    
     <?php if($disciplineNote !== null): ?>
     <div class="stat-card" style="background:#fefce8;border-color:#fde047;">
         <div class="stat-icon" style="background:white;font-size:18px;">🎓</div>
         <div>
-            <div class="stat-val" style="color:#713f12;">
-                <?php echo e(number_format($disciplineNote, 2)); ?>
-
-            </div>
+            <div class="stat-val" style="color:#713f12;"><?php echo e(number_format($disciplineNote, 2)); ?></div>
             <div class="stat-lbl">Discipline</div>
         </div>
     </div>
@@ -186,8 +214,6 @@
 
 
 <div class="bl-table-wrap">
-
-    
     <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:#fafafa;">
         <div style="font-size:13px;font-weight:800;color:#0f172a;">Relevé de notes</div>
         <div style="display:flex;align-items:center;gap:12px;font-size:10px;color:#64748b;">
@@ -205,15 +231,12 @@
                     <th class="col-module">Module</th>
                     <th>Type</th>
                     <th>Coeff.</th>
-
-                    
 <?php
     $maxControles = $modulesWithNotes->max(fn($m) => (int) ($m['module']->nbr_controles ?? 1));
 ?>
                     <?php for($i = 1; $i <= $maxControles; $i++): ?>
                         <th>C<?php echo e($i); ?><br><span style="font-size:8px;color:#cbd5e1;">/ 20</span></th>
                     <?php endfor; ?>
-
                     <th style="color:#7e22ce;">CC<br><span style="font-size:8px;color:#cbd5e1;">/ 20</span></th>
                     <th style="color:#dc2626;">⚑ EFM<br><span style="font-size:8px;color:#fca5a5;">/ 20</span></th>
                     <th style="color:#7c3aed;">Note module</th>
@@ -221,7 +244,6 @@
             </thead>
             <tbody>
 
-            
             <?php $__currentLoopData = $modulesWithNotes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <?php
                 $module      = $item['module'];
@@ -238,28 +260,22 @@
                     : ($cc >= 15 ? 'cc-high' : ($cc >= 10 ? 'cc-mid' : 'cc-low'));
             ?>
             <tr>
-                
                 <td class="col-module-cell">
                     <div style="font-weight:700;color:#1e293b;font-size:12px;"><?php echo e($module->name); ?></div>
                     <?php if($module->formateur): ?>
                     <div style="font-size:10px;color:#94a3b8;margin-top:1px;"><?php echo e($module->formateur->name); ?></div>
                     <?php endif; ?>
                 </td>
-
-                
                 <td>
                     <span class="type-badge type-<?php echo e($module->type); ?>">
                         <?php echo e($module->type === 'regional' ? 'Rég.' : 'Loc.'); ?>
 
                     </span>
                 </td>
-
-                
                 <td>
                     <span class="info-chip" style="font-size:11px;font-weight:800;"><?php echo e($module->coefficience); ?></span>
                 </td>
 
-                
                 <?php for($i = 1; $i <= $maxControles; $i++): ?>
                 <?php
                     $ctrl = $controles->get($i - 1);
@@ -277,12 +293,10 @@
                 </td>
                 <?php endfor; ?>
 
-                
                 <td>
                     <span class="cc-pill <?php echo e($ccClass); ?>"><?php echo e($cc !== null ? number_format($cc, 2) : '—'); ?></span>
                 </td>
 
-                
                 <?php
                     $eCls = $efmDisplay !== null
                         ? ($efmDisplay >= 15 ? 'note-high' : ($efmDisplay >= 10 ? 'note-mid' : 'note-low'))
@@ -292,7 +306,6 @@
                     <span class="note-pill <?php echo e($eCls); ?>"><?php echo e($efmDisplay !== null ? number_format($efmDisplay, 2) : '—'); ?></span>
                 </td>
 
-                
                 <td>
                     <span class="moy-badge <?php echo e($mgClass); ?>">
                         <?php echo e($moduleGrade !== null ? number_format($moduleGrade, 2) : '—'); ?>
@@ -309,8 +322,6 @@
                     : ($disciplineNote >= 10 ? 'disc-mid' : 'disc-low');
             ?>
             <tr class="discipline-row">
-
-                
                 <td class="col-module-cell">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span style="font-size:16px;">🎓</span>
@@ -322,32 +333,20 @@
                         </div>
                     </div>
                 </td>
-
-                
                 <td>
                     <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;
                                  background:#fef9c3;color:#713f12;border:1px solid #fde047;">
                         Conduite
                     </span>
                 </td>
-
-                
                 <td>
                     <span class="info-chip" style="font-size:11px;font-weight:800;background:#fef9c3;color:#713f12;border-color:#fde047;">1</span>
                 </td>
-
-                
                 <?php for($i = 1; $i <= $maxControles; $i++): ?>
                 <td><span style="color:#e2e8f0;font-size:11px;">—</span></td>
                 <?php endfor; ?>
-
-                
                 <td><span style="color:#e2e8f0;font-size:11px;">—</span></td>
-
-                
                 <td><span style="color:#e2e8f0;font-size:11px;">—</span></td>
-
-                
                 <td>
                     <span class="disc-badge <?php echo e($discBadgeClass); ?>">
                         <?php echo e(number_format($disciplineNote, 2)); ?>
@@ -356,7 +355,6 @@
                 </td>
             </tr>
             <?php endif; ?>
-            
 
             </tbody>
         </table>
@@ -364,21 +362,14 @@
 </div>
 
 
+
+
 <?php if($allGraded): ?>
 <?php
     $bannerBg  = $generalAverage >= 10 ? '#f0fdf4' : '#fff1f2';
     $bannerBdr = $generalAverage >= 10 ? '#bbf7d0' : '#fecdd3';
     $bannerClr = $generalAverage >= 10 ? '#15803d' : '#be123c';
-
-    $fgColor = $finalGrade === null ? '#94a3b8'
-        : ($finalGrade >= 10 ? '#15803d' : '#be123c');
-    $fgBg    = $finalGrade === null ? '#f8fafc'
-        : ($finalGrade >= 10 ? '#f0fdf4' : '#fff1f2');
-    $fgBdr   = $finalGrade === null ? '#e2e8f0'
-        : ($finalGrade >= 10 ? '#bbf7d0' : '#fecdd3');
 ?>
-
-
 <div class="ga-banner" style="background:<?php echo e($bannerBg); ?>;border:2px solid <?php echo e($bannerBdr); ?>;margin-bottom:10px;">
     <div>
         <div style="font-size:14px;font-weight:800;color:#0f172a;">Moyenne générale</div>
@@ -401,20 +392,87 @@
     </div>
 </div>
 
+<?php else: ?>
+
+<div class="pending-notice" style="margin-bottom:10px;">
+    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Moyenne générale non disponible —
+    <?php echo e($totalModules - $notedModules); ?> module<?php echo e(($totalModules - $notedModules) > 1 ? 's' : ''); ?>
+
+    en attente d'EFM
+    (<?php echo e($notedModules); ?>/<?php echo e($totalModules); ?> complets)
+</div>
+<?php endif; ?>
+
 
 <?php if($isFinalYear): ?>
+<?php
+    $fgColor = $finalGrade === null ? '#94a3b8'
+        : ($finalGrade >= 10 ? '#15803d' : '#be123c');
+    $fgBg    = $finalGrade === null ? '#f8fafc'
+        : ($finalGrade >= 10 ? '#f0fdf4' : '#fff1f2');
+    $fgBdr   = $finalGrade === null ? '#e2e8f0'
+        : ($finalGrade >= 10 ? '#bbf7d0' : '#fecdd3');
+
+    // EFF card colors driven by lock state
+    $effCardBg  = $allGraded ? '#eff6ff' : '#f8fafc';
+    $effCardBdr = $allGraded ? '#bfdbfe' : '#e2e8f0';
+    $effTitleCl = $allGraded ? '#1e40af' : '#94a3b8';
+    $effSubCl   = $allGraded ? '#3b82f6' : '#cbd5e1';
+    $effValCl   = $allGraded ? '#1d4ed8' : '#94a3b8';
+?>
+
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;">
 
     
-    <div style="border-radius:16px;padding:20px 24px;background:#eff6ff;
-                border:2px solid #bfdbfe;
+    <div style="border-radius:16px;padding:20px 24px;
+                background:<?php echo e($effCardBg); ?>;
+                border:2px solid <?php echo e($effCardBdr); ?>;
                 display:flex;align-items:center;justify-content:space-between;
-                gap:12px;flex-wrap:wrap;">
+                gap:12px;flex-wrap:wrap;
+                transition:background .3s,border-color .3s;">
         <div>
-            <div style="font-size:13px;font-weight:800;color:#1e40af;">⚑ EFF</div>
-            <div style="font-size:11px;color:#3b82f6;margin-top:3px;">
-                Examen Final de Formation · année terminale
+
+            
+            <div style="font-size:13px;font-weight:800;color:<?php echo e($effTitleCl); ?>;">
+                ⚑ EFF
+                <?php if(!$allGraded): ?>
+                    <span style="margin-left:6px;font-size:10px;font-weight:700;
+                                 padding:2px 7px;border-radius:99px;
+                                 background:#fef3c7;color:#92400e;border:1px solid #fde68a;
+                                 vertical-align:middle;">
+                        🔒 Verrouillé
+                    </span>
+                <?php else: ?>
+                    <span style="margin-left:6px;font-size:10px;font-weight:700;
+                                 padding:2px 7px;border-radius:99px;
+                                 background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;
+                                 vertical-align:middle;">
+                        ✓ Disponible
+                    </span>
+                <?php endif; ?>
             </div>
+
+            <div style="font-size:11px;color:<?php echo e($effSubCl); ?>;margin-top:3px;">
+                Examen Final de Formation · année terminale ·
+                <strong style="color:<?php echo e($effTitleCl); ?>;">Note sur 100</strong>
+            </div>
+
+            
+            <?php if(in_array(Auth::user()->role, ['admin','gestionnaire'])): ?>
+            <div style="margin-top:8px;">
+                <div style="font-size:10px;color:#64748b;margin-bottom:4px;font-weight:600;">
+                    Modules complétés : <?php echo e($notedModules); ?>/<?php echo e($totalModules); ?>
+
+                </div>
+                <div class="eff-progress-bar-wrap">
+                    <div class="eff-progress-bar-fill"></div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             
             <?php if(in_array(Auth::user()->role, ['admin','gestionnaire'])): ?>
@@ -422,30 +480,100 @@
                   action="<?php echo e(route('bulletin.eff.store', $stagiaire)); ?>"
                   style="display:flex;align-items:center;gap:8px;margin-top:10px;">
                 <?php echo csrf_field(); ?>
-                <input type="number"
-                       name="eff_note"
-                       value="<?php echo e($effNote !== null ? number_format($effNote, 2, '.', '') : ''); ?>"
-                       min="0" max="20" step="0.01"
-                       placeholder="0 – 20"
-                       style="width:90px;height:34px;padding:0 10px;border-radius:8px;
-                              border:1.5px solid #bfdbfe;font-size:13px;font-weight:700;
-                              color:#1e40af;outline:none;background:white;">
+
+                
+                <div style="position:relative;display:inline-flex;align-items:center;">
+                    <input type="number"
+                           name="eff_note"
+                           value="<?php echo e($effNote !== null ? number_format($effNote, 2, '.', '') : ''); ?>"
+                           min="0" max="100" step="0.01"
+                           placeholder="0 – 100"
+                           <?php echo e(!$allGraded ? 'disabled' : ''); ?>
+
+                           style="width:110px;height:34px;padding:0 40px 0 10px;border-radius:8px;
+                                  border:1.5px solid <?php echo e($allGraded ? '#bfdbfe' : '#e2e8f0'); ?>;
+                                  font-size:13px;font-weight:700;
+                                  color:<?php echo e($allGraded ? '#1e40af' : '#94a3b8'); ?>;
+                                  outline:none;
+                                  background:<?php echo e($allGraded ? 'white' : '#f1f5f9'); ?>;
+                                  cursor:<?php echo e($allGraded ? 'text' : 'not-allowed'); ?>;
+                                  transition:all .2s;">
+                    
+                    <span style="position:absolute;right:8px;font-size:10px;font-weight:800;
+                                 color:<?php echo e($allGraded ? '#93c5fd' : '#cbd5e1'); ?>;
+                                 pointer-events:none;user-select:none;">
+                        /100
+                    </span>
+                </div>
+
                 <button type="submit"
-                        style="padding:7px 14px;border-radius:8px;background:#1d4ed8;
-                               color:white;font-size:11px;font-weight:700;border:none;cursor:pointer;
-                               transition:opacity .15s;"
+                        <?php echo e(!$allGraded ? 'disabled' : ''); ?>
+
+                        style="padding:7px 14px;border-radius:8px;
+                               background:<?php echo e($allGraded ? '#1d4ed8' : '#cbd5e1'); ?>;
+                               color:white;font-size:11px;font-weight:700;border:none;
+                               cursor:<?php echo e($allGraded ? 'pointer' : 'not-allowed'); ?>;
+                               transition:opacity .15s,background .2s;"
+                        <?php if($allGraded): ?>
                         onmouseover="this.style.opacity='.85'"
-                        onmouseout="this.style.opacity='1'">
+                        onmouseout="this.style.opacity='1'"
+                        <?php endif; ?>>
                     <?php echo e($effNote !== null ? '✏️ Modifier' : '+ Saisir'); ?>
 
                 </button>
             </form>
-            <?php endif; ?>
-        </div>
-        <div style="font-size:38px;font-weight:800;color:#1d4ed8;">
-            <?php echo e($effNote !== null ? number_format($effNote, 2) : '—'); ?>
 
-            <span style="font-size:18px;font-weight:600;opacity:.6;">/ 20</span>
+            
+            <?php if(!$allGraded): ?>
+            <div class="eff-lock-notice">
+                🔒 Complétez tous les modules avant de saisir l'EFF
+                — <?php echo e($totalModules - $notedModules); ?> restant<?php echo e(($totalModules - $notedModules) > 1 ? 's' : ''); ?>
+
+            </div>
+            <?php else: ?>
+            <div style="font-size:10px;color:#16a34a;margin-top:6px;
+                        display:inline-flex;align-items:center;gap:4px;
+                        background:#dcfce7;padding:2px 8px;border-radius:6px;
+                        border:1px solid #bbf7d0;font-weight:600;">
+                ✓ Tous les modules sont notés — saisie EFF disponible
+            </div>
+            <?php endif; ?>
+
+            
+            <?php if($effNote !== null): ?>
+            <div style="font-size:10px;color:#64748b;margin-top:5px;
+                        display:inline-flex;align-items:center;gap:4px;
+                        background:#f1f5f9;padding:2px 8px;border-radius:6px;">
+                ↳ Équivalent /20 :
+                <strong style="color:#1e40af;"><?php echo e(number_format($effNoteConverted, 2)); ?>/20</strong>
+                &nbsp;(<?php echo e(number_format($effNote, 2)); ?> ÷ 5)
+            </div>
+            <?php endif; ?>
+
+            <?php else: ?>
+            
+            <div style="font-size:10px;color:#3b82f6;margin-top:8px;
+                        display:inline-flex;align-items:center;gap:4px;
+                        background:#dbeafe;padding:3px 8px;border-radius:6px;">
+                📋 Note saisie par l'administration
+            </div>
+            <?php endif; ?>
+
+        </div>
+
+        
+        <div style="text-align:right;">
+            <div style="font-size:38px;font-weight:800;color:<?php echo e($effValCl); ?>;line-height:1;">
+                <?php echo e($effNote !== null ? number_format($effNote, 2) : '—'); ?>
+
+                <span style="font-size:18px;font-weight:600;opacity:.6;">/ 100</span>
+            </div>
+            <?php if($effNote !== null): ?>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">
+                = <strong style="color:#1e40af;"><?php echo e(number_format($effNoteConverted, 2)); ?></strong>
+                <span style="opacity:.6;">/ 20</span>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -457,20 +585,39 @@
         <div>
             <div style="font-size:13px;font-weight:800;color:#0f172a;">🏆 Note Finale</div>
             <div style="font-size:11px;color:#64748b;margin-top:3px;">
-                EFF × 60% + Moy. Générale × 40%
+                (EFF ÷ 5) × 60% + Moy. Générale × 40%
             </div>
-            <?php if($effNote === null): ?>
+
+            <?php if($effNote === null && !$allGraded): ?>
+            <div style="font-size:10px;color:#f59e0b;margin-top:5px;
+                        display:inline-flex;align-items:center;gap:4px;
+                        background:#fef3c7;padding:2px 8px;border-radius:6px;border:1px solid #fde68a;">
+                ⚠️ En attente des notes et de la note EFF
+            </div>
+
+            <?php elseif($effNote === null): ?>
             <div style="font-size:10px;color:#f59e0b;margin-top:5px;
                         display:inline-flex;align-items:center;gap:4px;
                         background:#fef3c7;padding:2px 8px;border-radius:6px;border:1px solid #fde68a;">
                 ⚠️ En attente de la note EFF
             </div>
+
+            <?php elseif(!$allGraded): ?>
+            <div style="font-size:10px;color:#f59e0b;margin-top:5px;
+                        display:inline-flex;align-items:center;gap:4px;
+                        background:#fef3c7;padding:2px 8px;border-radius:6px;border:1px solid #fde68a;">
+                ⚠️ En attente des notes de modules
+            </div>
+
             <?php else: ?>
+            
             <div style="font-size:10px;color:#64748b;margin-top:5px;">
-                (<?php echo e(number_format($effNote,2)); ?> × 0.6) + (<?php echo e(number_format($generalAverage,2)); ?> × 0.4)
+                (<?php echo e(number_format($effNote, 2)); ?>/100 → <?php echo e(number_format($effNoteConverted, 2)); ?>/20 × 0.6)
+                + (<?php echo e(number_format($generalAverage, 2)); ?> × 0.4)
             </div>
             <?php endif; ?>
         </div>
+
         <div style="font-size:38px;font-weight:800;color:<?php echo e($fgColor); ?>;">
             <?php echo e($finalGrade !== null ? number_format($finalGrade, 2) : '—'); ?>
 
@@ -480,8 +627,9 @@
 
 </div>
 
-<?php else: ?>
+<?php elseif($allGraded): ?>
 
+<?php $bannerClr = $generalAverage >= 10 ? '#15803d' : '#be123c'; ?>
 <div style="border-radius:14px;padding:14px 20px;background:#f8fafc;
             border:1.5px solid #e2e8f0;
             display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b;">
@@ -490,21 +638,6 @@
         <?php echo e(number_format($generalAverage, 2)); ?> / 20
     </span>
     <span style="font-size:10px;color:#94a3b8;">(= Moyenne Générale — pas en année terminale)</span>
-</div>
-<?php endif; ?>
-
-<?php else: ?>
-
-<div class="pending-notice">
-    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-    </svg>
-    Moyenne générale non disponible —
-    <?php echo e($totalModules - $notedModules); ?> module<?php echo e(($totalModules - $notedModules) > 1 ? 's' : ''); ?>
-
-    en attente d'EFM
-    (<?php echo e($notedModules); ?>/<?php echo e($totalModules); ?> complets)
 </div>
 <?php endif; ?>
 

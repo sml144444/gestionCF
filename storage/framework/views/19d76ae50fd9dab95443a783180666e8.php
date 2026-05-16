@@ -1944,14 +1944,42 @@ function populateModuleSelect(modules) {
     const loadingEl = document.getElementById('avail-loading-module');
     if (loadingEl) loadingEl.style.display = 'none';
 
+    // Split into available vs completed (100 %)
+    const available = modules.filter(m => !m.nbr_heure || (m.done_hours || 0) < m.nbr_heure);
+    const completed = modules.filter(m =>  m.nbr_heure > 0 && (m.done_hours || 0) >= m.nbr_heure);
+
     sel.innerHTML = '<option value="">— Sélectionner un module —</option>';
-    modules.forEach(m => {
-        const o = document.createElement('option');
-        o.value = m.id;
-        o.textContent = m.name + ' (' + m.nbr_heure + 'h)';
-        o.dataset.nbrHeure = m.nbr_heure;
-        sel.appendChild(o);
-    });
+
+    if (available.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = '✓ Disponibles (' + available.length + ')';
+        available.forEach(m => {
+            const pct = m.nbr_heure > 0
+                ? Math.min(99, Math.round(((m.done_hours || 0) / m.nbr_heure) * 100))
+                : 0;
+            const o = document.createElement('option');
+            o.value = m.id;
+            o.textContent = m.name + ' (' + m.nbr_heure + 'h — ' + pct + '%)';
+            o.dataset.nbrHeure  = m.nbr_heure;
+            o.dataset.doneHours = m.done_hours || 0;
+            grp.appendChild(o);
+        });
+        sel.appendChild(grp);
+    }
+
+    if (completed.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = '✗ Terminés 100% — ' + completed.length + ' module(s)';
+        completed.forEach(m => {
+            const o = document.createElement('option');
+            o.value       = m.id;
+            o.textContent = '✗ ' + m.name + ' (' + m.nbr_heure + 'h — complet)';
+            o.disabled    = true;
+            o.style.color = '#94a3b8';
+            grp.appendChild(o);
+        });
+        sel.appendChild(grp);
+    }
 
     if (curVal) sel.value = curVal;
     updateModuleProgress();

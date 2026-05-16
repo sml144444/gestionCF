@@ -59,8 +59,6 @@ class DashboardController extends Controller
         $user = Auth::user();
         [$weekStart, $weekEnd] = $this->currentWeek();
 
-        // ── Sunday restriction: cap visible future to end of next week
-        //    only if today is before Sunday 00:00
         $visibleUntil = $this->visibleUntilFor('formateur');
 
         $stats = [
@@ -80,7 +78,6 @@ class DashboardController extends Controller
                                             ->count(),
         ];
 
-        // Current session in progress — no restriction needed (it's happening now)
         $current_seance = EmploiDuTemps::where(function ($q) use ($user) {
                                 $q->where('id_user', $user->id)
                                   ->orWhere('id_user_remplacant', $user->id);
@@ -91,25 +88,23 @@ class DashboardController extends Controller
                             ->with(['module', 'groupe', 'salle'])
                             ->first();
 
-        // Next upcoming session — capped to $visibleUntil
         $next_seance = EmploiDuTemps::where(function ($q) use ($user) {
                             $q->where('id_user', $user->id)
                               ->orWhere('id_user_remplacant', $user->id);
                         })
                         ->where('date_debut', '>', now())
-                        ->where('date_debut', '<=', $visibleUntil) // ← restriction
+                        ->where('date_debut', '<=', $visibleUntil)
                         ->where('statut', 'actif')
                         ->orderBy('date_debut')
                         ->with(['module', 'groupe', 'salle'])
                         ->first();
 
-        // Upcoming list — capped to $visibleUntil
         $prochaines_seances = EmploiDuTemps::where(function ($q) use ($user) {
                                     $q->where('id_user', $user->id)
                                       ->orWhere('id_user_remplacant', $user->id);
                                 })
                                 ->where('date_debut', '>=', now())
-                                ->where('date_debut', '<=', $visibleUntil) // ← restriction
+                                ->where('date_debut', '<=', $visibleUntil)
                                 ->where('statut', 'actif')
                                 ->orderBy('date_debut')
                                 ->with(['module', 'groupe', 'salle'])
@@ -129,25 +124,37 @@ class DashboardController extends Controller
 
         $idGroupe = $user->id_groupe;
 
-        // ── Sunday restriction: cap visible future to end of next week
-        //    only if today is before Sunday 00:00
         $visibleUntil = $this->visibleUntilFor('stagiaire');
 
+        // ── Base query reused for absence stats ──────────────────────────────
+        $absencesQuery = AbsenceRetard::where('id_user', $user->id)
+                            ->where('type', 'absence');
+
         $stats = [
-            'absences_count'  => AbsenceRetard::where('id_user', $user->id)
-                                        ->where('type', 'absence')->count(),
+            // ✅ FIXED: count distinct days (date_event), not individual session rows
+            // Previously counted every session row separately (S1, S2... = multiple rows per day)
+            'absences_count'  => (clone $absencesQuery)
+                                    ->distinct('date_event')
+                                    ->count('date_event'),
+
+            // ✅ FIXED: unjustified also counts distinct days
+            'absences_injust' => (clone $absencesQuery)
+                                    ->where('justifie', false)
+                                    ->distinct('date_event')
+                                    ->count('date_event'),
+
+            // Retards: each late arrival is its own independent event — no change
             'retards_count'   => AbsenceRetard::where('id_user', $user->id)
-                                        ->where('type', 'retard')->count(),
-            'absences_injust' => AbsenceRetard::where('id_user', $user->id)
-                                        ->where('justifie', false)->count(),
-            // Stats card: only count sessions within the visible window
+                                    ->where('type', 'retard')
+                                    ->count(),
+
             'cours_semaine'   => EmploiDuTemps::where('id_groupe', $idGroupe)
-                                        ->whereBetween('date_debut', [$weekStart, $weekEnd])
-                                        ->where('statut', 'actif')
-                                        ->count(),
+                                    ->whereBetween('date_debut', [$weekStart, $weekEnd])
+                                    ->where('statut', 'actif')
+                                    ->count(),
         ];
 
-        // Current session in progress — no restriction needed (it's happening now)
+        // Current session in progress
         $current_seance = EmploiDuTemps::where('id_groupe', $idGroupe)
                             ->where('date_debut', '<=', now())
                             ->where('date_fin',   '>=', now())
@@ -158,7 +165,7 @@ class DashboardController extends Controller
         // Next upcoming session — capped to $visibleUntil
         $next_seance = EmploiDuTemps::where('id_groupe', $idGroupe)
                         ->where('date_debut', '>', now())
-                        ->where('date_debut', '<=', $visibleUntil) // ← restriction
+                        ->where('date_debut', '<=', $visibleUntil)
                         ->where('statut', 'actif')
                         ->orderBy('date_debut')
                         ->with(['module', 'salle', 'remplacant', 'gestionnaire'])
@@ -167,7 +174,7 @@ class DashboardController extends Controller
         // Upcoming list — capped to $visibleUntil
         $prochaines_seances = EmploiDuTemps::where('id_groupe', $idGroupe)
                                 ->where('date_debut', '>=', now())
-                                ->where('date_debut', '<=', $visibleUntil) // ← restriction
+                                ->where('date_debut', '<=', $visibleUntil)
                                 ->where('statut', 'actif')
                                 ->orderBy('date_debut')
                                 ->with(['module', 'salle', 'remplacant', 'gestionnaire'])
@@ -202,13 +209,9 @@ class DashboardController extends Controller
      * Rule:
      *   - Before Sunday 00:00  → visible up to end of CURRENT week (Saturday 23:59)
      *   - From Sunday 00:00    → visible up to end of NEXT week (Saturday 23:59)
-     *
-     * "Sunday" here is the day between the current week and next week,
-     * i.e. Carbon::now()->endOfWeek(Carbon::SUNDAY).
      */
     private function visibleUntilFor(string $role): Carbon
     {
-        // joursAvance = 1 → next Monday minus 1 day = Sunday 00:00
         $joursAvance   = 1;
         $prochainLundi = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeek();
         $visibleDepuis = $prochainLundi->copy()->subDays($joursAvance)->startOfDay(); // Sunday 00:00

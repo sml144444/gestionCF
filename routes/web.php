@@ -90,6 +90,18 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
+// UNIVERSAL SEARCH
+// ⚠️  Must be defined BEFORE the users prefix group
+//     so /users/search is matched as a static path
+//     and never caught by the /{user} wildcard below.
+// ─────────────────────────────────────────────
+Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+    Route::get('/users/search', [UserManagementController::class, 'searchAll'])
+        ->name('users.search')
+        ->middleware('can:search-users');
+});
+
+// ─────────────────────────────────────────────
 // USER MANAGEMENT — admin + gestionnaire
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
@@ -97,6 +109,7 @@ Route::middleware(['auth', 'role:admin,gestionnaire'])->group(function () {
         Route::get('/',              [UserManagementController::class, 'index'])      ->name('index');
         Route::get('/create',        [UserManagementController::class, 'create'])     ->name('create');
         Route::post('/',             [UserManagementController::class, 'store'])      ->name('store');
+        Route::get('/{user}',        [UserManagementController::class, 'show'])       ->name('show');
         Route::get('/{user}/edit',   [UserManagementController::class, 'edit'])       ->name('edit');
         Route::put('/{user}',        [UserManagementController::class, 'update'])     ->name('update');
         Route::patch('/{user}/role', [UserManagementController::class, 'updateRole']) ->name('updateRole');
@@ -196,9 +209,6 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 // REPORTATIONS
 // ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-// REPORTATIONS
-// ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
 
     Route::post('/reportations', [ReportationController::class, 'store'])
@@ -217,7 +227,6 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
         ->name('reportations.index')
         ->middleware('can:reportation-manage');
 
-    // ✅ No route-level middleware — controller handles auth via $isAssigned check
     Route::post('/reportations/{reportation}/accept', [ReportationController::class, 'accept'])
         ->name('reportations.accept');
 
@@ -316,8 +325,14 @@ Route::middleware(['auth'])->group(function () {
 // STAGIAIRES
 // ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
+
     Route::get('/stagiaire', [StagiaireController::class, 'index'])
         ->name('stagiaire.index')
+        ->middleware('can:stagiaire-list');
+
+    // ↓ Unified show — handled by UserManagementController for all roles
+    Route::get('/stagiaire/{user}', [UserManagementController::class, 'show'])
+        ->name('stagiaire.show')
         ->middleware('can:stagiaire-list');
 });
 
@@ -367,15 +382,13 @@ Route::middleware(['auth'])->group(function () {
         ->name('reclamations.destroy')
         ->middleware('can:reclamation-manage');
 
-    
-    // ── NOTIFICATIONS ────────────────────────────────────
-    Route::get('/notifications',                          [NotificationController::class, 'index'])    ->name('notifications.index');
-    Route::post('/notifications/read-all',                [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
-    Route::post('/notifications/{notification}/read',     [NotificationController::class, 'markRead'])  ->name('notifications.read');
-     Route::post('notifications/reclamation/{reclamationId}/read', [NotificationController::class, 'markReadByReclamation'])->name('notifications.readByReclamation');
-     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
-     Route::delete('/notifications',       [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
-    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+    Route::get('/notifications',                          [NotificationController::class, 'index'])       ->name('notifications.index');
+    Route::post('/notifications/read-all',                [NotificationController::class, 'markAllRead']) ->name('notifications.readAll');
+    Route::post('/notifications/{notification}/read',     [NotificationController::class, 'markRead'])    ->name('notifications.read');
+    Route::post('notifications/reclamation/{reclamationId}/read', [NotificationController::class, 'markReadByReclamation'])->name('notifications.readByReclamation');
+    Route::delete('/notifications',                       [NotificationController::class, 'destroyAll'])  ->name('notifications.destroy-all');
+    Route::delete('/notifications/{notification}',        [NotificationController::class, 'destroy'])     ->name('notifications.destroy');
 });
 
 // ─────────────────────────────────────────────
@@ -494,12 +507,11 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile',          [ProfileController::class, 'show'])          ->name('profile.show');
-    // Your web.php uses PUT ✅
-Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile',          [ProfileController::class, 'update'])        ->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
     Route::put('/profile/email',    [ProfileController::class, 'updateEmail'])   ->name('profile.email');
     Route::post('/profile/photo',   [ProfileController::class, 'updatePhoto'])   ->name('profile.photo');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::delete('/profile',       [ProfileController::class, 'destroy'])       ->name('profile.destroy');
 });
 
 // ─────────────────────────────────────────────
@@ -527,27 +539,16 @@ Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function
 // ─────────────────────────────────────────────
 // MES NOTES — stagiaire (read-only)
 // ─────────────────────────────────────────────
+
 Route::middleware(['auth', 'role:stagiaire'])->group(function () {
     Route::get('/mes-notes', [ControleNotesController::class, 'myNotes'])
         ->name('controles.my-notes')
         ->middleware('can:mes-notes-view');
-});
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/stagiaires/search', [\App\Http\Controllers\StagiaireController::class, 'search'])
-        ->name('stagiaires.search')
-        ->middleware('can:search-stagiaires');
-});
-
-// In the STAGIAIRES section, add:
-Route::middleware(['auth', 'role:admin,gestionnaire,formateur'])->group(function () {
-    Route::get('/stagiaire', [StagiaireController::class, 'index'])
-        ->name('stagiaire.index')
-        ->middleware('can:stagiaire-list');
-
-    Route::get('/stagiaire/{user}', [StagiaireController::class, 'show']) // ← ADD THIS
-        ->name('stagiaire.show')
-        ->middleware('can:stagiaire-list');
+    // ← Ajouter cette route
+    Route::get('/mon-bulletin', [BulletinController::class, 'showSelf'])
+        ->name('bulletin.self')
+        ->middleware('can:bulletin-self');
 });
 // ─────────────────────────────────────────────
 // BULLETINS DE NOTES

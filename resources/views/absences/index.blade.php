@@ -169,7 +169,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 .badge-injustifie { background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; }
 .badge-pending    { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
 
-/* NEW: Admin validation badges and buttons */
+/* Admin validation badges and buttons */
 .btn-admin-allow {
     font-size:10px; font-weight:700; padding:4px 10px; border-radius:8px;
     background:#fef9c3; color:#713f12;
@@ -222,13 +222,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                     border:1.5px dashed var(--accent-bd);
                     background:var(--accent-ltr); white-space:nowrap; transition:all .15s; }
 .btn-upload-label:hover { background:var(--accent-lt); }
-
-/* ─── Day panel actions cell ─── */
-.day-action-row { display:flex; flex-direction:column; gap:5px; }
-.day-action-part { display:flex; align-items:center; gap:5px; flex-wrap:wrap;
-                   padding:5px 8px; border-radius:10px; background:#f8fafc;
-                   border:1px solid #f1f5f9; }
-.day-action-part:hover { background:#f1f5f9; }
 
 /* ─── FLASH ─── */
 .flash-ok  { display:flex; align-items:center; gap:12px; padding:14px 18px; border-radius:14px;
@@ -318,11 +311,11 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
     </span>
 </div>
 
-{{-- ─── STATS ─── --}}
+{{-- ─── STATS (4 cards only — no S1/S2/S3/S4) ─── --}}
 <div class="stats-grid" id="abs-stats-grid">
     <div class="stat-card">
         <div class="stat-icon" style="background:#fee2e2;">❌</div>
-        <div><div class="stat-val" style="color:#dc2626;">{{ $stats['total'] }}</div><div class="stat-lbl">Total</div></div>
+        <div><div class="stat-val" style="color:#dc2626;">{{ $stats['total'] }}</div><div class="stat-lbl">Total jours</div></div>
     </div>
     <div class="stat-card">
         <div class="stat-icon" style="background:#fff7ed;">🕐</div>
@@ -340,21 +333,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         <div class="stat-icon" style="background:#fce7f3;">⚠️</div>
         <div><div class="stat-val" style="color:#be185d;">{{ $stats['injustifies'] }}</div><div class="stat-lbl">Non justifiées</div></div>
     </div>
-    @foreach(['s1','s2','s3','s4'] as $sp)
-    <div class="stat-card">
-        <div class="stat-icon"
-             style="background:{{ ['s1'=>'#f5f3ff','s2'=>'#eff6ff','s3'=>'#f0f9ff','s4'=>'#f0fdfa'][$sp] }};">
-            {{ strtoupper($sp) }}
-        </div>
-        <div>
-            <div class="stat-val"
-                 style="color:{{ ['s1'=>'#6d28d9','s2'=>'#1d4ed8','s3'=>'#0369a1','s4'=>'#0f766e'][$sp] }};">
-                {{ $stats[$sp] }}
-            </div>
-            <div class="stat-lbl">Abs. {{ strtoupper($sp) }}</div>
-        </div>
-    </div>
-    @endforeach
 </div>
 
 {{-- ════════════════════════════════════════════════════════════
@@ -457,9 +435,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
     </div>
     @endif
 
-    {{-- ══════════════════════════════════════════════════════════
-         Absent stagiaires table — WITH ADMIN ACTIONS
-         ══════════════════════════════════════════════════════════ --}}
+    {{-- ══ Absent stagiaires table ══ --}}
     @if($dayAbsents->isEmpty())
         <div style="padding:36px 20px;text-align:center;color:#94a3b8;font-size:13px;">
             🎉 Aucune absence enregistrée pour cette journée.
@@ -571,9 +547,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                         @endif
                     </td>
 
-                    {{-- ══════════════════════════════════════════════════════
-                         JUSTIFICATIF & ACTIONS — DAY PANEL
-                         ══════════════════════════════════════════════════════ --}}
                     @if($canJustify)
                     <td style="min-width:260px;">
                         @php
@@ -585,7 +558,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             $sharedFile = $da->absences->first(fn($a) => $a->file_justification)?->file_justification;
                         @endphp
 
-                        {{-- CASE 1: Already admin validated (without justification) --}}
                         @if($da->is_admin_validated)
                             <div style="display:flex;flex-direction:column;gap:6px;">
                                 <span class="badge-admin-allowed">✔ Autorisé sans justificatif</span>
@@ -594,13 +566,12 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                     @foreach($allAbsIds as $id)
                                         <input type="hidden" name="absence_ids[]" value="{{ $id }}">
                                     @endforeach
-                                    <button type="submit" class="btn-admin-revert" title="Rétablir le signalement formateur">
+                                    <button type="submit" class="btn-admin-revert">
                                         ↩ Annuler l'autorisation
                                     </button>
                                 </form>
                             </div>
 
-                        {{-- CASE 2: All sessions already justified --}}
                         @elseif($allJust)
                             @if($sharedFile)
                                 <a href="{{ Storage::url($sharedFile) }}" target="_blank"
@@ -611,8 +582,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             @else
                                 <span class="badge badge-justifie" style="margin-bottom:8px;display:inline-flex;">✅ Toutes justifiées</span><br>
                             @endif
-
-                            {{-- Single "Annuler" for ALL sessions --}}
                             <form method="POST" action="{{ route('absences.admin.bulk.unjustify') }}"
                                   onsubmit="return confirm('Annuler la justification pour toutes les demi-séances de cette journée ?')">
                                 @csrf
@@ -622,7 +591,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 <button type="submit" class="btn-toggle">↩ Annuler toutes</button>
                             </form>
 
-                        {{-- CASE 3: File uploaded, awaiting admin validation --}}
                         @elseif($anyPending)
                             @if($sharedFile)
                                 <a href="{{ Storage::url($sharedFile) }}" target="_blank"
@@ -631,7 +599,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                     📎 Voir le justificatif
                                 </a><br>
                             @endif
-                            {{-- Accept / Reject per pending session --}}
                             <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
                                 @foreach($da->absences->where('justifie', false)->filter(fn($a) => !empty($a->file_justification)) as $abs)
                                     @php $pc = $partConfig[$abs->session_part ?? 's1'] ?? $partConfig['s1']; @endphp
@@ -643,24 +610,18 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                         </span>
                                         <form method="POST" action="{{ route('absences.accept', $abs) }}" style="display:inline;">
                                             @csrf @method('PATCH')
-                                            <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
-                                                ✓ Accepter
-                                            </button>
+                                            <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">✓ Accepter</button>
                                         </form>
                                         <form method="POST" action="{{ route('absences.reject', $abs) }}"
                                               onsubmit="return confirm('Rejeter ce justificatif ?')" style="display:inline;">
                                             @csrf @method('PATCH')
-                                            <button type="submit" class="btn-reject" style="font-size:9px;padding:2px 7px;">
-                                                ✕ Rejeter
-                                            </button>
+                                            <button type="submit" class="btn-reject" style="font-size:9px;padding:2px 7px;">✕ Rejeter</button>
                                         </form>
                                     </div>
                                 @endforeach
                             </div>
 
-                        {{-- CASE 4: No file yet — Upload + Admin validate without justification --}}
                         @else
-                            {{-- Upload button --}}
                             <form method="POST"
                                   action="{{ route('absences.admin.fichier.jour') }}"
                                   enctype="multipart/form-data"
@@ -684,8 +645,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                     Couvre les {{ $allAbsIds->count() }} demi-séance(s) du jour
                                 </div>
                             </form>
-
-                            {{-- ADMIN VALIDATE WITHOUT JUSTIFICATION BUTTON --}}
                             <form method="POST" action="{{ route('absences.admin.valider') }}"
                                   style="margin-bottom:8px;"
                                   onsubmit="return confirm('⚠️ Autoriser cette absence sans justificatif ?\n\nLe signalement formateur sera supprimé mais l\'absence restera non-justifiée.')">
@@ -693,13 +652,10 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 @foreach($allAbsIds as $id)
                                     <input type="hidden" name="absence_ids[]" value="{{ $id }}">
                                 @endforeach
-                                <button type="submit" class="btn-admin-allow"
-                                        title="L'absence reste non-justifiée mais le signalement formateur disparaît">
+                                <button type="submit" class="btn-admin-allow">
                                     🔓 Autoriser sans justificatif
                                 </button>
                             </form>
-
-                            {{-- Single "Justifier" for ALL sessions --}}
                             <form method="POST" action="{{ route('absences.admin.bulk.justify') }}" style="margin-top:6px;">
                                 @csrf
                                 @foreach($allAbsIds as $id)
@@ -710,7 +666,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                         @endif
                     </td>
                     @endif
-                    {{-- ── END ACTIONS COLUMN ── --}}
 
                 </tr>
             @endforeach
@@ -816,7 +771,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
     </a>
 </form>
 
-{{-- ─── TABLE — always visible ─── --}}
+{{-- ─── TABLE ─── --}}
 <div class="abs-table-wrap" id="abs-table-wrap">
     <div class="abs-table-head">
         <div>
@@ -839,9 +794,7 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         @endif
     </div>
 
-    {{-- ════════════════════════════════════════════════════════
-         STAGIAIRE  —  DAY-GROUPED VIEW
-         ════════════════════════════════════════════════════════ --}}
+    {{-- ════ STAGIAIRE — DAY-GROUPED VIEW ════ --}}
     @if(!$canViewAll)
 
         @if($absencesByDay->isEmpty())
@@ -875,14 +828,12 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                     @endphp
                     <tr class="{{ $rowClass }}">
 
-                        {{-- ── Date ── --}}
                         <td>
                             <div class="date-block-day">{{ $day->date?->format('d') }}</div>
                             <div class="date-block-rest">{{ $day->date?->translatedFormat('M Y') }}</div>
                             <div class="date-block-rest">{{ $day->date?->translatedFormat('l') }}</div>
                         </td>
 
-                        {{-- ── Module(s) ── --}}
                         <td>
                             @foreach($day->emplois as $emp)
                                 <div style="margin-bottom:4px;padding-bottom:4px;
@@ -900,19 +851,15 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             @endforeach
                         </td>
 
-                        {{-- ── Formateurs ── --}}
                         <td>
                             @foreach($day->formateurs as $form)
-                                <div style="font-size:11px;color:#475569;font-weight:500;">
-                                    {{ $form->name }}
-                                </div>
+                                <div style="font-size:11px;color:#475569;font-weight:500;">{{ $form->name }}</div>
                             @endforeach
                             @if($day->formateurs->isEmpty())
                                 <span style="color:#94a3b8;">—</span>
                             @endif
                         </td>
 
-                        {{-- ── Demi-séances ── --}}
                         <td>
                             <div style="display:flex;flex-wrap:wrap;gap:4px;">
                                 @foreach($day->parts as $part)
@@ -930,12 +877,10 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             </div>
                         </td>
 
-                        {{-- ── Total heures ── --}}
                         <td>
                             <span class="hours-pill">{{ $day->total_duree }}h</span>
                         </td>
 
-                        {{-- ── Statut ── --}}
                         <td>
                             @if($day->is_justified)
                                 <span class="badge badge-justifie">✅ Justifiée(s)</span>
@@ -947,9 +892,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             @endif
                         </td>
 
-                        {{-- ══════════════════════════════════════════════════
-                             JUSTIFICATIF — ONE BUTTON FOR THE WHOLE DAY
-                             ══════════════════════════════════════════════════ --}}
                         <td>
                         @php
                             $absIds       = $day->absences->pluck('id');
@@ -1030,18 +972,15 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
             </table>
             </div>
 
-            {{-- Footer + Pagination ─────────────────────────────── --}}
             <div style="padding:10px 20px;border-top:1px solid #f1f5f9;
                         font-size:11px;color:#94a3b8;display:flex;align-items:center;
                         justify-content:space-between;flex-wrap:wrap;gap:8px;">
-
                 <span>
                     📅 <strong style="color:#475569;">{{ $absencesByDay->total() }}</strong> jour(s) au total
                     @if($stats['total_heures_abs'] > 0)
                         &nbsp;·&nbsp; <strong style="color:#dc2626;">{{ $stats['total_heures_abs'] }}h</strong> cumulées
                     @endif
                 </span>
-
                 <span style="font-size:10px;color:#94a3b8;">
                     Page {{ $absencesByDay->currentPage() }} / {{ $absencesByDay->lastPage() }}
                 </span>
@@ -1053,62 +992,44 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                     {{ $absencesByDay->firstItem() }}–{{ $absencesByDay->lastItem() }}
                     sur {{ $absencesByDay->total() }} jour(s)
                 </span>
-
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-
-                    {{-- Previous --}}
                     @if($absencesByDay->onFirstPage())
-                        <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;
-                                     color:#cbd5e1;font-size:12px;font-weight:600;cursor:default;">←</span>
+                        <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;color:#cbd5e1;font-size:12px;font-weight:600;cursor:default;">←</span>
                     @else
                         <a href="{{ $absencesByDay->previousPageUrl() }}"
-                           style="padding:6px 12px;border-radius:8px;background:white;
-                                  border:1.5px solid #e2e8f0;color:#475569;font-size:12px;
-                                  font-weight:600;text-decoration:none;transition:all .15s;"
+                           style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;"
                            onmouseover="this.style.borderColor='var(--accent-bd)';this.style.color='var(--accent-tx)';"
                            onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569';">←</a>
                     @endif
 
-                    {{-- Page numbers --}}
                     @foreach($absencesByDay->getUrlRange(
                         max(1, $absencesByDay->currentPage() - 2),
                         min($absencesByDay->lastPage(), $absencesByDay->currentPage() + 2)
                     ) as $page => $url)
                         @if($page == $absencesByDay->currentPage())
-                            <span style="padding:6px 12px;border-radius:8px;
-                                         background:var(--accent-gr);color:white;
-                                         font-size:12px;font-weight:700;border:none;">{{ $page }}</span>
+                            <span style="padding:6px 12px;border-radius:8px;background:var(--accent-gr);color:white;font-size:12px;font-weight:700;">{{ $page }}</span>
                         @else
                             <a href="{{ $url }}"
-                               style="padding:6px 12px;border-radius:8px;background:white;
-                                      border:1.5px solid #e2e8f0;color:#475569;font-size:12px;
-                                      font-weight:600;text-decoration:none;transition:all .15s;"
+                               style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;"
                                onmouseover="this.style.borderColor='var(--accent-bd)';this.style.color='var(--accent-tx)';"
                                onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569';">{{ $page }}</a>
                         @endif
                     @endforeach
 
-                    {{-- Next --}}
                     @if($absencesByDay->hasMorePages())
                         <a href="{{ $absencesByDay->nextPageUrl() }}"
-                           style="padding:6px 12px;border-radius:8px;background:white;
-                                  border:1.5px solid #e2e8f0;color:#475569;font-size:12px;
-                                  font-weight:600;text-decoration:none;transition:all .15s;"
+                           style="padding:6px 12px;border-radius:8px;background:white;border:1.5px solid #e2e8f0;color:#475569;font-size:12px;font-weight:600;text-decoration:none;"
                            onmouseover="this.style.borderColor='var(--accent-bd)';this.style.color='var(--accent-tx)';"
                            onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#475569';">→</a>
                     @else
-                        <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;
-                                     color:#cbd5e1;font-size:12px;font-weight:600;cursor:default;">→</span>
+                        <span style="padding:6px 12px;border-radius:8px;background:#f1f5f9;color:#cbd5e1;font-size:12px;font-weight:600;cursor:default;">→</span>
                     @endif
-
                 </div>
             </div>
             @endif
         @endif
 
-    {{-- ════════════════════════════════════════════════════════
-         ADMIN / GESTIONNAIRE / FORMATEUR  — GROUPED VIEW
-         ════════════════════════════════════════════════════════ --}}
+    {{-- ════ ADMIN — GROUPED VIEW ════ --}}
     @else
 
         @if($absencesGrouped->isEmpty())
@@ -1148,7 +1069,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                     @endphp
                     <tr class="{{ $rowBg }}">
 
-                        {{-- ── Date ── --}}
                         <td style="min-width:90px;">
                             <div style="font-size:20px;font-weight:900;color:#1e293b;line-height:1;">
                                 {{ $row->date?->format('d') }}
@@ -1161,7 +1081,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             </div>
                         </td>
 
-                        {{-- ── Stagiaire ── --}}
                         <td>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <div class="avatar">{{ $initials }}</div>
@@ -1176,14 +1095,12 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             </div>
                         </td>
 
-                        {{-- ── Groupe ── --}}
                         <td>
                             <span style="font-size:11px;font-weight:600;color:#475569;">
                                 {{ $row->groupe?->name ?? $row->stagiaire?->groupe?->name ?? '—' }}
                             </span>
                         </td>
 
-                        {{-- ── Module(s) ── --}}
                         <td style="min-width:160px;">
                             @foreach($row->emplois as $emp)
                                 <div style="margin-bottom:4px;padding-bottom:4px;
@@ -1202,19 +1119,15 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             @endif
                         </td>
 
-                        {{-- ── Formateur(s) ── --}}
                         <td>
                             @foreach($row->formateurs as $form)
-                                <div style="font-size:11px;color:#475569;font-weight:500;">
-                                    {{ $form->name }}
-                                </div>
+                                <div style="font-size:11px;color:#475569;font-weight:500;">{{ $form->name }}</div>
                             @endforeach
                             @if($row->formateurs->isEmpty())
                                 <span style="color:#94a3b8;">—</span>
                             @endif
                         </td>
 
-                        {{-- ── Demi-séances ── --}}
                         <td>
                             <div style="display:flex;flex-wrap:wrap;gap:3px;">
                                 @foreach($row->parts as $part)
@@ -1232,12 +1145,10 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             </div>
                         </td>
 
-                        {{-- ── Total heures ── --}}
                         <td>
                             <span class="hours-pill">{{ $row->total_duree }}h</span>
                         </td>
 
-                        {{-- ── Statut global ── --}}
                         <td>
                             @if($row->is_justified)
                                 <span class="badge badge-justifie">✅ Justifiée(s)</span>
@@ -1251,9 +1162,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                             @endif
                         </td>
 
-                        {{-- ══════════════════════════════════════════════════════════════════
-                             JUSTIFICATIF & ACTIONS — HISTORY TABLE
-                             ══════════════════════════════════════════════════════════════════ --}}
                         <td style="min-width:260px;">
                             @php
                                 $allRowAbsIds  = $row->absences->pluck('id');
@@ -1264,7 +1172,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 $rowSharedFile = $row->absences->first(fn($a) => $a->file_justification)?->file_justification;
                             @endphp
 
-                            {{-- CASE 1: Already admin validated (without justification) --}}
                             @if($row->is_admin_validated)
                                 <div style="display:flex;flex-direction:column;gap:6px;">
                                     <span class="badge-admin-allowed">✔ Autorisé sans justificatif</span>
@@ -1273,13 +1180,12 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                         @foreach($allRowAbsIds as $id)
                                             <input type="hidden" name="absence_ids[]" value="{{ $id }}">
                                         @endforeach
-                                        <button type="submit" class="btn-admin-revert" title="Rétablir le signalement formateur">
+                                        <button type="submit" class="btn-admin-revert">
                                             ↩ Annuler l'autorisation
                                         </button>
                                     </form>
                                 </div>
 
-                            {{-- CASE 2: All justified --}}
                             @elseif($allRowJust)
                                 @if($rowSharedFile)
                                     <a href="{{ Storage::url($rowSharedFile) }}" target="_blank"
@@ -1290,7 +1196,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 @else
                                     <span class="badge badge-justifie" style="margin-bottom:8px;display:inline-flex;">✅ Toutes justifiées</span><br>
                                 @endif
-
                                 @if($canJustify)
                                 <form method="POST" action="{{ route('absences.admin.bulk.unjustify') }}"
                                       onsubmit="return confirm('Annuler la justification pour toutes les demi-séances ?')">
@@ -1302,7 +1207,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 </form>
                                 @endif
 
-                            {{-- CASE 3: Pending file awaiting validation --}}
                             @elseif($anyRowPending)
                                 @if($rowSharedFile)
                                     <a href="{{ Storage::url($rowSharedFile) }}" target="_blank"
@@ -1323,16 +1227,12 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                             </span>
                                             <form method="POST" action="{{ route('absences.accept', $abs) }}" style="display:inline;">
                                                 @csrf @method('PATCH')
-                                                <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">
-                                                    ✓ Accepter
-                                                </button>
+                                                <button type="submit" class="btn-accept" style="font-size:9px;padding:2px 7px;">✓ Accepter</button>
                                             </form>
                                             <form method="POST" action="{{ route('absences.reject', $abs) }}"
                                                   onsubmit="return confirm('Rejeter ce justificatif ?')" style="display:inline;">
                                                 @csrf @method('PATCH')
-                                                <button type="submit" class="btn-reject" style="font-size:9px;padding:2px 7px;">
-                                                    ✕ Rejeter
-                                                </button>
+                                                <button type="submit" class="btn-reject" style="font-size:9px;padding:2px 7px;">✕ Rejeter</button>
                                             </form>
                                         </div>
                                     @endforeach
@@ -1341,10 +1241,8 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                     <div style="font-size:10px;color:#92400e;margin-top:4px;">En cours d'examen</div>
                                 @endif
 
-                            {{-- CASE 4: No file — Upload + Admin validate without justification --}}
                             @else
                                 @if($canJustify)
-                                    {{-- Upload button --}}
                                     <form method="POST"
                                           action="{{ route('absences.admin.fichier.jour') }}"
                                           enctype="multipart/form-data"
@@ -1368,8 +1266,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                             Couvre les {{ $allRowAbsIds->count() }} demi-séance(s) du jour
                                         </div>
                                     </form>
-
-                                    {{-- ADMIN VALIDATE WITHOUT JUSTIFICATION BUTTON --}}
                                     <form method="POST" action="{{ route('absences.admin.valider') }}"
                                           style="margin-bottom:8px;"
                                           onsubmit="return confirm('⚠️ Autoriser cette absence sans justificatif ?\n\nLe signalement formateur sera supprimé mais l\'absence restera non-justifiée.')">
@@ -1377,13 +1273,10 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                         @foreach($allRowAbsIds as $id)
                                             <input type="hidden" name="absence_ids[]" value="{{ $id }}">
                                         @endforeach
-                                        <button type="submit" class="btn-admin-allow"
-                                                title="L'absence reste non-justifiée mais le signalement formateur disparaît">
+                                        <button type="submit" class="btn-admin-allow">
                                             🔓 Autoriser sans justificatif
                                         </button>
                                     </form>
-
-                                    {{-- Single "Justifier" button --}}
                                     <form method="POST" action="{{ route('absences.admin.bulk.justify') }}" style="margin-top:6px;">
                                         @csrf
                                         @foreach($allRowAbsIds as $id)
@@ -1396,7 +1289,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                                 @endif
                             @endif
                         </td>
-                        {{-- ── END ACTIONS COLUMN ── --}}
 
                     </tr>
                 @endforeach
@@ -1404,7 +1296,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
             </table>
             </div>
 
-            {{-- Pagination --}}
             @if($absencesGrouped->hasPages())
             <div class="pagination-wrap">
                 <span style="font-size:11px;color:#94a3b8;">
@@ -1447,17 +1338,13 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 
 </div>
 
-{{-- ══════════════════════════════════════════════════════════════════════
-     AJAX FILTER ENGINE — no page reload
-     ══════════════════════════════════════════════════════════════════════ --}}
+{{-- ══ AJAX FILTER ENGINE ══ --}}
 <style>
-/* Loading overlay */
 .abs-loading-overlay {
     position:fixed; inset:0; z-index:9999;
     background:rgba(255,255,255,0.55);
     backdrop-filter:blur(2px);
     display:none; align-items:center; justify-content:center;
-    transition:opacity .2s;
 }
 .abs-loading-overlay.active { display:flex; }
 .abs-spinner {
@@ -1467,8 +1354,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
     animation:abs-spin .7s linear infinite;
 }
 @keyframes abs-spin { to { transform:rotate(360deg); } }
-
-/* Fade-swap animation */
 .abs-swap-out { opacity:0; transform:translateY(4px); transition:all .18s ease; }
 .abs-swap-in  { animation:abs-fade-in .25s ease forwards; }
 @keyframes abs-fade-in {
@@ -1488,55 +1373,31 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
 
 <script>
 (function () {
-    // ── IDs of sections we swap on every filter/nav request ──
-    const SWAP_IDS = [
-        'abs-stats-grid',
-        'abs-day-panel-wrap',
-        'abs-table-wrap',
-    ];
-
-    // ── tiny debounce ──
+    const SWAP_IDS = ['abs-stats-grid','abs-day-panel-wrap','abs-table-wrap'];
     let _timer = null;
-    function debounce(fn, ms) {
-        clearTimeout(_timer);
-        _timer = setTimeout(fn, ms);
-    }
-
-    // ── show / hide loading overlay ──
+    function debounce(fn, ms) { clearTimeout(_timer); _timer = setTimeout(fn, ms); }
     const overlay = document.getElementById('abs-loading-overlay');
-    function showLoading()  { overlay.classList.add('active'); }
-    function hideLoading()  { overlay.classList.remove('active'); }
+    function showLoading() { overlay.classList.add('active'); }
+    function hideLoading() { overlay.classList.remove('active'); }
 
-    // ── core fetch + swap ──
     function absAjax(url) {
         showLoading();
-
-        // Fade out swappable zones
-        SWAP_IDS.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('abs-swap-out');
-        });
-
+        SWAP_IDS.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('abs-swap-out'); });
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.text())
             .then(html => {
-                const parser  = new DOMParser();
-                const newDoc  = parser.parseFromString(html, 'text/html');
-
-                // Swap each section
+                const parser = new DOMParser();
+                const newDoc = parser.parseFromString(html, 'text/html');
                 SWAP_IDS.forEach(id => {
                     const current = document.getElementById(id);
                     const fresh   = newDoc.getElementById(id);
                     if (current && fresh) {
                         current.classList.remove('abs-swap-out');
                         current.outerHTML = fresh.outerHTML;
-                        // Re-find (outerHTML replaces the node)
                         const replaced = document.getElementById(id);
                         if (replaced) replaced.classList.add('abs-swap-in');
                     }
                 });
-
-                // Update filter form selects to reflect new state
                 const newForm = newDoc.getElementById('abs-filter-form');
                 const curForm = document.getElementById('abs-filter-form');
                 if (newForm && curForm) {
@@ -1545,56 +1406,29 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
                         if (curSel) curSel.value = newSel.value;
                     });
                 }
-
-                // Update reset button visibility
                 const newReset = newDoc.getElementById('abs-reset-btn');
                 const curReset = document.getElementById('abs-reset-btn');
-                if (curReset && newReset) {
-                    curReset.href  = newReset.href;
-                    curReset.style.display = newReset.style.display;
-                }
-
-                // Update hidden day input if present
+                if (curReset && newReset) { curReset.href = newReset.href; curReset.style.display = newReset.style.display; }
                 const newDayHid = newDoc.getElementById('abs-day-hidden');
                 const curDayHid = document.getElementById('abs-day-hidden');
-                if (curDayHid && newDayHid) {
-                    curDayHid.value = newDayHid.value;
-                } else if (!curDayHid && newDayHid) {
-                    // insert it
-                    const f = document.getElementById('abs-filter-form');
-                    if (f) { const inp = document.createElement('input'); inp.type='hidden'; inp.name='day'; inp.id='abs-day-hidden'; inp.value=newDayHid.value; f.prepend(inp); }
-                } else if (curDayHid && !newDayHid) {
-                    curDayHid.remove();
-                }
-
-                // Update browser URL without reload
+                if (curDayHid && newDayHid) { curDayHid.value = newDayHid.value; }
+                else if (!curDayHid && newDayHid) { const f = document.getElementById('abs-filter-form'); if (f) { const inp = document.createElement('input'); inp.type='hidden'; inp.name='day'; inp.id='abs-day-hidden'; inp.value=newDayHid.value; f.prepend(inp); } }
+                else if (curDayHid && !newDayHid) { curDayHid.remove(); }
                 window.history.pushState({ absUrl: url }, '', url);
             })
-            .catch(() => {
-                // Fallback: normal reload on error
-                window.location.href = url;
-            })
-            .finally(() => {
-                hideLoading();
-                // Re-bind events on new DOM nodes
-                bindDayNav();
-                bindPagination();
-            });
+            .catch(() => { window.location.href = url; })
+            .finally(() => { hideLoading(); bindDayNav(); bindPagination(); });
     }
 
-    // ── Build URL from filter form ──
     function filterUrl() {
-        const form   = document.getElementById('abs-filter-form');
+        const form = document.getElementById('abs-filter-form');
         if (!form) return window.location.href;
-        const data   = new FormData(form);
+        const data = new FormData(form);
         const params = new URLSearchParams();
-        for (const [k, v] of data.entries()) {
-            if (v !== '') params.set(k, v);
-        }
+        for (const [k, v] of data.entries()) { if (v !== '') params.set(k, v); }
         return form.action + (params.toString() ? '?' + params.toString() : '');
     }
 
-    // ── Filter form: intercept submit + auto-change on selects ──
     document.addEventListener('submit', function (e) {
         const form = e.target.closest('#abs-filter-form');
         if (!form) return;
@@ -1608,51 +1442,36 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         debounce(() => absAjax(filterUrl()), 120);
     });
 
-    // ── Day nav links + pills: intercept clicks ──
     function bindDayNav() {
         document.querySelectorAll('.day-nav-btn[href], .day-pill[href]').forEach(el => {
             if (el.dataset.ajaxBound) return;
             el.dataset.ajaxBound = '1';
-            el.addEventListener('click', function (e) {
-                e.preventDefault();
-                absAjax(this.href);
-            });
+            el.addEventListener('click', function (e) { e.preventDefault(); absAjax(this.href); });
         });
-
-        // Day date <input type="date"> form inside day nav
         document.querySelectorAll('.day-date-input').forEach(inp => {
             if (inp.dataset.ajaxBound) return;
             inp.dataset.ajaxBound = '1';
             inp.addEventListener('change', function () {
-                const form   = this.closest('form');
+                const form = this.closest('form');
                 if (!form) return;
                 const params = new URLSearchParams(new FormData(form));
-                // Remove empty values
-                const clean  = new URLSearchParams();
+                const clean = new URLSearchParams();
                 for (const [k,v] of params) if (v) clean.set(k,v);
                 absAjax(form.action + '?' + clean.toString());
             });
         });
     }
 
-    // ── Pagination links: intercept clicks ──
     function bindPagination() {
         document.querySelectorAll('.pagination-wrap a').forEach(el => {
             if (el.dataset.ajaxBound) return;
             el.dataset.ajaxBound = '1';
-            el.addEventListener('click', function (e) {
-                e.preventDefault();
-                absAjax(this.href);
-            });
+            el.addEventListener('click', function (e) { e.preventDefault(); absAjax(this.href); });
         });
     }
 
-    // ── Handle browser back/forward ──
-    window.addEventListener('popstate', function (e) {
-        absAjax(window.location.href);
-    });
+    window.addEventListener('popstate', function () { absAjax(window.location.href); });
 
-    // ── Reset button: intercept ──
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('#abs-reset-btn');
         if (!btn) return;
@@ -1660,7 +1479,6 @@ table.abs-table tbody td { padding:12px 14px; font-size:12px; color:#374151; ver
         absAjax(btn.href);
     });
 
-    // ── Initial bind ──
     bindDayNav();
     bindPagination();
 })();

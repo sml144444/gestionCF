@@ -88,18 +88,19 @@ class DatabaseSeeder extends Seeder
             'controle-save',
             'mes-notes-view',
             'bulletin-view',
-            'search-stagiaires', // ← NEW
+            'bulletin-self',  // ← NOUVEAU : stagiaire voit son propre bulletin
+            'search-users',
         ];
 
         foreach ($permissions as $perm) {
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
-        // ── ADMIN — gets ALL permissions automatically ────────────
+        // ── ADMIN — gets ALL permissions automatically ────────────────────────
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions(Permission::all());
 
-        // ── GESTIONNAIRE ──────────────────────────────────────────
+        // ── GESTIONNAIRE ──────────────────────────────────────────────────────
         $gestionnaireRole = Role::firstOrCreate(['name' => 'gestionnaire', 'guard_name' => 'web']);
         $gestionnaireRole->syncPermissions([
             'emploi-view', 'emploi-view-all-groups', 'emploi-create',
@@ -116,10 +117,10 @@ class DatabaseSeeder extends Seeder
             'controle-view',
             'controle-save',
             'bulletin-view',
-            'search-stagiaires', // ← NEW
+            'search-users',
         ]);
 
-        // ── FORMATEUR ─────────────────────────────────────────────
+        // ── FORMATEUR ─────────────────────────────────────────────────────────
         $formateurRole = Role::firstOrCreate(['name' => 'formateur', 'guard_name' => 'web']);
         $formateurRole->syncPermissions([
             'emploi-view', 'emploi-lien',
@@ -131,11 +132,11 @@ class DatabaseSeeder extends Seeder
             'reclamation-view-assigned',
             'controle-view',
             'controle-save',
-            'search-stagiaires', // ← NEW
+            'bulletin-view',
+            'search-users',
         ]);
 
-        // ── STAGIAIRE ─────────────────────────────────────────────
-        // Stagiaires cannot search other stagiaires — permission NOT added here
+        // ── STAGIAIRE ─────────────────────────────────────────────────────────
         $stagiaireRole = Role::firstOrCreate(['name' => 'stagiaire', 'guard_name' => 'web']);
         $stagiaireRole->syncPermissions([
             'emploi-view',
@@ -143,6 +144,7 @@ class DatabaseSeeder extends Seeder
             'news-list', 'news-comment', 'news-like',
             'absence-view',
             'mes-notes-view',
+            'bulletin-self', // ← NOUVEAU : accès à son propre bulletin
         ]);
 
         User::all()->each(fn(User $u) => $u->syncRoles([$u->role]));
@@ -191,15 +193,11 @@ class DatabaseSeeder extends Seeder
         // 5. GROUPES
         // ════════════════════════════════════════════════════════════
         $groupes = [
-            // Développement Digital — Année 1
             ['filiere' => $filiereDev, 'name' => 'TDEV-101', 'code' => 'TDEV-101-26', 'annee' => 1, 'nbr_limit' => 25, 'promo' => 2026],
             ['filiere' => $filiereDev, 'name' => 'TDEV-102', 'code' => 'TDEV-102-26', 'annee' => 1, 'nbr_limit' => 25, 'promo' => 2026],
-            // Développement Digital — Année 2
             ['filiere' => $filiereDev, 'name' => 'TDEV-201', 'code' => 'TDEV-201-26', 'annee' => 2, 'nbr_limit' => 25, 'promo' => 2026],
             ['filiere' => $filiereDev, 'name' => 'TDEV-202', 'code' => 'TDEV-202-26', 'annee' => 2, 'nbr_limit' => 25, 'promo' => 2026],
-            // Génie Informatique — Année 1
             ['filiere' => $filiereGI,  'name' => 'TGI-101',  'code' => 'TGI-101-26',  'annee' => 1, 'nbr_limit' => 25, 'promo' => 2026],
-            // Génie Informatique — Année 2
             ['filiere' => $filiereGI,  'name' => 'TGI-201',  'code' => 'TGI-201-26',  'annee' => 2, 'nbr_limit' => 25, 'promo' => 2026],
         ];
 
@@ -225,7 +223,6 @@ class DatabaseSeeder extends Seeder
         $formateur = User::where('role', 'formateur')->first();
 
         $modulesDev = [
-            // Année 1
             ['name' => 'Algorithmique & Programmation', 'nbr_heure' => 60, 'coefficience' => 3, 'type' => 'regional', 'annee' => 1],
             ['name' => 'HTML & CSS',                    'nbr_heure' => 60, 'coefficience' => 2, 'type' => 'regional', 'annee' => 1],
             ['name' => 'JavaScript & TypeScript',       'nbr_heure' => 80, 'coefficience' => 3, 'type' => 'local',    'annee' => 1],
@@ -233,7 +230,6 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Git & DevOps',                  'nbr_heure' => 40, 'coefficience' => 2, 'type' => 'regional', 'annee' => 1],
             ['name' => 'Communication & Soft Skills',   'nbr_heure' => 30, 'coefficience' => 1, 'type' => 'regional', 'annee' => 1],
             ['name' => 'Anglais technique',             'nbr_heure' => 40, 'coefficience' => 2, 'type' => 'regional', 'annee' => 1],
-            // Année 2
             ['name' => 'PHP & Laravel',                 'nbr_heure' => 90, 'coefficience' => 3, 'type' => 'local',    'annee' => 2],
             ['name' => 'React.js',                      'nbr_heure' => 70, 'coefficience' => 3, 'type' => 'local',    'annee' => 2],
             ['name' => 'APIs REST & GraphQL',           'nbr_heure' => 60, 'coefficience' => 3, 'type' => 'local',    'annee' => 2],
@@ -258,13 +254,11 @@ class DatabaseSeeder extends Seeder
         }
 
         $modulesGI = [
-            // Année 1
             ['name' => "Systèmes d'exploitation",  'nbr_heure' => 70, 'coefficience' => 3, 'type' => 'regional', 'annee' => 1],
             ['name' => 'Réseaux & Administration',  'nbr_heure' => 80, 'coefficience' => 3, 'type' => 'regional', 'annee' => 1],
             ['name' => 'Linux & Shell',             'nbr_heure' => 50, 'coefficience' => 2, 'type' => 'local',    'annee' => 1],
             ['name' => 'Base de données SQL',       'nbr_heure' => 60, 'coefficience' => 2, 'type' => 'regional', 'annee' => 1],
             ['name' => 'Anglais technique',         'nbr_heure' => 40, 'coefficience' => 2, 'type' => 'regional', 'annee' => 1],
-            // Année 2
             ['name' => 'Sécurité informatique',     'nbr_heure' => 60, 'coefficience' => 3, 'type' => 'regional', 'annee' => 2],
             ['name' => 'Virtualisation & Cloud',    'nbr_heure' => 50, 'coefficience' => 2, 'type' => 'local',    'annee' => 2],
             ['name' => 'Scripting Bash & Python',   'nbr_heure' => 40, 'coefficience' => 2, 'type' => 'local',    'annee' => 2],
@@ -293,29 +287,23 @@ class DatabaseSeeder extends Seeder
         DB::table('edu')->truncate();
 
         $eduStudents = [
-            // TDEV-101-26
             ['edu_email' => 'youssef.aitali@ofppt.ma',   'nom' => 'Ait Ali',  'prenom' => 'Youssef',  'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-101-26'],
             ['edu_email' => 'sara.idrissi@ofppt.ma',     'nom' => 'Idrissi',  'prenom' => 'Sara',     'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-101-26'],
             ['edu_email' => 'hamza.benali@ofppt.ma',     'nom' => 'Benali',   'prenom' => 'Hamza',    'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-101-26'],
             ['edu_email' => 'imane.tahiri@ofppt.ma',     'nom' => 'Tahiri',   'prenom' => 'Imane',    'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-101-26'],
             ['edu_email' => 'omar.belhaj@ofppt.ma',      'nom' => 'Belhaj',   'prenom' => 'Omar',     'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-101-26'],
-            // TDEV-102-26
             ['edu_email' => 'anas.moufid@ofppt.ma',      'nom' => 'Moufid',   'prenom' => 'Anas',     'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-102-26'],
             ['edu_email' => 'soukayna.belkadi@ofppt.ma', 'nom' => 'Belkadi',  'prenom' => 'Soukayna', 'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-102-26'],
             ['edu_email' => 'zakaria.naciri@ofppt.ma',   'nom' => 'Naciri',   'prenom' => 'Zakaria',  'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-102-26'],
             ['edu_email' => 'nadia.chraibi@ofppt.ma',    'nom' => 'Chraibi',  'prenom' => 'Nadia',    'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-102-26'],
-            // TDEV-201-26
             ['edu_email' => 'bilal.amrani@ofppt.ma',     'nom' => 'Amrani',   'prenom' => 'Bilal',    'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-201-26'],
             ['edu_email' => 'meriem.bensaid@ofppt.ma',   'nom' => 'Bensaid',  'prenom' => 'Meriem',   'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-201-26'],
             ['edu_email' => 'ilyas.mouhib@ofppt.ma',     'nom' => 'Mouhib',   'prenom' => 'Ilyas',    'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-201-26'],
-            // TDEV-202-26
             ['edu_email' => 'kawthar.ziani@ofppt.ma',    'nom' => 'Ziani',    'prenom' => 'Kawthar',  'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-202-26'],
             ['edu_email' => 'hicham.rachidi@ofppt.ma',   'nom' => 'Rachidi',  'prenom' => 'Hicham',   'filiere_code' => 'DEVDIG', 'groupe_code' => 'TDEV-202-26'],
-            // TGI-101-26
             ['edu_email' => 'adam.tazi@ofppt.ma',        'nom' => 'Tazi',     'prenom' => 'Adam',     'filiere_code' => 'GI',     'groupe_code' => 'TGI-101-26'],
             ['edu_email' => 'hajar.alaoui@ofppt.ma',     'nom' => 'Alaoui',   'prenom' => 'Hajar',    'filiere_code' => 'GI',     'groupe_code' => 'TGI-101-26'],
             ['edu_email' => 'tariq.bennani@ofppt.ma',    'nom' => 'Bennani',  'prenom' => 'Tariq',    'filiere_code' => 'GI',     'groupe_code' => 'TGI-101-26'],
-            // TGI-201-26
             ['edu_email' => 'samira.filali@ofppt.ma',    'nom' => 'Filali',   'prenom' => 'Samira',   'filiere_code' => 'GI',     'groupe_code' => 'TGI-201-26'],
             ['edu_email' => 'amine.berrada@ofppt.ma',    'nom' => 'Berrada',  'prenom' => 'Amine',    'filiere_code' => 'GI',     'groupe_code' => 'TGI-201-26'],
         ];
@@ -351,7 +339,6 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($testStagiaires as $s) {
-            // 1. Create the User account
             $user = User::firstOrCreate(
                 ['email' => $s['edu_email']],
                 [
@@ -363,10 +350,8 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            // 2. Assign stagiaire role (Spatie)
             $user->syncRoles(['stagiaire']);
 
-            // 3. Mark EDU row as used
             DB::table('edu')
                 ->where('edu_email', $s['edu_email'])
                 ->update(['used' => true]);

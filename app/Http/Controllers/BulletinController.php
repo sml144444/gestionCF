@@ -19,7 +19,10 @@ class BulletinController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:admin,gestionnaire,formateur');
+
+        // Toutes les méthodes sauf showSelf sont réservées au staff
+        $this->middleware('role:admin,gestionnaire,formateur')
+             ->except('showSelf');
     }
 
     // ── Step 1: choose groupe + stagiaire ────────────────────────
@@ -141,27 +144,28 @@ class BulletinController extends Controller
             );
 
             // ── EFF — final year only ─────────────────────────────
-            // Final year = stagiaire.annee == filiere.duree
             $filiere     = $groupe->filiere;
-           $isFinalYear = $filiere && $groupe->annee == $filiere->duree;
+            $isFinalYear = $filiere && $groupe->annee == $filiere->duree;
 
             if ($isFinalYear) {
                 $effRecord = Eff::where('id_user',    $stagiaire->id)
                                ->where('id_filiere', $groupe->id_filiere)
                                ->first();
-                $effNote   = $effRecord?->note_eff !== null
+
+                // $effNote is stored as /100 in the database
+                $effNote = $effRecord?->note_eff !== null
                     ? (float) $effRecord->note_eff
                     : null;
             }
 
             // ── Final grade ───────────────────────────────────────
-            // Not final year → Final Grade = Moyenne Générale
-            // Final year     → Final Grade = (EFF × 0.6) + (MG × 0.4)
-            // Final year, no EFF → null
+            // Convert EFF from /100 → /20 before passing to service
+            $effNoteFor20 = $effNote !== null ? round($effNote / 5, 2) : null;
+
             $finalGrade = $service->calculateFinalGrade(
                 $generalAverage,
                 $isFinalYear,
-                $effNote
+                $effNoteFor20   // pass converted /20 value, not raw /100
             );
         }
 
@@ -175,10 +179,23 @@ class BulletinController extends Controller
             'filiereFilter', 'promoFilter',
             'disciplineNote',
             'isFinalYear',
-            'effNote',
+            'effNote',      // raw /100 value — for display
             'effRecord',
             'finalGrade'
         ));
+    }
+
+    // ── Stagiaire : voir son propre bulletin ──────────────────────
+    public function showSelf(Request $request)
+    {
+        $stagiaire = Auth::user();
+
+        // Sécurité : uniquement les stagiaires
+        abort_unless($stagiaire->role === 'stagiaire', 403);
+
+        // Réutilise directement la logique de show()
+        // en passant le stagiaire connecté comme paramètre
+        return $this->show($request, $stagiaire);
     }
 
     // ── Store / update EFF note (admin + gestionnaire only) ──────
@@ -190,8 +207,9 @@ class BulletinController extends Controller
         );
         abort_unless($stagiaire->role === 'stagiaire', 404);
 
+        // EFF is now stored as /100
         $request->validate([
-            'eff_note' => 'required|numeric|min:0|max:20',
+            'eff_note' => 'required|numeric|min:0|max:100',
         ]);
 
         $groupe = Groupe::with('filiere')->whereHas(

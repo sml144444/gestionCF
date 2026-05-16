@@ -53,7 +53,7 @@
                 'stagiaire-create'  => '➕ Créer un stagiaire',
                 'stagiaire-edit'    => '✏️ Modifier un stagiaire',
                 'stagiaire-delete'  => '🗑️ Supprimer un stagiaire',
-                'search-stagiaires' => '🔍 Rechercher des stagiaires (barre de recherche)', // ← NEW
+                'search-users' => '🔍 Rechercher tous les utilisateurs (barre de recherche)',
             ]
         ],
         'groupe' => [

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Mail\WelcomeMail;
+use App\Models\EmploiDuTemps;
 use App\Models\Module;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -24,6 +26,8 @@ class UserManagementController extends Controller
             }
             return $next($request);
         })->only(['index', 'create', 'store', 'edit', 'update', 'updateRole']);
+        // NOTE: 'show' is intentionally excluded here — it handles its own
+        // authorization internally to also allow formateurs to view stagiaire profiles.
 
         $this->middleware(function ($request, $next) {
             $user = auth()->user();
@@ -123,7 +127,6 @@ class UserManagementController extends Controller
             'email'           => ['required', 'email', 'unique:users,email'],
             'role'            => ['required', Rule::in($allowed)],
             'cin'             => ['nullable', 'string', 'max:20'],
-            // ✅ Phone: only digits, spaces, +, -, ( ), dot — 6 to 20 chars
             'phone'           => ['nullable', 'string', 'max:20', 'regex:/^[\+]?[0-9\s\-\(\)\.]{6,20}$/'],
             'date_naissance'  => ['nullable', 'date'],
             'photo'           => ['nullable', 'image', 'max:2048'],
@@ -166,6 +169,29 @@ class UserManagementController extends Controller
             ->with('success', "Utilisateur « {$user->name} » créé. Ses accès ont été envoyés par e-mail.");
     }
 
+    // ── SHOW — unified for stagiaire + formateur + gestionnaire ──────────────
+    public function show(User $user)
+    {
+        // Staff roles this auth user can manage
+        $staffAllowed = $this->allowedRoles();              // ['formateur','gestionnaire']
+
+        // Allow staff profiles AND stagiaire profiles through the same method.
+        // Formateurs reach here via stagiaire.show (which has its own middleware),
+        // so we only gate staff profiles against allowedRoles().
+        if ($user->role === 'stagiaire') {
+            // Any authenticated user who can reach this route may view a stagiaire
+            // (route-level middleware already checked can:stagiaire-list)
+        } else {
+            abort_unless(in_array($user->role, $staffAllowed), 403);
+        }
+
+        // Eager-load everything the unified view may need —
+        // unused relations are just empty collections, no cost.
+        $user->load(['modules', 'roles', 'filiere', 'groupe', 'absences']);
+
+        return view('users.show', compact('user'));
+    }
+
     // ── EDIT ──────────────────────────────────────────────────────────────────
     public function edit(User $user)
     {
@@ -201,7 +227,6 @@ class UserManagementController extends Controller
             'email'           => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'role'            => ['required', Rule::in($allowed)],
             'cin'             => ['nullable', 'string', 'max:20'],
-            // ✅ Phone: only digits, spaces, +, -, ( ), dot — 6 to 20 chars
             'phone'           => ['nullable', 'string', 'max:20', 'regex:/^[\+]?[0-9\s\-\(\)\.]{6,20}$/'],
             'date_naissance'  => ['nullable', 'date'],
             'photo'           => ['nullable', 'image', 'max:2048'],
@@ -275,6 +300,63 @@ class UserManagementController extends Controller
         return redirect()
             ->route('users.management.index', $request->only(['search', 'role']))
             ->with('success', "Rôle de « {$user->name} » mis à jour → {$request->spatie_role}");
+    }
+
+    // ── UNIVERSAL SEARCH ──────────────────────────────────────────────────────
+    public function searchAll(Request $request)
+    {
+        $q = trim($request->get('q', ''));
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $authUser = Auth::user();
+
+        $query = User::where(fn($sq) =>
+                $sq->where('name',  'like', "%{$q}%")
+                   ->orWhere('email', 'like', "%{$q}%")
+                   ->orWhere('cin',   'like', "%{$q}%")
+            )
+            ->with(['groupe', 'filiere']);
+
+        // ── Formateur: only their own stagiaires ──────────────────────────────
+        if ($authUser->role === 'formateur') {
+            $moduleIds = Module::where('id_user', $authUser->id)
+                ->orWhere('id_user_remplacant', $authUser->id)
+                ->pluck('id');
+
+            $groupeIds = EmploiDuTemps::whereIn('id_module', $moduleIds)
+                ->pluck('id_groupe')
+                ->unique();
+
+            $query->where('role', 'stagiaire')
+                  ->whereIn('id_groupe', $groupeIds);
+
+        // ── Admin / Gestionnaire: everyone except themselves ──────────────────
+        } else {
+            $query->whereIn('role', ['stagiaire', 'formateur', 'gestionnaire'])
+                  ->where('id', '!=', $authUser->id);
+        }
+
+        $results = $query->orderBy('name')->limit(10)->get()
+            ->map(fn($u) => [
+                'id'     => $u->id,
+                'name'   => $u->name,
+                'role'   => $u->role,
+                'filiere'=> $u->filiere?->name
+                            ?? ($u->role !== 'stagiaire' ? ucfirst($u->role) : '—'),
+                'groupe' => $u->groupe?->name ?? '—',
+                'promo'  => $u->groupe?->promo_label
+                            ?? ($u->role !== 'stagiaire' ? $u->email : '—'),
+                // All roles now resolve to the same show route
+                'url'    => match ($u->role) {
+                    'stagiaire' => route('stagiaire.show', $u->id),
+                    default     => route('users.management.show', $u->id),
+                },
+            ]);
+
+        return response()->json($results);
     }
 
     // ── PRIVATE ───────────────────────────────────────────────────────────────

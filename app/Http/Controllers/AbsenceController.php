@@ -6,7 +6,7 @@ use App\Models\AbsenceRetard;
 use App\Models\User;
 use App\Models\Groupe;
 use App\Models\Filiere;
-use App\Services\NotificationService; // ✅ NEW
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -87,15 +87,28 @@ class AbsenceController extends Controller
         }
 
         $stats = [
-            'total'            => (clone $statsQuery)->count(),
-            'justifies'        => (clone $statsQuery)->where('justifie', true)->count(),
-            'injustifies'      => (clone $statsQuery)->where('justifie', false)->whereNull('file_justification')->count(),
-            'en_attente'       => (clone $statsQuery)->where('justifie', false)->whereNotNull('file_justification')->count(),
+            // ✅ FIX: count distinct (day + stagiaire) groups, not individual session rows
+            'total'            => (clone $statsQuery)
+                                    ->selectRaw('DATE(date_event) as d, id_user')
+                                    ->groupBy('d', 'id_user')
+                                    ->get()
+                                    ->count(),
+            'justifies'        => (clone $statsQuery)->where('justifie', true)
+                                    ->selectRaw('DATE(date_event) as d, id_user')
+                                    ->groupBy('d', 'id_user')
+                                    ->get()
+                                    ->count(),
+            'injustifies'      => (clone $statsQuery)->where('justifie', false)->whereNull('file_justification')
+                                    ->selectRaw('DATE(date_event) as d, id_user')
+                                    ->groupBy('d', 'id_user')
+                                    ->get()
+                                    ->count(),
+            'en_attente'       => (clone $statsQuery)->where('justifie', false)->whereNotNull('file_justification')
+                                    ->selectRaw('DATE(date_event) as d, id_user')
+                                    ->groupBy('d', 'id_user')
+                                    ->get()
+                                    ->count(),
             'total_heures_abs' => round((clone $statsQuery)->sum('duree'), 1),
-            's1' => (clone $statsQuery)->where('session_part', 's1')->count(),
-            's2' => (clone $statsQuery)->where('session_part', 's2')->count(),
-            's3' => (clone $statsQuery)->where('session_part', 's3')->count(),
-            's4' => (clone $statsQuery)->where('session_part', 's4')->count(),
         ];
 
         // ── Dropdowns ──────────────────────────────────────────
@@ -311,110 +324,104 @@ class AbsenceController extends Controller
     }
 
     // ── ACCEPT JUSTIFICATION ──────────────────────────────────
-public function acceptJustification(AbsenceRetard $absence)
-{
-    if (!Auth::user()->can('absence-justify')) abort(403);
+    public function acceptJustification(AbsenceRetard $absence)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
-    $absence->update(['justifie' => true]);
+        $absence->update(['justifie' => true]);
 
-    // ✅ Only notify once ALL sessions of that day are justified
-    $stillUnjustified = AbsenceRetard::where('id_user', $absence->id_user)
-        ->where('type', 'absence')
-        ->whereDate('date_event', $absence->date_event)
-        ->where('justifie', false)
-        ->exists();
+        $stillUnjustified = AbsenceRetard::where('id_user', $absence->id_user)
+            ->where('type', 'absence')
+            ->whereDate('date_event', $absence->date_event)
+            ->where('justifie', false)
+            ->exists();
 
-    if (! $stillUnjustified) {
-        $stagiaire = $absence->load('stagiaire', 'cours.emploiDuTemps.module')->stagiaire;
-        if ($stagiaire) {
-            NotificationService::justificationAcceptee(
-                stagiaire:  $stagiaire,
-                date:       $absence->date_event?->format('d/m/Y') ?? '—',
-                moduleName: $absence->cours?->emploiDuTemps?->module?->name ?? 'N/A',
-                url:        route('absences.index', [
-                                'day' => $absence->date_event?->toDateString(),
-                            ]),
-            );
+        if (! $stillUnjustified) {
+            $stagiaire = $absence->load('stagiaire', 'cours.emploiDuTemps.module')->stagiaire;
+            if ($stagiaire) {
+                NotificationService::justificationAcceptee(
+                    stagiaire:  $stagiaire,
+                    date:       $absence->date_event?->format('d/m/Y') ?? '—',
+                    moduleName: $absence->cours?->emploiDuTemps?->module?->name ?? 'N/A',
+                    url:        route('absences.index', [
+                                    'day' => $absence->date_event?->toDateString(),
+                                ]),
+                );
+            }
         }
-    }
 
-    return back()->with('success', 'Justificatif accepté — absence marquée comme justifiée.');
-}
+        return back()->with('success', 'Justificatif accepté — absence marquée comme justifiée.');
+    }
 
     // ── REJECT JUSTIFICATION ──────────────────────────────────
-// ── REJECT JUSTIFICATION ──────────────────────────────────────────────
-// ── REJECT JUSTIFICATION ──────────────────────────────────────────────
-public function rejectJustification(AbsenceRetard $absence)
-{
-    if (!Auth::user()->can('absence-justify')) abort(403);
+    public function rejectJustification(AbsenceRetard $absence)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
-    if ($absence->file_justification) {
-        Storage::disk('public')->delete($absence->file_justification);
-        $absence->update([
-            'file_justification' => null,
-            'justifie'           => false,
-        ]);
-    }
-
-    // ✅ Only notify once no pending sessions remain for that day
-    $stillPending = AbsenceRetard::where('id_user', $absence->id_user)
-        ->where('type', 'absence')
-        ->whereDate('date_event', $absence->date_event)
-        ->where('justifie', false)
-        ->whereNotNull('file_justification')
-        ->exists();
-
-    if (! $stillPending) {
-        $stagiaire = $absence->load('stagiaire', 'cours.emploiDuTemps.module')->stagiaire;
-        if ($stagiaire) {
-            NotificationService::justificationRefusee(
-                stagiaire:  $stagiaire,
-                date:       $absence->date_event?->format('d/m/Y') ?? '—',
-                moduleName: $absence->cours?->emploiDuTemps?->module?->name ?? 'N/A',
-                url:        route('absences.index', [
-                                'day' => $absence->date_event?->toDateString(),
-                            ]),
-            );
+        if ($absence->file_justification) {
+            Storage::disk('public')->delete($absence->file_justification);
+            $absence->update([
+                'file_justification' => null,
+                'justifie'           => false,
+            ]);
         }
-    }
 
-    return back()->with('success', 'Justificatif rejeté. Le stagiaire peut en soumettre un nouveau.');
-}
+        $stillPending = AbsenceRetard::where('id_user', $absence->id_user)
+            ->where('type', 'absence')
+            ->whereDate('date_event', $absence->date_event)
+            ->where('justifie', false)
+            ->whereNotNull('file_justification')
+            ->exists();
+
+        if (! $stillPending) {
+            $stagiaire = $absence->load('stagiaire', 'cours.emploiDuTemps.module')->stagiaire;
+            if ($stagiaire) {
+                NotificationService::justificationRefusee(
+                    stagiaire:  $stagiaire,
+                    date:       $absence->date_event?->format('d/m/Y') ?? '—',
+                    moduleName: $absence->cours?->emploiDuTemps?->module?->name ?? 'N/A',
+                    url:        route('absences.index', [
+                                    'day' => $absence->date_event?->toDateString(),
+                                ]),
+                );
+            }
+        }
+
+        return back()->with('success', 'Justificatif rejeté. Le stagiaire peut en soumettre un nouveau.');
+    }
 
     // ── AUTORISER SANS JUSTIFICATIF ───────────────────────────
-// ── AUTORISER SANS JUSTIFICATIF ───────────────────────────────────────
-public function adminValiderSansJustificatif(Request $request)
-{
-    if (!Auth::user()->can('absence-justify')) abort(403);
+    public function adminValiderSansJustificatif(Request $request)
+    {
+        if (!Auth::user()->can('absence-justify')) abort(403);
 
-    $ids      = $request->input('absence_ids', []);
-    $absences = AbsenceRetard::with('stagiaire')->whereIn('id', $ids)->get();
+        $ids      = $request->input('absence_ids', []);
+        $absences = AbsenceRetard::with('stagiaire')->whereIn('id', $ids)->get();
 
-    if ($absences->isEmpty()) abort(404);
+        if ($absences->isEmpty()) abort(404);
 
-    foreach ($absences as $absence) {
-        $absence->update(['admin_validated' => true]);
-    }
+        foreach ($absences as $absence) {
+            $absence->update(['admin_validated' => true]);
+        }
 
-    // ✅ Notify each stagiaire once per group (same day, same user)
-    $absences->groupBy('id_user')->each(function ($group) {
-        $first     = $group->first();
-        $stagiaire = $first->stagiaire;
-        if (! $stagiaire) return;
+        $absences->groupBy('id_user')->each(function ($group) {
+            $first     = $group->first();
+            $stagiaire = $first->stagiaire;
+            if (! $stagiaire) return;
 
-        NotificationService::absenceAutorisee(
-            stagiaire: $stagiaire,
-            date:      $first->date_event?->format('d/m/Y') ?? '—',
-            url:       route('absences.index', [
-                           'day' => $first->date_event?->toDateString(),
-                       ]),
+            NotificationService::absenceAutorisee(
+                stagiaire: $stagiaire,
+                date:      $first->date_event?->format('d/m/Y') ?? '—',
+                url:       route('absences.index', [
+                               'day' => $first->date_event?->toDateString(),
+                           ]),
+            );
+        });
+
+        return back()->with('success',
+            'Absence(s) autorisée(s) sans justificatif. Le signalement formateur est supprimé.'
         );
-    });
-
-    return back()->with('success',
-        'Absence(s) autorisée(s) sans justificatif. Le signalement formateur est supprimé.'
-    );
-}
+    }
 
     // ── ANNULER L'AUTORISATION SANS JUSTIFICATIF ─────────────
     public function adminAnnulerValidation(Request $request)
@@ -506,97 +513,89 @@ public function adminValiderSansJustificatif(Request $request)
         return back()->with('success', 'Fichier supprimé.');
     }
 
-    // ══════════════════════════════════════════════════════════
-    // STAGIAIRE UPLOAD (single absence)
-    // ✅ Sends notification to admins after file is stored.
-    // ══════════════════════════════════════════════════════════
-public function stagiaireUploadFichier(Request $request, AbsenceRetard $absence)
-{
-    if (Auth::id() !== $absence->id_user) abort(403);
-    if ($absence->justifie) return back()->with('error', 'Cette absence est déjà justifiée.');
+    // ── STAGIAIRE UPLOAD (single absence) ────────────────────
+    public function stagiaireUploadFichier(Request $request, AbsenceRetard $absence)
+    {
+        if (Auth::id() !== $absence->id_user) abort(403);
+        if ($absence->justifie) return back()->with('error', 'Cette absence est déjà justifiée.');
 
-    $request->validate([
-        'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-    ]);
+        $request->validate([
+            'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+        ]);
 
-    if ($absence->file_justification) {
-        Storage::disk('public')->delete($absence->file_justification);
-    }
-
-    $path = $request->file('file_justification')->store('justifications', 'public');
-    $absence->update(['file_justification' => $path, 'justifie' => false]);
-
-    $moduleName = $absence->load('cours.emploiDuTemps.module')
-        ->cours?->emploiDuTemps?->module?->name ?? 'N/A';
-
-    // ✅ Include stagiaire_id + day so the admin lands on the right filtered view
-    $date = $absence->date_event?->toDateString();
-
-    NotificationService::justificationSoumise(
-        stagiaire:  Auth::user(),
-        moduleName: $moduleName,
-        url:        route('absences.index', array_filter([
-                        'stagiaire_id' => Auth::id(),
-                        'day'          => $date,
-                    ])),
-        absenceIds: [$absence->id],
-    );
-
-    return back()->with('success', 'Justificatif envoyé avec succès. En attente de validation.');
-}
-
-    // ══════════════════════════════════════════════════════════
-    // STAGIAIRE UPLOAD (whole day — multiple absences)
-    // ✅ Sends notification to admins after files are stored.
-    // ══════════════════════════════════════════════════════════
-    public function stagiaireUploadFichierJour(Request $request)
-{
-    $ids      = $request->input('absence_ids', []);
-    $absences = AbsenceRetard::with('cours.emploiDuTemps.module')
-        ->whereIn('id', $ids)
-        ->where('id_user', Auth::id())
-        ->get();
-
-    if ($absences->isEmpty()) abort(403);
-    if ($absences->contains(fn($a) => $a->justifie)) {
-        return back()->with('error', 'Une ou plusieurs absences sont déjà justifiées.');
-    }
-
-    $request->validate([
-        'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
-    ]);
-
-    foreach ($absences as $absence) {
         if ($absence->file_justification) {
             Storage::disk('public')->delete($absence->file_justification);
         }
-    }
 
-    $path = $request->file('file_justification')->store('justifications', 'public');
-    foreach ($absences as $absence) {
+        $path = $request->file('file_justification')->store('justifications', 'public');
         $absence->update(['file_justification' => $path, 'justifie' => false]);
+
+        $moduleName = $absence->load('cours.emploiDuTemps.module')
+            ->cours?->emploiDuTemps?->module?->name ?? 'N/A';
+
+        $date = $absence->date_event?->toDateString();
+
+        NotificationService::justificationSoumise(
+            stagiaire:  Auth::user(),
+            moduleName: $moduleName,
+            url:        route('absences.index', array_filter([
+                            'stagiaire_id' => Auth::id(),
+                            'day'          => $date,
+                        ])),
+            absenceIds: [$absence->id],
+        );
+
+        return back()->with('success', 'Justificatif envoyé avec succès. En attente de validation.');
     }
 
-    $moduleName = $absences
-        ->map(fn($a) => $a->cours?->emploiDuTemps?->module?->name)
-        ->filter()
-        ->first() ?? 'N/A';
+    // ── STAGIAIRE UPLOAD (whole day) ─────────────────────────
+    public function stagiaireUploadFichierJour(Request $request)
+    {
+        $ids      = $request->input('absence_ids', []);
+        $absences = AbsenceRetard::with('cours.emploiDuTemps.module')
+            ->whereIn('id', $ids)
+            ->where('id_user', Auth::id())
+            ->get();
 
-    // ✅ All absences in a "day upload" share the same date
-    $date = $absences->first()?->date_event?->toDateString();
+        if ($absences->isEmpty()) abort(403);
+        if ($absences->contains(fn($a) => $a->justifie)) {
+            return back()->with('error', 'Une ou plusieurs absences sont déjà justifiées.');
+        }
 
-    NotificationService::justificationSoumise(
-        stagiaire:  Auth::user(),
-        moduleName: $moduleName,
-        url:        route('absences.index', array_filter([
-                        'stagiaire_id' => Auth::id(),
-                        'day'          => $date,
-                    ])),
-        absenceIds: $absences->pluck('id')->toArray(),
-    );
+        $request->validate([
+            'file_justification' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png',
+        ]);
 
-    return back()->with('success', 'Justificatif envoyé pour toutes les absences de la journée. En attente de validation.');
-}
+        foreach ($absences as $absence) {
+            if ($absence->file_justification) {
+                Storage::disk('public')->delete($absence->file_justification);
+            }
+        }
+
+        $path = $request->file('file_justification')->store('justifications', 'public');
+        foreach ($absences as $absence) {
+            $absence->update(['file_justification' => $path, 'justifie' => false]);
+        }
+
+        $moduleName = $absences
+            ->map(fn($a) => $a->cours?->emploiDuTemps?->module?->name)
+            ->filter()
+            ->first() ?? 'N/A';
+
+        $date = $absences->first()?->date_event?->toDateString();
+
+        NotificationService::justificationSoumise(
+            stagiaire:  Auth::user(),
+            moduleName: $moduleName,
+            url:        route('absences.index', array_filter([
+                            'stagiaire_id' => Auth::id(),
+                            'day'          => $date,
+                        ])),
+            absenceIds: $absences->pluck('id')->toArray(),
+        );
+
+        return back()->with('success', 'Justificatif envoyé pour toutes les absences de la journée. En attente de validation.');
+    }
 
     // ── STAGIAIRE DELETE (single absence) ────────────────────
     public function stagiaireDeleteFichier(AbsenceRetard $absence)
