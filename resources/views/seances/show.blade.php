@@ -405,20 +405,24 @@ table.ptbl tbody td.td-bilan { text-align:center; }
                     @foreach($activeParts as $part)
                     <td class="td-part"
                         style="border-left:2px solid {{ $partConfig[$part]['th'] }};">
-                        @if($statuses[$part])
-                            <span class="half-badge" style="background:#fee2e2;color:#dc2626;">❌ Absent</span>
-                        @else
-                            <span class="half-badge" style="background:#d1fae5;color:#059669;">✓ Présent</span>
-                        @endif
+@if(!$seanceStarted)
+    <span class="half-badge" style="background:#f1f5f9;color:#94a3b8;">—</span>
+@elseif($statuses[$part])
+    <span class="half-badge" style="background:#fee2e2;color:#dc2626;">❌ Absent</span>
+@else
+    <span class="half-badge" style="background:#d1fae5;color:#059669;">✓ Présent</span>
+@endif
                     </td>
                     @endforeach
-                    <td class="td-bilan">
-                        @if($totalAbs > 0)
-                            <span style="font-size:12px;font-weight:800;color:#dc2626;">{{ $totalAbs }}h</span>
-                        @else
-                            <span style="font-size:11px;color:#059669;font-weight:700;">✓ OK</span>
-                        @endif
-                    </td>
+<td class="td-bilan">
+    @if(!$seanceStarted)
+        <span style="font-size:11px;color:#94a3b8;">—</span>
+    @elseif($totalAbs > 0)
+        <span style="font-size:12px;font-weight:800;color:#dc2626;">{{ $totalAbs }}h</span>
+    @else
+        <span style="font-size:11px;color:#059669;font-weight:700;">✓ OK</span>
+    @endif
+</td>
                 </tr>
             @endforeach
             </tbody>
@@ -541,16 +545,16 @@ table.ptbl tbody td.td-bilan { text-align:center; }
 
                     {{-- ── Bilan ── --}}
                     <td class="td-bilan">
-                        <div id="bilan_{{ $i }}">
-                            @if($absCount > 0)
-                                <span style="font-size:12px;font-weight:800;color:#dc2626;">
-                                    {{ $absCount * $halfDuree }}h
-                                </span>
-                                <div style="font-size:9px;color:#94a3b8;">{{ $absCount }}/{{ count($activeParts) }} séance(s)</div>
-                            @else
-                                <span style="font-size:11px;color:#059669;font-weight:700;">✓ Présent</span>
-                            @endif
-                        </div>
+<div id="bilan_{{ $i }}">
+    @if(!$seanceStarted)
+        <span style="font-size:11px;color:#94a3b8;">—</span>
+    @elseif($absCount > 0)
+        <span style="font-size:12px;font-weight:800;color:#dc2626;">{{ $absCount * $halfDuree }}h</span>
+        <div style="font-size:9px;color:#94a3b8;">{{ $absCount }}/{{ count($activeParts) }} séance(s)</div>
+    @else
+        <span style="font-size:11px;color:#059669;font-weight:700;">✓ Présent</span>
+    @endif
+</div>
                     </td>
                 </tr>
             @endforeach

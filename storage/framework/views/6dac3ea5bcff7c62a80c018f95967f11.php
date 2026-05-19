@@ -412,20 +412,24 @@ table.ptbl tbody td.td-bilan { text-align:center; }
                     <?php $__currentLoopData = $activeParts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $part): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <td class="td-part"
                         style="border-left:2px solid <?php echo e($partConfig[$part]['th']); ?>;">
-                        <?php if($statuses[$part]): ?>
-                            <span class="half-badge" style="background:#fee2e2;color:#dc2626;">❌ Absent</span>
-                        <?php else: ?>
-                            <span class="half-badge" style="background:#d1fae5;color:#059669;">✓ Présent</span>
-                        <?php endif; ?>
+<?php if(!$seanceStarted): ?>
+    <span class="half-badge" style="background:#f1f5f9;color:#94a3b8;">—</span>
+<?php elseif($statuses[$part]): ?>
+    <span class="half-badge" style="background:#fee2e2;color:#dc2626;">❌ Absent</span>
+<?php else: ?>
+    <span class="half-badge" style="background:#d1fae5;color:#059669;">✓ Présent</span>
+<?php endif; ?>
                     </td>
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    <td class="td-bilan">
-                        <?php if($totalAbs > 0): ?>
-                            <span style="font-size:12px;font-weight:800;color:#dc2626;"><?php echo e($totalAbs); ?>h</span>
-                        <?php else: ?>
-                            <span style="font-size:11px;color:#059669;font-weight:700;">✓ OK</span>
-                        <?php endif; ?>
-                    </td>
+<td class="td-bilan">
+    <?php if(!$seanceStarted): ?>
+        <span style="font-size:11px;color:#94a3b8;">—</span>
+    <?php elseif($totalAbs > 0): ?>
+        <span style="font-size:12px;font-weight:800;color:#dc2626;"><?php echo e($totalAbs); ?>h</span>
+    <?php else: ?>
+        <span style="font-size:11px;color:#059669;font-weight:700;">✓ OK</span>
+    <?php endif; ?>
+</td>
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </tbody>
@@ -550,16 +554,16 @@ table.ptbl tbody td.td-bilan { text-align:center; }
 
                     
                     <td class="td-bilan">
-                        <div id="bilan_<?php echo e($i); ?>">
-                            <?php if($absCount > 0): ?>
-                                <span style="font-size:12px;font-weight:800;color:#dc2626;">
-                                    <?php echo e($absCount * $halfDuree); ?>h
-                                </span>
-                                <div style="font-size:9px;color:#94a3b8;"><?php echo e($absCount); ?>/<?php echo e(count($activeParts)); ?> séance(s)</div>
-                            <?php else: ?>
-                                <span style="font-size:11px;color:#059669;font-weight:700;">✓ Présent</span>
-                            <?php endif; ?>
-                        </div>
+<div id="bilan_<?php echo e($i); ?>">
+    <?php if(!$seanceStarted): ?>
+        <span style="font-size:11px;color:#94a3b8;">—</span>
+    <?php elseif($absCount > 0): ?>
+        <span style="font-size:12px;font-weight:800;color:#dc2626;"><?php echo e($absCount * $halfDuree); ?>h</span>
+        <div style="font-size:9px;color:#94a3b8;"><?php echo e($absCount); ?>/<?php echo e(count($activeParts)); ?> séance(s)</div>
+    <?php else: ?>
+        <span style="font-size:11px;color:#059669;font-weight:700;">✓ Présent</span>
+    <?php endif; ?>
+</div>
                     </td>
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

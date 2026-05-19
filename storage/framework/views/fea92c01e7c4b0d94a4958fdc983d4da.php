@@ -18,7 +18,7 @@
 ?>
 
 <style>
-.bl-wrap { font-family:'Segoe UI',system-ui,sans-serif; }
+.bl-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:1100px; margin:0 auto; }
 .bl-card { background:white;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;margin-bottom:20px; }
 .bl-card-head { padding:16px 20px;background:#f8fafc;border-bottom:1px solid #f1f5f9; }
 .bl-filter-bar { display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:16px 20px;background:#f8fafc;border-bottom:1px solid #f1f5f9; }
@@ -296,7 +296,6 @@ function updateBadges(filiereVal, promoVal) {
 function clearFilter(type) {
     if (type === 'filiere') document.getElementById('filiere-filter').value = '';
     if (type === 'promo')   document.getElementById('promo-filter').value   = '';
-    // Trigger auto-submit so server refreshes the groupes list too
     autoSubmitFilter();
 }
 

@@ -28,6 +28,22 @@
                         if ($cell['type'] === 'session') {
                             $emploi  = $cell['emploi'];
                             $colspan = $cell['colspan'];
+
+                            // ── FIX: For formateur, skip sessions where THEY have been replaced,
+                            //         but keep sessions where THEY ARE the replacement ──
+                            if ($user->role === 'formateur') {
+                                $sessRempl   = $emploi->id_user_remplacant ? $emploi->remplacant : null;
+                                $isFutureChk = $emploi->date_debut->isFuture();
+                                $modRempl    = (!$sessRempl && $isFutureChk && $emploi->module?->id_user_remplacant)
+                                               ? $emploi->module->remplacant : null;
+                                $activeRempl = $sessRempl ?? $modRempl;
+
+                                // Only hide if there IS a replacement AND it's not the current user
+                                if ($activeRempl !== null && $activeRempl->id !== $user->id) {
+                                    continue;
+                                }
+                            }
+
                             $allSessions[$day][] = [
                                 'emploi'  => $emploi,
                                 'colspan' => $colspan,
@@ -41,13 +57,23 @@
         }
     }
 
-    // Find active days for personal view
-    $activeDays = array_keys($allSessions);
+    $activeDays    = array_keys($allSessions);
     sort($activeDays);
     $totalSessions = array_sum(array_map('count', $allSessions));
 @endphp
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── Landscape for admin/gestionnaire, portrait for personal ── */
+@page {
+    @if(!$isPersonal)
+    size: A4 landscape;
+    margin: 8mm 10mm;
+    @else
+    size: A4 portrait;
+    margin: 10mm 12mm;
+    @endif
+}
 
 body {
     font-family: DejaVu Sans, sans-serif;
@@ -61,40 +87,42 @@ body {
 .hdr {
     background: {{ $roleColor['bg'] }};
     color: white;
-    padding: 10px 14px;
-    margin-bottom: 10px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
 }
 .hdr-inner  { display: table; width: 100%; }
 .hdr-left   { display: table-cell; vertical-align: middle; }
 .hdr-right  { display: table-cell; vertical-align: middle; text-align: right; width: 42%; }
-.hdr-org    { font-size: 14px; font-weight: bold; letter-spacing: 0.5px; }
-.hdr-sub    { font-size: 7.5px; opacity: 0.8; margin-top: 2px; }
-.hdr-week   { font-size: 10px; font-weight: bold; }
-.hdr-meta   { font-size: 7px; opacity: 0.75; margin-top: 3px; }
+.hdr-org    { font-size: 12px; font-weight: bold; letter-spacing: 0.5px; }
+.hdr-sub    { font-size: 7px; opacity: 0.8; margin-top: 2px; }
+.hdr-week   { font-size: 9px; font-weight: bold; }
+.hdr-meta   { font-size: 6.5px; opacity: 0.75; margin-top: 3px; }
 .hdr-badge  {
     display: inline-block;
     background: rgba(255,255,255,0.2);
     border: 1px solid rgba(255,255,255,0.35);
     color: white;
-    font-size: 7.5px;
+    font-size: 7px;
     font-weight: bold;
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: 20px;
-    margin-top: 6px;
+    margin-top: 5px;
     letter-spacing: 0.5px;
 }
 .hdr-year-pill {
     display: inline-block;
     background: rgba(255,255,255,0.15);
     color: white;
-    font-size: 7px;
+    font-size: 6.5px;
     font-weight: bold;
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 20px;
     margin-right: 5px;
 }
 
-/* ── PERSONAL VIEW ── */
+/* ════════════════════════════════════════════════
+   PERSONAL VIEW — stagiaire / formateur
+════════════════════════════════════════════════ */
 .week-grid  { display: table; width: 100%; border-collapse: separate; border-spacing: 4px; }
 .day-col    { display: table-cell; vertical-align: top; width: {{ count($activeDays) > 0 ? round(100/max(count($activeDays),1)).'%' : '16.6%' }}; }
 .day-head   { background: {{ $roleColor['bg'] }}; color: white; text-align: center; padding: 5px 4px; border-radius: 6px 6px 0 0; margin-bottom: 3px; }
@@ -102,7 +130,7 @@ body {
 .day-date   { font-size: 11px; font-weight: bold; margin-top: 1px; }
 .day-mon    { font-size: 7px; opacity: 0.8; }
 
-/* session card */
+/* session card — personal */
 .sess-card  { border-radius: 5px; padding: 6px 7px; margin-bottom: 4px; border-left: 3px solid {{ $roleColor['bg'] }}; background: {{ $roleColor['light'] }}; page-break-inside: avoid; }
 .sess-card.dist { border-left-color: #f59e0b; background: #fefce8; }
 .sess-time   { font-size: 7px; font-weight: bold; color: {{ $roleColor['text'] }}; margin-bottom: 3px; }
@@ -113,7 +141,7 @@ body {
 .dist-pill   { display: inline-block; background: #fde68a; color: #92400e; font-size: 6px; font-weight: bold; padding: 1px 5px; border-radius: 3px; margin-bottom: 3px; }
 .no-sess     { text-align: center; padding: 12px 4px; color: #cbd5e1; font-size: 7px; border: 1px dashed #e2e8f0; border-radius: 5px; margin-top: 3px; }
 
-/* remplaçant */
+/* remplaçant — personal */
 .rempl-old  { font-size: 7px; color: #94a3b8; text-decoration: line-through; display: block; margin-top: 2px; }
 .rempl-new  { font-size: 7px; color: #7c3aed; font-weight: bold; display: block; margin-top: 1px; }
 .rempl-pill { display: inline-block; background: #ede9fe; color: #7c3aed; font-size: 5.5px; font-weight: bold; padding: 1px 4px; border-radius: 3px; margin-left: 3px; }
@@ -124,37 +152,223 @@ body {
 .stat-num   { font-size: 16px; font-weight: bold; color: {{ $roleColor['text'] }}; }
 .stat-label { font-size: 6.5px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* ── ADMIN TABLE VIEW ── */
-.section-head  { background: {{ $roleColor['light'] }}; border-left: 4px solid {{ $roleColor['bg'] }}; padding: 5px 10px; margin-bottom: 4px; margin-top: 8px; border-radius: 0 4px 4px 0; page-break-after: avoid; }
-.section-title { font-size: 8.5px; font-weight: bold; color: {{ $roleColor['text'] }}; text-transform: uppercase; letter-spacing: 1px; }
-.section-sub   { font-size: 7px; color: #64748b; margin-top: 1px; }
+/* ════════════════════════════════════════════════
+   ADMIN / GESTIONNAIRE — COMPACT GRID TABLE
+════════════════════════════════════════════════ */
 
-.tt            { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6px; page-break-inside: avoid; }
-.tt-head-day   { background: {{ $roleColor['bg'] }}; color: white; text-align: center; font-size: 7px; font-weight: bold; padding: 4px 2px; border: 1px solid rgba(0,0,0,0.1); }
-.tt-head-day.today { background: #059669; }
-.tt-head-s     { background: #f1f5f9; color: #475569; text-align: center; font-size: 6px; font-weight: bold; padding: 3px 1px; border: 1px solid #e2e8f0; }
-.tt-group-cell { padding: 4px 6px; border: 1px solid #e2e8f0; border-right: 2px solid #cbd5e1; background: white; min-width: 55px; max-width: 55px; width: 55px; vertical-align: middle; }
-.g-name        { font-size: 7.5px; font-weight: bold; color: #1e293b; }
-.g-sub         { font-size: 6px; color: #94a3b8; margin-top: 1px; }
-.tt-empty      { border: 1px solid #f1f5f9; min-height: 36px; height: 36px; background: white; }
-.tt-sess       { border: 1px solid #e2e8f0; vertical-align: top; padding: 2px 3px; }
-.mini-card     { border-left: 2px solid {{ $roleColor['bg'] }}; background: {{ $roleColor['light'] }}; padding: 2px 3px; border-radius: 0 3px 3px 0; min-height: 32px; }
-.mini-card.dist { border-left-color: #f59e0b; background: #fefce8; }
-.mini-card.rempl { border-left-color: #7c3aed; }
-.mini-time     { font-size: 5.5px; color: #64748b; font-weight: bold; margin-bottom: 1px; }
-.mini-module   { font-size: 6.5px; font-weight: bold; color: {{ $roleColor['text'] }}; line-height: 1.2; }
-.mini-card.dist .mini-module { color: #92400e; }
-.mini-row      { font-size: 5.5px; color: #475569; margin-top: 1px; }
-.mini-rempl-old { font-size: 5.5px; color: #94a3b8; text-decoration: line-through; }
-.mini-rempl-new { font-size: 5.5px; color: #7c3aed; font-weight: bold; }
+.section-head {
+    display: table;
+    width: 100%;
+    background: {{ $roleColor['bg'] }};
+    padding: 5px 10px;
+    margin-bottom: 0;
+    margin-top: 8px;
+    border-radius: 5px 5px 0 0;
+}
+.section-head-left  { display: table-cell; vertical-align: middle; }
+.section-head-right { display: table-cell; vertical-align: middle; text-align: right; }
+.section-title {
+    font-size: 8px;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+.section-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-size: 6px;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+/* ── Table ── */
+.tt {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: 8px;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    overflow: hidden;
+    page-break-inside: avoid;
+}
+
+/* Day header row */
+.tt-head-day {
+    background: {{ $roleColor['light'] }};
+    color: {{ $roleColor['text'] }};
+    text-align: center;
+    font-size: 6px;
+    font-weight: bold;
+    padding: 4px 2px;
+    border-bottom: 2px solid {{ $roleColor['bg'] }};
+    border-right: 1px solid #d1d5db;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.tt-head-day.today {
+    background: #dcfce7;
+    color: #14532d;
+    border-bottom-color: #059669;
+}
+
+/* Séance sub-header */
+.tt-head-s {
+    background: #f8fafc;
+    color: #64748b;
+    text-align: center;
+    font-size: 5px;
+    font-weight: bold;
+    padding: 2px 1px;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #edf0f4;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Group label cell — narrower */
+.tt-group-cell {
+    padding: 0;
+    border-right: 2px solid {{ $roleColor['bg'] }};
+    border-bottom: 1px solid #e9edf2;
+    background: {{ $roleColor['light'] }};
+    min-width: 42px;
+    max-width: 42px;
+    width: 42px;
+    vertical-align: middle;
+    text-align: center;
+}
+.g-inner  { padding: 3px; }
+.g-name   { font-size: 6.5px; font-weight: bold; color: {{ $roleColor['text'] }}; line-height: 1.2; }
+.g-sub    { font-size: 4.5px; color: #94a3b8; margin-top: 1px; }
+
+/* Empty cell */
+.tt-empty {
+    border-right: 1px solid #edf0f4;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafbfc;
+    height: 42px;
+}
+.tt-empty-dot {
+    display: block;
+    width: 3px;
+    height: 3px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    margin: auto;
+    margin-top: 19px;
+}
+
+/* Session cell */
+.tt-sess {
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+    padding: 2px 3px;
+    background: white;
+}
+
+/* ── Mini card — compact redesign ── */
+.mini-card {
+    border-radius: 3px;
+    padding: 3px 4px;
+    min-height: 38px;
+    position: relative;
+    background: white;
+    border: 1px solid {{ $roleColor['border'] }};
+    border-top: 2px solid {{ $roleColor['bg'] }};
+}
+.mini-card.dist {
+    border-color: #fcd34d;
+    border-top-color: #f59e0b;
+    background: #fffbeb;
+}
+.mini-card.rempl {
+    border-top-color: #7c3aed;
+    border-color: #ddd6fe;
+    background: #faf5ff;
+}
+
+/* Time badge inside card */
+.mini-time-badge {
+    display: inline-block;
+    background: {{ $roleColor['bg'] }};
+    color: white;
+    font-size: 4px;
+    font-weight: bold;
+    padding: 1px 3px;
+    border-radius: 2px;
+    margin-bottom: 2px;
+    letter-spacing: 0.2px;
+}
+.mini-card.dist .mini-time-badge { background: #f59e0b; }
+.mini-card.rempl .mini-time-badge { background: #7c3aed; }
+
+/* Module name */
+.mini-module {
+    font-size: 5.5px;
+    font-weight: bold;
+    color: #1e293b;
+    line-height: 1.25;
+    margin-bottom: 2px;
+    overflow: hidden;
+}
+
+/* Divider line */
+.mini-divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 2px 0;
+}
+.mini-card.dist .mini-divider { border-top-color: #fde68a; }
+.mini-card.rempl .mini-divider { border-top-color: #ddd6fe; }
+
+/* Meta rows (formateur, salle) */
+.mini-meta { display: table; width: 100%; }
+.mini-meta-row { display: table-row; }
+.mini-meta-icon {
+    display: table-cell;
+    width: 5px;
+    font-size: 4px;
+    color: #94a3b8;
+    vertical-align: top;
+    padding-top: 0.5px;
+}
+.mini-meta-text {
+    display: table-cell;
+    font-size: 4.5px;
+    color: #475569;
+    line-height: 1.4;
+    vertical-align: top;
+}
+
+/* Remplaçant styles */
+.mini-rempl-old { font-size: 4px; color: #94a3b8; text-decoration: line-through; }
+.mini-rempl-new { font-size: 4px; color: #7c3aed; font-weight: bold; }
+
+/* Distance badge */
+.mini-dist-tag {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 4px;
+    font-weight: bold;
+    padding: 1px 3px;
+    border-radius: 2px;
+}
 
 /* ── LEGEND & FOOTER ── */
-.legend   { margin-top: 8px; padding: 5px 10px; border-top: 1px solid #e2e8f0; display: table; width: 100%; }
+.legend   { margin-top: 6px; padding: 4px 10px; border-top: 1px solid #e2e8f0; display: table; width: 100%; }
 .legend-l { display: table-cell; vertical-align: middle; }
 .legend-r { display: table-cell; vertical-align: middle; text-align: right; }
-.l-item   { display: inline-block; font-size: 6.5px; color: #475569; margin-right: 12px; }
-.l-dot    { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
-.footer   { text-align: center; font-size: 6px; color: #94a3b8; margin-top: 6px; padding-top: 5px; border-top: 1px solid #f1f5f9; }
+.l-item   { display: inline-block; font-size: 6px; color: #475569; margin-right: 10px; }
+.l-dot    { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+.footer   { text-align: center; font-size: 5.5px; color: #94a3b8; margin-top: 5px; padding-top: 4px; border-top: 1px solid #f1f5f9; }
 </style>
 </head>
 <body>
@@ -165,7 +379,7 @@ body {
         <div class="hdr-left">
             <div class="hdr-org">OFPPT — Emploi du temps</div>
             <div class="hdr-sub">Office de la Formation Professionnelle et de la Promotion du Travail</div>
-            <div style="margin-top:5px;">
+            <div style="margin-top:4px;">
                 <span class="hdr-year-pill">{{ $yearLabel }}</span>
                 <span class="hdr-badge">{{ ucfirst($user->role) }} : {{ $user->name }}</span>
             </div>
@@ -205,7 +419,6 @@ body {
     $jours = count($activeDays);
 @endphp
 
-{{-- Stats --}}
 <div class="stats-row">
     <div class="stat-box"><div class="stat-num">{{ $totalSessions }}</div><div class="stat-label">Séances</div></div>
     <div class="stat-box"><div class="stat-num">{{ number_format($totalH,1) }}h</div><div class="stat-label">Total heures</div></div>
@@ -242,28 +455,21 @@ body {
                     $isRemote = ($emploi->mode ?? 'presentiel') === 'distance';
                     $spanLbl  = EmploiDuTempsController::spanLabel($sNum, $colspan);
                     $totalHs  = EmploiDuTempsController::totalHours($sNum, $colspan);
-
-                    // ── Determine active formateur (same logic as index.blade) ──
                     $sessionRempl = $emploi->id_user_remplacant ? $emploi->remplacant : null;
                     $isFuture     = $emploi->date_debut->isFuture();
                     $moduleRempl  = (!$sessionRempl && $isFuture && $emploi->module?->id_user_remplacant)
-                                    ? $emploi->module->remplacant
-                                    : null;
+                                    ? $emploi->module->remplacant : null;
                     $activeRempl  = $sessionRempl ?? $moduleRempl;
                     $hasRempl     = $activeRempl !== null;
                 @endphp
                 <div class="sess-card {{ $isRemote ? 'dist' : '' }}">
                     @if($isRemote)<div class="dist-pill">À DISTANCE</div>@endif
-
                     <div class="sess-time">
                         {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
                         &nbsp;·&nbsp;{{ $spanLbl }}&nbsp;·&nbsp;{{ $totalHs }}h
                     </div>
-
                     <div class="sess-module">{{ $emploi->module->name ?? 'Module' }}</div>
-
                     @if($user->role === 'stagiaire')
-                        {{-- Show formateur / remplaçant --}}
                         @if($hasRempl)
                             <span class="rempl-old">{{ $emploi->gestionnaire->name ?? '—' }}</span>
                             <span class="rempl-new">
@@ -274,10 +480,8 @@ body {
                             <span class="sess-row">{{ $emploi->gestionnaire->name ?? '—' }}</span>
                         @endif
                     @else
-                        {{-- Formateur view : show groupe --}}
                         <span class="sess-row">Gr. {{ $groupe->name ?? 'G'.$groupe->id }}</span>
                     @endif
-
                     @if(!$isRemote)
                         <span class="sess-row">{{ $emploi->salle->name ?? '—' }}</span>
                     @elseif($emploi->lien_distance)
@@ -294,20 +498,27 @@ body {
 
 @else
 {{-- ══════════════════════════════════════════════════
-     ADMIN / GESTIONNAIRE — full grid view
+     ADMIN / GESTIONNAIRE — COMPACT LANDSCAPE GRID
 ══════════════════════════════════════════════════ --}}
 
 @forelse($groupesByFiliere as $filiereId => $groupes)
     @php $filiere = $groupes->first()->filiere; @endphp
 
+    {{-- Section header --}}
     <div class="section-head">
-        <div class="section-title">{{ strtoupper($filiere->name ?? 'Filière') }}</div>
-        <div class="section-sub">{{ $groupes->count() }} groupe{{ $groupes->count() > 1 ? 's' : '' }}</div>
+        <div class="section-head-left">
+            <div class="section-title">{{ strtoupper($filiere->name ?? 'Filière') }}</div>
+        </div>
+        <div class="section-head-right">
+            <span class="section-badge">
+                {{ $groupes->count() }} groupe{{ $groupes->count() > 1 ? 's' : '' }}
+            </span>
+        </div>
     </div>
 
     <table class="tt">
         <colgroup>
-            <col style="width:55px;">
+            <col style="width:42px;">
             @foreach($dayDates as $dayNum => $date)
                 @foreach(EmploiDuTempsController::SEANCES as $sNum => $s)
                     <col>
@@ -316,26 +527,38 @@ body {
         </colgroup>
 
         <thead>
+        {{-- Row 1: Day names --}}
         <tr>
-            <th style="background:#f8fafc; border:1px solid #e2e8f0; padding:3px;"></th>
+            <th style="background:{{ $roleColor['light'] }}; border:1px solid #e2e8f0; border-right:2px solid {{ $roleColor['bg'] }}; padding:3px;"></th>
             @foreach($dayDates as $dayNum => $date)
-                @php $isToday = $date->isToday(); $isLast = $dayNum === 6; @endphp
-                <th colspan="4" class="tt-head-day {{ $isToday ? 'today' : '' }}"
-                    style="{{ !$isLast ? 'border-right:2px solid rgba(255,255,255,0.4);' : '' }}">
-                    {{ strtoupper($date->translatedFormat('D')) }} {{ $date->format('d') }} {{ $date->translatedFormat('M') }}
-                    @if($isToday) ★ @endif
+                @php
+                    $isToday   = $date->isToday();
+                    $isLastDay = $dayNum === array_key_last($dayDates);
+                @endphp
+                <th colspan="4"
+                    class="tt-head-day {{ $isToday ? 'today' : '' }}"
+                    style="{{ !$isLastDay ? 'border-right:2px solid '.($isToday ? '#059669' : $roleColor['bg']).';' : '' }}">
+                    {{ strtoupper($date->translatedFormat('D')) }}
+                    {{ $date->format('d') }}
+                    {{ $date->translatedFormat('M') }}
+                    @if($isToday)<span style="color:#059669; font-size:7px;"> ●</span>@endif
                 </th>
             @endforeach
         </tr>
+
+        {{-- Row 2: Séance slots --}}
         <tr>
-            <th style="background:#f8fafc; border:1px solid #e2e8f0; font-size:6px; color:#94a3b8; padding:2px 4px; text-align:left;">Groupe</th>
+            <th style="background:#f8fafc; border:1px solid #e2e8f0; border-right:2px solid {{ $roleColor['bg'] }}; font-size:5px; color:#94a3b8; padding:2px 4px; text-align:center;">
+                GRP
+            </th>
             @foreach($dayDates as $dayNum => $date)
-                @php $isLast = $dayNum === 6; @endphp
+                @php $isLastDay = $dayNum === array_key_last($dayDates); @endphp
                 @foreach(EmploiDuTempsController::SEANCES as $sNum => $seance)
                     @php $isLastS = $sNum === 4; @endphp
                     <th class="tt-head-s"
-                        style="{{ $isLastS && !$isLast ? 'border-right:2px solid #94a3b8;' : '' }}">
-                        {{ $seance['label'] }}<br>{{ $seance['start'] }}
+                        style="{{ ($isLastS && !$isLastDay) ? 'border-right:2px solid #c8cdd6;' : '' }}">
+                        {{ $seance['label'] }}<br>
+                        <span style="font-weight:normal; font-size:4.5px; color:#94a3b8;">{{ $seance['start'] }}</span>
                     </th>
                 @endforeach
             @endforeach
@@ -345,9 +568,12 @@ body {
         <tbody>
         @foreach($groupes as $groupe)
         <tr>
+            {{-- Group label --}}
             <td class="tt-group-cell">
-                <div class="g-name">{{ $groupe->name ?? 'G'.$groupe->id }}</div>
-                <div class="g-sub">{{ $groupe->option->titre ?? $filiere->name ?? '' }}</div>
+                <div class="g-inner">
+                    <div class="g-name">{{ $groupe->name ?? 'G'.$groupe->id }}</div>
+                    <div class="g-sub">{{ Str::limit($groupe->option->titre ?? $filiere->name ?? '', 14) }}</div>
+                </div>
             </td>
 
             @foreach($dayDates as $dayNum => $date)
@@ -355,11 +581,11 @@ body {
                     @php
                         $cell      = $grid[$groupe->id][$dayNum][$sNum] ?? ['type' => 'empty'];
                         $isLastS   = $sNum === 4;
-                        $isLastDay = $dayNum === 6;
+                        $isLastDay = $dayNum === array_key_last($dayDates);
                     @endphp
 
                     @if($cell['type'] === 'skip')
-                        {{-- merged --}}
+                        {{-- Spanned cell, skip --}}
 
                     @elseif($cell['type'] === 'session')
                         @php
@@ -368,46 +594,72 @@ body {
                             $isRemote = ($emploi->mode ?? 'presentiel') === 'distance';
                             $spanLbl  = EmploiDuTempsController::spanLabel($sNum, $colspan);
                             $lastS    = $sNum + $colspan - 1;
-                            $borderR  = ($lastS % 4 === 0 && !$isLastDay) ? 'border-right:2px solid #94a3b8;' : '';
+                            $borderR  = ($lastS % 4 === 0 && !$isLastDay)
+                                        ? 'border-right:2px solid #c8cdd6;'
+                                        : '';
 
-                            // ── Determine active formateur ──
                             $sessionRempl2 = $emploi->id_user_remplacant ? $emploi->remplacant : null;
                             $isFuture2     = $emploi->date_debut->isFuture();
                             $moduleRempl2  = (!$sessionRempl2 && $isFuture2 && $emploi->module?->id_user_remplacant)
-                                             ? $emploi->module->remplacant
-                                             : null;
+                                             ? $emploi->module->remplacant : null;
                             $activeRempl2  = $sessionRempl2 ?? $moduleRempl2;
                             $hasRempl2     = $activeRempl2 !== null;
+
+                            // Truncate long names for compact display
+                            $moduleName = Str::limit($emploi->module->name ?? 'Module', 28);
+                            $formName   = Str::limit($emploi->gestionnaire->name ?? '—', 18);
+                            $salleName  = Str::limit($emploi->salle->name ?? '—', 10);
                         @endphp
                         <td class="tt-sess" colspan="{{ $colspan }}" style="{{ $borderR }}">
                             <div class="mini-card {{ $isRemote ? 'dist' : '' }} {{ $hasRempl2 ? 'rempl' : '' }}">
-                                <div class="mini-time">
+
+                                {{-- Time badge --}}
+                                <div class="mini-time-badge">
                                     {{ $emploi->date_debut->format('H:i') }}–{{ $emploi->date_fin->format('H:i') }}
-                                    &nbsp;{{ $spanLbl }}
+                                    {{ $spanLbl }}
                                 </div>
-                                <div class="mini-module">{{ $emploi->module->name ?? 'Module' }}</div>
 
-                                {{-- Formateur / remplaçant --}}
-                                @if($hasRempl2)
-                                    <div class="mini-rempl-old">{{ $emploi->gestionnaire->name ?? '—' }}</div>
-                                    <div class="mini-rempl-new">
-                                        ⇄ {{ $activeRempl2->name }}
+                                {{-- Module name --}}
+                                <div class="mini-module">{{ $moduleName }}</div>
+
+                                <hr class="mini-divider">
+
+                                {{-- Meta info --}}
+                                <div class="mini-meta">
+                                    {{-- Formateur row --}}
+                                    <div class="mini-meta-row">
+                                        <span class="mini-meta-icon">▸</span>
+                                        <span class="mini-meta-text">
+                                            @if($hasRempl2)
+                                                <span class="mini-rempl-old">{{ $formName }}</span>
+                                                <span class="mini-rempl-new">⇄ {{ Str::limit($activeRempl2->name, 16) }}</span>
+                                            @else
+                                                {{ $formName }}
+                                            @endif
+                                        </span>
                                     </div>
-                                @else
-                                    <div class="mini-row">{{ $emploi->gestionnaire->name ?? '—' }}</div>
-                                @endif
 
-                                @if(!$isRemote)
-                                    <div class="mini-row">{{ $emploi->salle->name ?? '—' }}</div>
-                                @else
-                                    <div class="mini-row" style="color:#b45309;">⬡ Distance</div>
-                                @endif
+                                    {{-- Salle / Distance row --}}
+                                    <div class="mini-meta-row">
+                                        <span class="mini-meta-icon">@if($isRemote)⬡@else◉@endif</span>
+                                        <span class="mini-meta-text">
+                                            @if(!$isRemote)
+                                                {{ $salleName }}
+                                            @else
+                                                <span class="mini-dist-tag">DIST.</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+
                             </div>
                         </td>
 
                     @else
+                        {{-- Empty --}}
                         <td class="tt-empty"
                             style="{{ ($isLastS && !$isLastDay) ? 'border-right:2px solid #e9edf2;' : '' }}">
+                            <span class="tt-empty-dot"></span>
                         </td>
                     @endif
 
@@ -429,20 +681,20 @@ body {
 {{-- ════ LEGEND ════ --}}
 <div class="legend">
     <div class="legend-l">
-        <span style="font-size:6.5px; font-weight:bold; color:{{ $roleColor['text'] }}; text-transform:uppercase; letter-spacing:1px; margin-right:10px;">Créneaux :</span>
+        <span style="font-size:6px; font-weight:bold; color:{{ $roleColor['text'] }}; text-transform:uppercase; letter-spacing:1px; margin-right:8px;">Créneaux :</span>
         @foreach(EmploiDuTempsController::SEANCES as $sNum => $s)
             <span class="l-item"><strong>{{ $s['label'] }}</strong> {{ $s['start'] }}–{{ $s['end'] }} ({{ $s['hours'] }}h)</span>
         @endforeach
     </div>
     <div class="legend-r">
         <span class="l-item">
-            <span class="l-dot" style="background:{{ $roleColor['light'] }}; border:1.5px solid {{ $roleColor['bg'] }};"></span>Présentiel
+            <span class="l-dot" style="background:white; border:2px solid {{ $roleColor['bg'] }};"></span>Présentiel
         </span>
         <span class="l-item">
-            <span class="l-dot" style="background:#fef3c7; border:1.5px solid #f59e0b;"></span>À distance
+            <span class="l-dot" style="background:#fffbeb; border:2px solid #f59e0b;"></span>À distance
         </span>
         <span class="l-item">
-            <span class="l-dot" style="background:#ede9fe; border:1.5px solid #7c3aed;"></span>Remplaçant
+            <span class="l-dot" style="background:#faf5ff; border:2px solid #7c3aed;"></span>Remplaçant
         </span>
     </div>
 </div>

@@ -164,7 +164,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
         {{-- ── Informations personnelles ──────────────────────────────── --}}
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 {{ $user->isAdmin() || $user->isGestionnaire() ? 'md:col-span-2' : '' }}">
             <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <span class="w-6 h-6 rounded-lg {{ $rc['light'] }} {{ $rc['text'] }} flex items-center justify-center flex-shrink-0">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,7 +235,7 @@
 
         {{-- ── Modules (formateur) ────────────────────────────────────── --}}
         @if($user->isFormateur() && $user->modules->isNotEmpty())
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:col-span-2">  {{-- ← CHANGED --}}
             <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <span class="w-6 h-6 rounded-lg {{ $rc['light'] }} {{ $rc['text'] }} flex items-center justify-center flex-shrink-0">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,7 +318,7 @@
 @if($user->isStagiaire())
     {{-- Hidden input so name is always submitted --}}
     <input type="hidden" name="name" value="{{ $user->name }}">
-    
+
     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
         Nom complet
     </label>
@@ -332,7 +332,6 @@
                     </div>
                     <div>
 
-{{-- AFTER --}}
 <div>
     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
         Téléphone
@@ -352,7 +351,6 @@
     @enderror
 </div>
                     </div>
-
 
                     <div>
                         <x-form-field name="cin" label="CIN" :value="old('cin', $user->cin)" />

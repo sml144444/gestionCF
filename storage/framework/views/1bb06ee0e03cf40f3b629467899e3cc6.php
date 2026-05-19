@@ -3,7 +3,7 @@
 <?php $__env->startSection('page-title', 'Modifier l\'utilisateur'); ?>
 
 <?php $__env->startSection('content'); ?>
-<div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:800px;">
+<div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:1100px; margin:0 auto;">
 
 
 <a href="<?php echo e(route('users.management.index')); ?>"
@@ -289,6 +289,7 @@
 
 </div>
 </form>
+
 
 <form id="delete-user-form"
       method="POST"

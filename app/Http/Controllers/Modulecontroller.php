@@ -100,10 +100,21 @@ class ModuleController extends Controller
         $this->authorize('groupe-create');
 
         $data = $request->validate([
-            'id_filiere'         => 'required|exists:filieres,id',
-            'name'               => 'required|string|max:150',
-            'coefficience'       => 'required|numeric|min:0.5|max:10',
-            'nbr_heure'          => 'required|integer|min:1|max:500',
+            'id_filiere'    => 'required|exists:filieres,id',
+            'name'          => 'required|string|max:150',
+            'coefficience'  => 'required|numeric|min:0.5|max:10',
+            'nbr_heure'     => [
+                'required',
+                'numeric',
+                'min:2.5',
+                'max:500',
+                function ($attribute, $value, $fail) {
+                    // Accept only multiples of 2.5: 2.5, 5, 7.5, 10, 12.5 …
+                    if (fmod((float) $value * 10, 25) > 0.001) {
+                        $fail('Les heures doivent être un multiple de 2,5 (ex : 2,5 · 5 · 7,5 · 10 · 12,5…).');
+                    }
+                },
+            ],
             'nbr_controles'      => 'nullable|integer|min:0|max:10',
             'id_user'            => 'required|exists:users,id',
             'type'               => 'required|in:regional,local',
@@ -149,7 +160,18 @@ class ModuleController extends Controller
         $data = $request->validate([
             'name'          => 'required|string|max:150',
             'coefficience'  => 'required|numeric|min:0.5|max:10',
-            'nbr_heure'     => 'required|integer|min:1|max:500',
+            'nbr_heure'     => [
+                'required',
+                'numeric',
+                'min:2.5',
+                'max:500',
+                function ($attribute, $value, $fail) {
+                    // Accept only multiples of 2.5: 2.5, 5, 7.5, 10, 12.5 …
+                    if (fmod((float) $value * 10, 25) > 0.001) {
+                        $fail('Les heures doivent être un multiple de 2,5 (ex : 2,5 · 5 · 7,5 · 10 · 12,5…).');
+                    }
+                },
+            ],
             'nbr_controles' => 'nullable|integer|min:0|max:10',
             'id_user'       => 'required|exists:users,id',
             'type'          => 'required|in:regional,local',
@@ -249,8 +271,6 @@ class ModuleController extends Controller
         ]);
 
         // 3. Propagate to future sessions only
-        //    - Only sessions that still have the original formateur
-        //    - Skip sessions that already have a manual session-level override
         EmploiDuTemps::where('id_module', $module->id)
             ->where('id_user', $module->id_user)
             ->whereNull('id_user_remplacant')
@@ -269,11 +289,6 @@ class ModuleController extends Controller
     // ── DEACTIVATE REPLACEMENT ────────────────────────────
     /**
      * Restore the original formateur (remove the active replacement).
-     *
-     * - Closes the active replacement record in history.
-     * - Removes the replacement from FUTURE sessions only.
-     * - Past sessions keep their id_user_remplacant — history preserved.
-     * - Clears the module's convenience column.
      */
     public function deactivateReplacement(Module $module): RedirectResponse
     {
@@ -288,7 +303,6 @@ class ModuleController extends Controller
                ->update(['is_active' => false, 'end_date' => $now]);
 
         // 2. Remove replacement from future sessions only
-        //    Past sessions are untouched — their id_user_remplacant remains
         EmploiDuTemps::where('id_module', $module->id)
             ->where('id_user_remplacant', $module->id_user_remplacant)
             ->where('date_debut', '>', $now)
@@ -315,7 +329,7 @@ class ModuleController extends Controller
         }
 
         $name = $module->name;
-        $module->delete();  // cascadeOnDelete handles module_formateur_history
+        $module->delete(); // cascadeOnDelete handles module_formateur_history
 
         return back()->with('success', 'Module « ' . $name . ' » supprimé.');
     }

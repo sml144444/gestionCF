@@ -51,6 +51,7 @@
 .mod-label { display:block; font-size:9px; font-weight:800; color:#94a3b8; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; }
 .mod-input { width:100%; height:42px; padding:0 12px; border-radius:10px; border:1.5px solid #e2e8f0; background:#f8fafc; font-size:13px; color:#1e293b; outline:none; transition:border-color .15s; box-sizing:border-box; }
 .mod-input:focus { border-color:<?php echo e($accent); ?>; background:white; }
+.mod-input:invalid { border-color:#fca5a5; background:#fff1f2; }
 .mod-overlay { display:none; position:fixed; inset:0; z-index:60; background:rgba(15,23,42,0.5); backdrop-filter:blur(4px); align-items:center; justify-content:center; }
 .mod-overlay.open { display:flex; }
 .mod-modal { background:white; border-radius:20px; width:100%; max-width:500px; margin:16px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,0.18); max-height:92vh; overflow-y:auto; }
@@ -61,11 +62,9 @@
 .annee-tab { padding:7px 14px; border-radius:99px; font-size:12px; font-weight:600; text-decoration:none; border:1.5px solid #e2e8f0; background:white; color:#64748b; transition:all .15s; display:inline-flex; align-items:center; gap:5px; }
 .annee-tab:hover { border-color:<?php echo e($accent); ?>; color:<?php echo e($text); ?>; background:<?php echo e($light); ?>; }
 .annee-tab.active { background:<?php echo e($accent); ?>; border-color:<?php echo e($accent); ?>; color:white; }
-.remplacant-pill { display:inline-flex; align-items:center; gap:3px; font-size:8px; font-weight:800; padding:1px 6px; border-radius:99px; background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; text-transform:uppercase; letter-spacing:.3px; }
 
 /* ── Replacement panel ── */
 .repl-panel { border-radius:10px; border:1px solid #ddd6fe; background:#f5f3ff; padding:8px 12px; margin-bottom:10px; }
-.repl-panel-inactive { border-color:#e2e8f0; background:#f8fafc; }
 .repl-badge-active { display:inline-flex; align-items:center; gap:4px; font-size:8px; font-weight:800; padding:2px 7px; border-radius:99px; background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe; text-transform:uppercase; letter-spacing:.3px; }
 .repl-restore-btn { font-size:9px; font-weight:700; padding:3px 9px; border-radius:8px; background:#fee2e2; color:#dc2626; border:1px solid #fecaca; cursor:pointer; transition:opacity .15s; }
 .repl-restore-btn:hover { opacity:.8; }
@@ -79,6 +78,19 @@
 .repl-assign-details summary { font-size:9px; font-weight:800; color:#7c3aed; cursor:pointer; text-transform:uppercase; letter-spacing:.5px; user-select:none; list-style:none; display:flex; align-items:center; gap:5px; }
 .repl-assign-details summary::-webkit-details-marker { display:none; }
 .repl-assign-details[open] summary .repl-chevron { transform:rotate(90deg); }
+
+/* ── Année option hidden state ── */
+.annee-option-wrap.hidden { display:none !important; }
+.annee-option-label {
+    display:flex; align-items:center; gap:8px; cursor:pointer;
+    padding:9px 12px; border-radius:10px; border:1.5px solid #e2e8f0;
+    background:white; font-size:12px; font-weight:600; color:#475569;
+    width:100%; box-sizing:border-box;
+}
+
+/* ── Heures hint pill ── */
+.heures-hint { font-size:9px; color:#64748b; margin-top:5px; padding:4px 8px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0; }
+.heures-hint strong { color:<?php echo e($accent); ?>; }
 </style>
 
 <div class="mod-wrap">
@@ -233,9 +245,8 @@
                 $pct         = $totalH > 0 ? min(100, round(($doneHours / $totalH) * 100)) : 0;
                 $pctColor    = $pct >= 100 ? '#22c55e' : ($pct >= 75 ? '#f59e0b' : $accent);
 
-                // Replacement state
-                $hasReplacement  = (bool) $module->id_user_remplacant;
-                $replHistory     = $module->formateurHistory ?? collect();
+                $hasReplacement   = (bool) $module->id_user_remplacant;
+                $replHistory      = $module->formateurHistory ?? collect();
                 $pastReplacements = $replHistory->where('type', 'remplacement')->where('is_active', false);
             ?>
 
@@ -320,17 +331,12 @@
                 
                 <div style="padding-top:8px;border-top:1px solid #f1f5f9;margin-bottom:10px;">
 
-                    
                     <?php if($hasReplacement && $module->remplacant): ?>
                         <div class="repl-panel">
-                            
                             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
                                 <div style="display:flex;align-items:center;gap:6px;">
                                     <div style="width:6px;height:6px;border-radius:50%;background:#7c3aed;flex-shrink:0;"></div>
-                                    <span style="font-size:10px;font-weight:700;color:#5b21b6;">
-                                        <?php echo e($module->remplacant->name); ?>
-
-                                    </span>
+                                    <span style="font-size:10px;font-weight:700;color:#5b21b6;"><?php echo e($module->remplacant->name); ?></span>
                                     <span class="repl-badge-active">Remplaçant actif</span>
                                 </div>
                                 <?php if($canEdit): ?>
@@ -339,24 +345,15 @@
                                       style="display:inline;"
                                       onsubmit="return confirm('Restaurer <?php echo e(addslashes($module->formateur->name ?? 'le formateur original')); ?> comme formateur principal ?')">
                                     <?php echo csrf_field(); ?>
-                                    <button type="submit" class="repl-restore-btn">
-                                        ↩ Restaurer l'original
-                                    </button>
+                                    <button type="submit" class="repl-restore-btn">↩ Restaurer l'original</button>
                                 </form>
                                 <?php endif; ?>
                             </div>
-                            
                             <div style="font-size:9px;color:#7c3aed;">
                                 Remplace :
-                                <span style="text-decoration:line-through;color:#94a3b8;margin-left:3px;">
-                                    <?php echo e($module->formateur->name ?? '—'); ?>
-
-                                </span>
+                                <span style="text-decoration:line-through;color:#94a3b8;margin-left:3px;"><?php echo e($module->formateur->name ?? '—'); ?></span>
                             </div>
-                            
-                            <?php
-                                $activeRecord = $replHistory->where('type','remplacement')->where('is_active', true)->first();
-                            ?>
+                            <?php $activeRecord = $replHistory->where('type','remplacement')->where('is_active', true)->first(); ?>
                             <?php if($activeRecord): ?>
                             <div style="font-size:8px;color:#a78bfa;margin-top:3px;">
                                 Depuis le <?php echo e($activeRecord->start_date->format('d/m/Y')); ?>
@@ -365,7 +362,6 @@
                             <?php endif; ?>
                         </div>
 
-                    
                     <?php elseif($canEdit): ?>
                         <details class="repl-assign-details">
                             <summary>
@@ -378,9 +374,7 @@
                                   style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
                                 <?php echo csrf_field(); ?>
                                 <select name="id_user_remplacant" required
-                                        style="width:100%;height:36px;padding:0 10px;border-radius:8px;
-                                               border:1.5px solid #ddd6fe;background:#faf5ff;font-size:12px;
-                                               color:#1e293b;outline:none;box-sizing:border-box;">
+                                        style="width:100%;height:36px;padding:0 10px;border-radius:8px;border:1.5px solid #ddd6fe;background:#faf5ff;font-size:12px;color:#1e293b;outline:none;box-sizing:border-box;">
                                     <option value="">— Choisir un formateur —</option>
                                     <?php $__currentLoopData = $formateurs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <?php if($f->id !== $module->id_user): ?>
@@ -388,9 +382,7 @@
                                         <?php endif; ?>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
-                                <button type="submit" class="repl-assign-btn">
-                                    Activer le remplacement
-                                </button>
+                                <button type="submit" class="repl-assign-btn">Activer le remplacement</button>
                                 <p style="font-size:9px;color:#94a3b8;margin:0;">
                                     Le remplacement sera propagé aux séances futures. L'historique passé est conservé.
                                 </p>
@@ -398,7 +390,6 @@
                         </details>
                     <?php endif; ?>
 
-                    
                     <?php if($pastReplacements->isNotEmpty()): ?>
                         <details class="repl-details" style="margin-top:8px;">
                             <summary>
@@ -409,17 +400,11 @@
                                 <?php $__currentLoopData = $pastReplacements->sortByDesc('start_date'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $record): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <div class="repl-history-row">
                                         <div>
-                                            <span style="font-size:10px;font-weight:700;color:#1e293b;">
-                                                <?php echo e($record->formateur->name ?? '—'); ?>
-
-                                            </span>
+                                            <span style="font-size:10px;font-weight:700;color:#1e293b;"><?php echo e($record->formateur->name ?? '—'); ?></span>
                                         </div>
                                         <div style="text-align:right;flex-shrink:0;">
                                             <div style="font-size:9px;color:#64748b;">
-                                                <?php echo e($record->start_date->format('d/m/Y')); ?>
-
-                                                →
-                                                <?php echo e($record->end_date ? $record->end_date->format('d/m/Y') : 'en cours'); ?>
+                                                <?php echo e($record->start_date->format('d/m/Y')); ?> → <?php echo e($record->end_date ? $record->end_date->format('d/m/Y') : 'en cours'); ?>
 
                                             </div>
                                         </div>
@@ -428,7 +413,6 @@
                             </div>
                         </details>
                     <?php endif; ?>
-
                 </div>
                 
 
@@ -479,10 +463,8 @@
                 <?php endif; ?>
 
             </div>
-
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
-
     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -521,32 +503,42 @@
             
             <div>
                 <label class="mod-label">Filière <span style="color:#ef4444;">*</span></label>
-                <select name="id_filiere" id="create-id-filiere" class="mod-input" required>
+                <select name="id_filiere" id="create-id-filiere" class="mod-input" required
+                        onchange="onCreateFiliereChange(this.value)">
                     <option value="">— Sélectionner —</option>
-                    <?php $__currentLoopData = $filieres; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($f->id); ?>"><?php echo e($f->name); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    <?php $__currentLoopData = $filieres; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($f->id); ?>" data-duree="<?php echo e((int)$f->duree); ?>"><?php echo e($f->name); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
             
             <div>
                 <label class="mod-label">Nom du module <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="name" class="mod-input" required placeholder="Ex : PHP & Laravel…" value="<?php echo e(old('name')); ?>">
+                <input type="text" name="name" class="mod-input" required
+                       placeholder="Ex : PHP & Laravel…" value="<?php echo e(old('name')); ?>">
             </div>
 
             
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
                     <label class="mod-label">Heures <span style="color:#ef4444;">*</span></label>
-                    <input type="number" name="nbr_heure" class="mod-input" required min="1" max="500" placeholder="75" value="<?php echo e(old('nbr_heure')); ?>">
+                    
+                    <input type="number" name="nbr_heure" class="mod-input" required
+                           min="2.5" max="500" step="2.5"
+                           placeholder="75" value="<?php echo e(old('nbr_heure')); ?>">
+                    <div class="heures-hint">Multiples de <strong>2,5h</strong> : 2,5 · 5 · 7,5 · 10…</div>
                 </div>
                 <div>
                     <label class="mod-label">Coeff. <span style="color:#ef4444;">*</span></label>
-                    <input type="number" name="coefficience" class="mod-input" required min="0.5" max="10" step="0.5" placeholder="3" value="<?php echo e(old('coefficience')); ?>">
+                    <input type="number" name="coefficience" class="mod-input" required
+                           min="0.5" max="10" step="0.5" placeholder="3"
+                           value="<?php echo e(old('coefficience')); ?>">
                 </div>
                 <div>
                     <label class="mod-label">
                         Contrôles
-                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM auto)</span>
+                        <span style="font-size:8px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;margin-left:3px;">(EFM)</span>
                     </label>
                     <input type="number" name="nbr_controles" class="mod-input"
                            min="0" max="10" step="1" placeholder="1"
@@ -568,17 +560,48 @@
             
             <div>
                 <label class="mod-label">Année <span style="color:#ef4444;">*</span></label>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    <?php $__currentLoopData = [[1,'1ère An.'],[2,'2ème An.'],[3,'3ème An.']]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as [$val,$lbl]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:12px;font-weight:600;color:#475569;">
-                        <input type="radio" name="annee" value="<?php echo e($val); ?>"
-                               <?php echo e((old('annee','1') === (string)$val) ? 'checked' : ''); ?>
 
-                               style="accent-color:<?php echo e($accent); ?>;">
-                        <?php echo e($lbl); ?>
+                
+                <div id="create-annee-hint"
+                     style="display:none;margin-bottom:8px;padding:7px 10px;border-radius:8px;
+                            background:#eff6ff;border:1px solid #bfdbfe;font-size:10px;color:#1e40af;
+                            align-items:center;gap:6px;">
+                    <svg width="12" height="12" fill="none" stroke="#2563eb" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Cette filière dure <strong id="create-annee-duree-text" style="margin:0 3px;"></strong> an(s) — seules les années disponibles sont affichées.
+                </div>
 
-                    </label>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <div id="create-annee-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+
+                    <div class="annee-option-wrap" data-annee-option="1">
+                        <label class="annee-option-label">
+                            <input type="radio" name="annee" value="1"
+                                   <?php echo e((old('annee', '1') === '1') ? 'checked' : ''); ?>
+
+                                   style="accent-color:<?php echo e($accent); ?>;">
+                            1ère An.
+                        </label>
+                    </div>
+
+                    <div class="annee-option-wrap" data-annee-option="2">
+                        <label class="annee-option-label">
+                            <input type="radio" name="annee" value="2"
+                                   <?php echo e((old('annee') === '2') ? 'checked' : ''); ?>
+
+                                   style="accent-color:<?php echo e($accent); ?>;">
+                            2ème An.
+                        </label>
+                    </div>
+
+                    <div class="annee-option-wrap" data-annee-option="3">
+                        <label class="annee-option-label">
+                            <input type="radio" name="annee" value="3"
+                                   <?php echo e((old('annee') === '3') ? 'checked' : ''); ?>
+
+                                   style="accent-color:<?php echo e($accent); ?>;">
+                            3ème An.
+                        </label>
+                    </div>
+
                 </div>
             </div>
 
@@ -621,7 +644,7 @@
 
         <div style="margin-bottom:14px;padding:10px 12px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;">
             <svg width="14" height="14" fill="none" stroke="#f59e0b" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Pour changer le formateur remplaçant, utilisez le panneau de remplacement sur la carte du module.
+            Pour changer le remplaçant, utilisez le panneau de remplacement sur la carte du module.
         </div>
 
         <form id="edit-form" method="POST" style="display:flex;flex-direction:column;gap:14px;">
@@ -636,16 +659,21 @@
             
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div>
-                    <label class="mod-label">Heures</label>
-                    <input type="number" name="nbr_heure" id="edit-heure" class="mod-input" required min="1" max="500">
+                    <label class="mod-label">Heures <span style="color:#ef4444;">*</span></label>
+                    
+                    <input type="number" name="nbr_heure" id="edit-heure" class="mod-input" required
+                           min="2.5" max="500" step="2.5">
+                    <div class="heures-hint">Multiples de <strong>2,5h</strong> : 2,5 · 5 · 7,5 · 10…</div>
                 </div>
                 <div>
-                    <label class="mod-label">Coeff.</label>
-                    <input type="number" name="coefficience" id="edit-coeff" class="mod-input" required min="0.5" max="10" step="0.5">
+                    <label class="mod-label">Coeff. <span style="color:#ef4444;">*</span></label>
+                    <input type="number" name="coefficience" id="edit-coeff" class="mod-input" required
+                           min="0.5" max="10" step="0.5">
                 </div>
                 <div>
                     <label class="mod-label">Contrôles</label>
-                    <input type="number" name="nbr_controles" id="edit-nbr-controles" class="mod-input" min="0" max="10" step="1">
+                    <input type="number" name="nbr_controles" id="edit-nbr-controles" class="mod-input"
+                           min="0" max="10" step="1">
                 </div>
             </div>
 
@@ -666,7 +694,8 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                     <?php $__currentLoopData = [[1,'1ère An.'],[2,'2ème An.'],[3,'3ème An.']]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as [$val,$lbl]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border-radius:10px;border:1.5px solid #e2e8f0;background:white;font-size:12px;font-weight:600;color:#475569;">
-                        <input type="radio" name="annee" value="<?php echo e($val); ?>" id="edit-annee-<?php echo e($val); ?>" style="accent-color:#f59e0b;">
+                        <input type="radio" name="annee" value="<?php echo e($val); ?>" id="edit-annee-<?php echo e($val); ?>"
+                               style="accent-color:#f59e0b;">
                         <?php echo e($lbl); ?>
 
                     </label>
@@ -679,7 +708,7 @@
                 <label class="mod-label">Type</label>
                 <div class="type-toggle">
                     <button type="button" id="edit-btn-regional" class="type-btn" onclick="setEditType('regional')">🌍 Régional</button>
-                    <button type="button" id="edit-btn-local"    class="type-btn" style="border-left:1px solid #e2e8f0;" onclick="setEditType('local')">📍 Local</button>
+                    <button type="button" id="edit-btn-local" class="type-btn" style="border-left:1px solid #e2e8f0;" onclick="setEditType('local')">📍 Local</button>
                 </div>
                 <input type="hidden" name="type" id="edit-type">
             </div>
@@ -734,19 +763,73 @@
 
 
 <script>
-// ── Créer modal ───────────────────────────────────────────────
+
+// ── Filière → duree map ───────────────────────────────────────
+// Built from PHP at render time. Key = filière ID, value = duree (1, 2 or 3).
+const filiereDurees = {
+    <?php $__currentLoopData = $filieres; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    "<?php echo e($f->id); ?>": <?php echo e((int) $f->duree); ?>,
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+};
+
+// ── onCreateFiliereChange ─────────────────────────────────────
+// Filters the année radio buttons to match the selected filière's duree.
+function onCreateFiliereChange(filiereId) {
+    const duree     = filiereDurees[filiereId] ?? 3;
+    const hint      = document.getElementById('create-annee-hint');
+    const dureeText = document.getElementById('create-annee-duree-text');
+    const grid      = document.getElementById('create-annee-grid');
+    const wraps     = grid.querySelectorAll('[data-annee-option]');
+
+    // Show/hide each option according to filière duree
+    wraps.forEach(wrap => {
+        const anneeVal = parseInt(wrap.getAttribute('data-annee-option'));
+        const radio    = wrap.querySelector('input[type=radio]');
+        if (anneeVal <= duree) {
+            wrap.classList.remove('hidden');
+        } else {
+            wrap.classList.add('hidden');
+            radio.checked = false;
+        }
+    });
+
+    // Auto-select the first visible radio if nothing is checked
+    const anyChecked = grid.querySelector('input[type=radio]:checked');
+    if (!anyChecked) {
+        const firstVisible = grid.querySelector('[data-annee-option]:not(.hidden) input[type=radio]');
+        if (firstVisible) firstVisible.checked = true;
+    }
+
+    // Show info banner when duree < 3
+    if (filiereId && duree < 3) {
+        dureeText.textContent = duree;
+        hint.style.display    = 'flex';
+    } else {
+        hint.style.display    = 'none';
+    }
+}
+
+// ── openCreateModal ───────────────────────────────────────────
 function openCreateModal(filiereId) {
-    if (filiereId) document.getElementById('create-id-filiere').value = filiereId;
+    const select = document.getElementById('create-id-filiere');
+    if (filiereId) {
+        select.value = filiereId;
+        onCreateFiliereChange(String(filiereId));
+    } else {
+        select.value = '';
+        onCreateFiliereChange('');   // reset: show all trois années
+    }
     document.getElementById('modal-create').classList.add('open');
 }
+
 function setCreateType(type) {
-    document.getElementById('create-type').value = type;
+    document.getElementById('create-type').value            = type;
     document.getElementById('create-btn-regional').className = 'type-btn' + (type === 'regional' ? ' active-regional' : '');
     document.getElementById('create-btn-local').className    = 'type-btn' + (type === 'local'    ? ' active-local'    : '');
 }
 
-// ── Éditer modal ──────────────────────────────────────────────
-// NOTE: id_user_remplacant param removed — use replacement panel on card
+// ── openEditModal ─────────────────────────────────────────────
+// id_user_remplacant intentionally excluded — use replacement panel on card
 function openEditModal(id, name, heure, coeff, nbrControles, userId, annee, type) {
     document.getElementById('edit-form').action          = '/modules/' + id;
     document.getElementById('edit-name').value           = name;
@@ -762,13 +845,14 @@ function openEditModal(id, name, heure, coeff, nbrControles, userId, annee, type
     });
     document.getElementById('modal-edit').classList.add('open');
 }
+
 function setEditType(type) {
-    document.getElementById('edit-type').value = type;
+    document.getElementById('edit-type').value           = type;
     document.getElementById('edit-btn-regional').className = 'type-btn' + (type === 'regional' ? ' active-regional' : '');
     document.getElementById('edit-btn-local').className    = 'type-btn' + (type === 'local'    ? ' active-local'    : '');
 }
 
-// ── Supprimer modal ───────────────────────────────────────────
+// ── openDeleteModal ───────────────────────────────────────────
 function openDeleteModal(action, name, emploisCount) {
     document.getElementById('delete-form').action      = action;
     document.getElementById('delete-name').textContent = name;

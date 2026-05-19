@@ -127,11 +127,13 @@ class SeanceController extends Controller
             ->keys()
             ->flip()
             ->map(fn() => true);
+
+            $seanceStarted = $emploi->date_debut->isPast();
  
         return view('seances.show', compact(
             'emploi', 'stagiaires', 'presences', 'coursItems',
             'canPresence', 'canEditClassroom',
-            'activeParts', 'lastAbsenceWarnings'
+            'activeParts', 'lastAbsenceWarnings','seanceStarted'
         ));
     }
 

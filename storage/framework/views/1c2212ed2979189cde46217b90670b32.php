@@ -96,8 +96,8 @@
     <div class="lg:col-span-2 grid gap-5">
 
         <?php $__currentLoopData = [
-            ['Réclamations en attente', $stats['reclamations_open'] ?? 0, route('reclamations.index'), '#dc2626', '#fff1f2', '#fecdd3', 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', 'Consultez la liste pour répondre aux stagiaires'],
-            ['Reportations en attente', $stats['reportations_open'] ?? 0, route('reportations.index'), '#1a4f8a', '#eff6ff',  '#bfdbfe', 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', 'Demandes de report de séance des formateurs'],
+            ['Réclamations en attente', $stats['reclamations_open'] ?? 0, route('reclamations.index'), '#dc2626', '#fff1f2', '#fecdd3', 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', 'Réclamations qui vous ont été assignées'],
+            ['Reportations en attente', $stats['reportations_open'] ?? 0, route('reportations.assigned'), '#1a4f8a', '#eff6ff',  '#bfdbfe', 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', 'Reportations qui vous ont été assignées'],
         ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as [$title, $count, $route, $color, $bg, $border, $icon, $desc]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between">
@@ -121,7 +121,7 @@
                 </div>
                 <div class="flex-1">
                     <p class="text-sm font-bold text-slate-700">
-                        <?php echo e($count === 0 ? 'Aucune en attente ✓' : $count.' à traiter'); ?>
+                        <?php echo e($count === 0 ? 'Aucune en attente ✓' : $count.' assignée à vous'); ?>
 
                     </p>
                     <p class="text-xs text-slate-400 mt-0.5"><?php echo e($desc); ?></p>

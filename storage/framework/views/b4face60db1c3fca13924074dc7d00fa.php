@@ -161,7 +161,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
         
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 <?php echo e($user->isAdmin() || $user->isGestionnaire() ? 'md:col-span-2' : ''); ?>">
             <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <span class="w-6 h-6 rounded-lg <?php echo e($rc['light']); ?> <?php echo e($rc['text']); ?> flex items-center justify-center flex-shrink-0">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -517,7 +517,7 @@
 
         
         <?php if($user->isFormateur() && $user->modules->isNotEmpty()): ?>
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:col-span-2">  
             <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <span class="w-6 h-6 rounded-lg <?php echo e($rc['light']); ?> <?php echo e($rc['text']); ?> flex items-center justify-center flex-shrink-0">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -600,7 +600,7 @@
 <?php if($user->isStagiaire()): ?>
     
     <input type="hidden" name="name" value="<?php echo e($user->name); ?>">
-    
+
     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
         Nom complet
     </label>
@@ -633,7 +633,6 @@
 <?php endif; ?>
                     </div>
                     <div>
-
 
 <div>
     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
@@ -668,7 +667,6 @@ endif;
 unset($__errorArgs, $__bag); ?>
 </div>
                     </div>
-
 
                     <div>
                         <?php if (isset($component)) { $__componentOriginalf4c8ecf26ef77d4de25edf56eae3a34d = $component; } ?>

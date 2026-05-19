@@ -23,9 +23,8 @@
             ->toArray()
         : [];
 
-    // AFTER
-$isStagiaire = Auth::user()->role === 'stagiaire';
-$restrictNextWeek = $isStagiaire || Auth::user()->role === 'formateur';
+    $isStagiaire = Auth::user()->role === 'stagiaire';
+    $restrictNextWeek = $isStagiaire || Auth::user()->role === 'formateur';
 
     $stagiaireYear = null;
     if ($isStagiaire && Auth::user()->id_groupe) {
@@ -70,8 +69,10 @@ $restrictNextWeek = $isStagiaire || Auth::user()->role === 'formateur';
 ═══════════════════════════════════════ */
 .tt-wrap {
     font-family: 'Segoe UI', system-ui, sans-serif;
-    min-width: 0;           /* ← FIX: prevents overflow blowout on sidebar resize */
-    transition: all 0.3s ease; /* ← FIX: smooth reflow when sidebar toggles */
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .tt-scroll {
@@ -79,7 +80,9 @@ $restrictNextWeek = $isStagiaire || Auth::user()->role === 'formateur';
     border-radius: 16px; border: 1px solid #e2e8f0;
     background: #f8fafc; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     scrollbar-width: thin; scrollbar-color: {{ $accentColor }}40 transparent;
-    transition: width 0.3s ease; /* ← FIX: smooth width change on sidebar toggle */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .tt-scroll::-webkit-scrollbar { height: 4px; }
 .tt-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -204,24 +207,88 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     text-transform: uppercase; letter-spacing: .3px;
 }
 
-.tt-card-footer { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid #f1f5f9; }
-.tt-foot-btn {
-    padding: 7px 4px; font-size: 10px; font-weight: 700;
-    border: none; cursor: pointer; background: transparent; color: #94a3b8;
-    display: flex; align-items: center; justify-content: center; gap: 4px;
-    transition: background 0.12s, color 0.12s; text-decoration: none; white-space: nowrap;
+/* ════════════════════════════════════════
+   ACTION BUTTONS — icon-only, hover overlay
+════════════════════════════════════════ */
+.tt-actions {
+    position: absolute;
+    top: 7px; right: 7px;
+    display: none;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255,255,255,0.96);
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 3px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+    backdrop-filter: blur(4px);
 }
+.tt-card:hover .tt-actions { display: flex; }
+
+/* Thin separator between action groups */
+.tt-actions-sep {
+    width: 1px; height: 14px;
+    background: #e2e8f0;
+    margin: 0 1px;
+    border-radius: 99px;
+    flex-shrink: 0;
+}
+
+/* Base icon button */
+.tt-action-btn {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s, color 0.12s, transform 0.1s;
+    color: #94a3b8;
+    padding: 0;
+    flex-shrink: 0;
+}
+.tt-action-btn svg { width: 13px; height: 13px; pointer-events: none; }
+.tt-action-btn:hover { transform: scale(1.08); }
+
+/* Variants */
+.tt-action-btn.btn-edit:hover   { background: {{ $p['light'] }};  color: {{ $p['text'] }}; }
+.tt-action-btn.btn-del:hover    { background: #fee2e2; color: #dc2626; }
+.tt-action-btn.btn-report:hover { background: #f5f3ff; color: #7c3aed; }
+.tt-action-btn.btn-lien:hover   { background: #fef3c7; color: #d97706; }
+
+/* Pending report — locked state */
+.tt-action-btn.btn-pending {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.tt-action-btn.btn-pending:hover { background: transparent; transform: none; }
+
+/* ════════════════════════════════════════
+   CARD FOOTER — icon-only tabs
+════════════════════════════════════════ */
+.tt-card-footer {
+    display: flex;
+    border-top: 1px solid #f1f5f9;
+}
+.tt-foot-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+    text-decoration: none;
+}
+.tt-foot-btn svg { width: 14px; height: 14px; }
 .tt-foot-btn:not(:last-child) { border-right: 1px solid #f1f5f9; }
-.tt-foot-btn:hover             { background: #f8fafc; color: #1e293b; }
+.tt-foot-btn:hover             { background: #f8fafc; color: #475569; }
 .tt-foot-btn-pres:hover        { background: #f0fdf4; color: #16a34a; }
 .tt-foot-btn-cls:hover         { background: {{ $p['light'] }}; color: {{ $p['text'] }}; }
 .card-distance .tt-card-footer { background: #fef9ee; }
-
-.tt-actions { position: absolute; top: 7px; right: 7px; display: none; gap: 3px; }
-.tt-card:hover .tt-actions { display: flex; }
-.tt-btn-edit { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
-.tt-btn-del  { font-size: 9px; font-weight: 700; background: #fee2e2; color: #dc2626; padding: 2px 7px; border-radius: 6px; border: none; cursor: pointer; transition: opacity 0.15s; }
-.tt-btn-edit:hover, .tt-btn-del:hover { opacity: 0.8; }
 
 /* ── Empty cell ── */
 .tt-empty-td { padding: 5px; }
@@ -290,10 +357,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 }
 
 /* ══════════════════════════════════════════════
-   RESPONSIVE — Mobile / Tablet
+   MOBILE STYLES
 ══════════════════════════════════════════════ */
-
-/* ── Header stacks on tablet ── */
 @media (max-width: 900px) {
     .tt-header-wrap {
         flex-direction: column !important;
@@ -304,7 +369,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     .tt-header-right { width: 100%; justify-content: space-between; flex-wrap: wrap; }
 }
 
-/* ── Tabs / nav shrink on small screens ── */
 @media (max-width: 640px) {
     .tt-tab { padding: 8px 10px; font-size: 11px; }
     .tt-tab-badge { display: none; }
@@ -313,27 +377,16 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     .tt-nav-date-label { display: none; }
 }
 
-/* ════════════════════════════════════════
-   FIX: Both hidden-by-default rules MUST
-   come BEFORE the @media block so the
-   media query can properly override them.
-════════════════════════════════════════ */
-
-/* ── Mobile day navigator (hidden on desktop) ── */
 .tt-mobile-nav  { display: none; }
-
-/* ── Mobile card grid (hidden on desktop) ── */
 .tt-mobile-grid { display: none; }
 
 @media (max-width: 768px) {
-    /* Show mobile controls, hide desktop table */
     .tt-scroll      { display: none; }
     .tt-mobile-nav  { display: flex; }
     .tt-mobile-grid { display: block; }
     .tt-legend      { display: none; }
 }
 
-/* ── Mobile day nav pills ── */
 .tt-mobile-nav {
     overflow-x: auto;
     gap: 6px;
@@ -359,15 +412,8 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     text-align: center;
     line-height: 1.4;
 }
-.tt-day-pill.today-pill {
-    border-color: {{ $accentColor }};
-    color: {{ $accentColor }};
-}
-.tt-day-pill.active {
-    background: {{ $accentColor }};
-    border-color: {{ $accentColor }};
-    color: white;
-}
+.tt-day-pill.today-pill { border-color: {{ $accentColor }}; color: {{ $accentColor }}; }
+.tt-day-pill.active     { background: {{ $accentColor }}; border-color: {{ $accentColor }}; color: white; }
 
 .tt-mobile-filiere {
     padding: 6px 12px;
@@ -444,30 +490,30 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
     margin-bottom: 8px;
 }
 
+/* ── Mobile footer — icon-only ── */
 .tt-mobile-session-footer {
     display: flex;
     border-top: 1px solid #f1f5f9;
 }
 .tt-mobile-foot-btn {
     flex: 1;
-    padding: 10px 4px;
-    font-size: 11px;
-    font-weight: 700;
+    padding: 11px 4px;
     border: none;
     background: transparent;
-    color: #94a3b8;
+    color: #cbd5e1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
     text-decoration: none;
     cursor: pointer;
     transition: background 0.12s, color 0.12s;
 }
+.tt-mobile-foot-btn svg { width: 16px; height: 16px; }
 .tt-mobile-foot-btn:not(:last-child) { border-right: 1px solid #f1f5f9; }
-.tt-mobile-foot-btn:hover { background: #f8fafc; color: #1e293b; }
+.tt-mobile-foot-btn:hover            { background: #f8fafc; color: #475569; }
+.tt-mobile-foot-btn.pres:hover       { background: #f0fdf4; color: #16a34a; }
+.tt-mobile-foot-btn.cls:hover        { background: {{ $p['light'] }}; color: {{ $p['text'] }}; }
 
-/* ── Modals: bottom sheet on small phones ── */
 @media (max-width: 480px) {
     .tt-modal-overlay { align-items: flex-end !important; }
     .tt-modal-box {
@@ -494,27 +540,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
         max-height: 92vh !important;
         overflow-y: auto;
     }
-}
-
-/* Replace your existing .tt-scroll rule with this */
-.tt-scroll {
-    overflow-x: auto; overflow-y: visible;
-    border-radius: 16px; border: 1px solid #e2e8f0;
-    background: #f8fafc; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    scrollbar-width: thin; scrollbar-color: {{ $accentColor }}40 transparent;
-    width: 100%;           /* ← key fix */
-    max-width: 100%;       /* ← key fix */
-    box-sizing: border-box; /* ← key fix */
-    transition: none;      /* ← remove transition, causes the glitch */
-}
-
-/* Also fix the wrapper */
-.tt-wrap {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    min-width: 0;
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
 }
 </style>
 
@@ -601,8 +626,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
 
     {{-- LEFT : Year tabs + Promo --}}
     <div class="tt-header-left" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-
-        {{-- Year tabs --}}
         <div style="display:inline-flex; border-radius:12px; overflow:hidden; border:1.5px solid #e2e8f0; background:white;">
             @php
                 $tab1Disabled = $isStagiaire && $stagiaireYear !== null && $stagiaireYear !== 1;
@@ -650,7 +673,6 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             @endif
         </div>
 
-        {{-- Promo selector --}}
         <div class="promo-selector">
             <span class="promo-label">Promotion</span>
             <select id="promo-select" class="promo-select" onchange="changePromo(this.value)">
@@ -659,8 +681,7 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
                 @endforeach
             </select>
         </div>
-
-    </div>{{-- .tt-header-left --}}
+    </div>
 
     {{-- RIGHT : Week nav --}}
     <div class="tt-header-right" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -681,9 +702,9 @@ tr:hover .tt-sticky-cell { background: #fafbfc; }
             $semaineSuivante   = $weekStart->copy()->addWeek();
             $prochainLundiNav  = \Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY)->addWeek();
             $visibleDepuisNav  = $prochainLundiNav->copy()->subDays(1);
-$peutNaviguerSuivante = !$restrictNextWeek
-    || $semaineSuivante->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
-    || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
+            $peutNaviguerSuivante = !$restrictNextWeek
+                || $semaineSuivante->lte(\Carbon\Carbon::now()->startOfWeek(\Carbon\Carbon::MONDAY))
+                || ($semaineSuivante->eq($prochainLundiNav) && \Carbon\Carbon::now()->gte($visibleDepuisNav));
         @endphp
 
         @if($peutNaviguerSuivante)
@@ -728,8 +749,8 @@ $peutNaviguerSuivante = !$restrictNextWeek
         </form>
         @endif
 
-    </div>{{-- .tt-header-right --}}
-</div>{{-- .tt-header-wrap --}}
+    </div>
+</div>
 
 {{-- ════ MOBILE DAY NAVIGATOR ════ --}}
 <div class="tt-mobile-nav" id="tt-mobile-day-nav">
@@ -755,7 +776,6 @@ $peutNaviguerSuivante = !$restrictNextWeek
 
                 @foreach($groupes as $groupe)
                     <div class="tt-mobile-group">
-
                         <div class="tt-mobile-group-header">
                             <div style="width:3px; height:18px; border-radius:99px; background:{{ $accentColor }}; flex-shrink:0;"></div>
                             <span>{{ $groupe->name ?? 'G'.$groupe->id }}</span>
@@ -797,7 +817,6 @@ $peutNaviguerSuivante = !$restrictNextWeek
 
                                     <div class="tt-mobile-session" style="border-top-color:{{ $topColor }}; {{ $isDraft ? 'opacity:.75; border-style:dashed; border-top-style:dashed; background:#f8fafc;' : ($isRemote ? 'background:#fffbeb;' : '') }}">
                                         <div class="tt-mobile-session-body">
-
                                             @if($isDraft)
                                                 <div style="display:inline-block; font-size:8px; font-weight:800; background:#f1f5f9; color:#64748b; padding:2px 7px; border-radius:6px; border:1px solid #cbd5e1; text-transform:uppercase; margin-bottom:6px;">Brouillon</div>
                                             @endif
@@ -814,7 +833,6 @@ $peutNaviguerSuivante = !$restrictNextWeek
                                             </div>
 
                                             <div class="tt-mobile-session-meta">
-
                                                 @if($hasRemplacant)
                                                     <div class="tt-mobile-session-row" style="flex-direction:column; align-items:flex-start; gap:3px;">
                                                         <div style="display:flex; align-items:center; gap:6px;">
@@ -870,58 +888,65 @@ $peutNaviguerSuivante = !$restrictNextWeek
                                                     </svg>
                                                     {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}
                                                 </div>
-
                                             </div>
                                         </div>
 
+                                        {{-- ── MOBILE FOOTER — icon-only ── --}}
                                         <div class="tt-mobile-session-footer">
-                                            <a href="{{ route('seances.show', $emploi) }}" class="tt-mobile-foot-btn">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <circle cx="11" cy="11" r="8" stroke-width="2"/>
-                                                    <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+                                            {{-- Voir --}}
+                                            <a href="{{ route('seances.show', $emploi) }}"
+                                               class="tt-mobile-foot-btn"
+                                               title="Voir le détail">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                                 </svg>
-                                                Voir
                                             </a>
 
                                             @if(in_array(Auth::user()->role, ['admin','gestionnaire','formateur']))
                                                 @if(!$isDraft)
+                                                    {{-- Présence --}}
                                                     <a href="{{ route('seances.show', $emploi) }}#presence"
-                                                       class="tt-mobile-foot-btn" style="color:#16a34a;">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                       class="tt-mobile-foot-btn pres"
+                                                       title="Feuille de présence">
+                                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                                                   d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                                                         </svg>
-                                                        Présence
                                                     </a>
                                                 @else
-                                                    <span class="tt-mobile-foot-btn" style="opacity:.35; cursor:not-allowed;">Présence</span>
+                                                    <span class="tt-mobile-foot-btn" style="opacity:.3; cursor:not-allowed;" title="Disponible après publication">
+                                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                        </svg>
+                                                    </span>
                                                 @endif
                                             @endif
 
+                                            {{-- Cours --}}
                                             <a href="{{ route('seances.show', $emploi) }}#classroom"
-                                               class="tt-mobile-foot-btn" style="color:{{ $p['text'] }};">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                               class="tt-mobile-foot-btn cls"
+                                               title="Ressources du cours">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-width="2" stroke-linecap="round"
                                                           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                                 </svg>
-                                                Cours
                                             </a>
                                         </div>
                                     </div>
                                 @endif
                             @endforeach
                         @endif
-
-                    </div>{{-- .tt-mobile-group --}}
+                    </div>
                 @endforeach
 
             @empty
                 <div class="tt-mobile-empty">Aucun groupe pour cette année et cette promotion.</div>
             @endforelse
-
-        </div>{{-- .tt-mobile-day-block --}}
+        </div>
     @endforeach
-</div>{{-- .tt-mobile-grid --}}
+</div>
 
 {{-- ════ DESKTOP GRID TABLE ════ --}}
 <div class="tt-scroll" id="tt-scroll-container">
@@ -1050,23 +1075,37 @@ $peutNaviguerSuivante = !$restrictNextWeek
                         <td class="tt-session-td" colspan="{{ $colspan }}" style="{{ $spanBorder }}">
                             <div class="tt-card {{ $cardClass }}">
 
+                                {{-- ════ ACTION BUTTONS — icon-only, appear on hover ════ --}}
                                 @if($canEdit || $canDelete || $canLien || $isGestionnaire || $canReport)
                                 <div class="tt-actions">
+
+                                    {{-- Edit --}}
                                     @if($canEdit)
-                                        <button class="tt-btn-edit"
-                                                style="background:{{ $isRemote ? '#fef3c7' : $p['light'] }}; color:{{ $isRemote ? '#92400e' : $p['text'] }};"
-                                                onclick="openEditModal({{ $emploi->id }})">✎</button>
+                                    <button type="button"
+                                            class="tt-action-btn btn-edit"
+                                            onclick="openEditModal({{ $emploi->id }})"
+                                            title="Modifier la séance">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                    </button>
                                     @endif
 
-
-
+                                    {{-- Report --}}
                                     @if($canReport && $emploi->id_user === Auth::user()->id)
                                         @php $alreadyPending = in_array($emploi->id, $pendingReportIds); @endphp
                                         @if($alreadyPending)
-                                            <span class="tt-btn-edit" style="background:#fef3c7; color:#92400e; opacity:.6; cursor:not-allowed;" title="Demande déjà en attente">⏳</span>
+                                            <span class="tt-action-btn btn-pending" title="Demande de report déjà en attente">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <circle cx="12" cy="12" r="9" stroke-width="2"/>
+                                                    <path stroke-width="2" stroke-linecap="round" d="M12 7v5l3 3"/>
+                                                </svg>
+                                            </span>
                                         @else
-                                            <button class="tt-btn-edit"
-                                                    style="background:#f5f3ff; color:#6d28d9;"
+                                            <button type="button"
+                                                    class="tt-action-btn btn-report"
+                                                    title="Demander un report"
                                                     onclick="openReportModal(
                                                         {{ $emploi->id }},
                                                         '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
@@ -1075,38 +1114,64 @@ $peutNaviguerSuivante = !$restrictNextWeek
                                                         '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
                                                         '{{ $emploi->date_debut->format('H:i') }}',
                                                         '{{ $emploi->date_fin->format('H:i') }}'
-                                                    )"
-                                                    title="Demander un report">📋</button>
+                                                    )">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                </svg>
+                                            </button>
                                         @endif
                                     @endif
 
-                                    @if($canDelete)
-                                        <button type="button" class="tt-btn-del"
-                                                onclick="openDeleteModal(
-                                                    '{{ route('emplois.destroy', $emploi) }}',
-                                                    '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
-                                                    '{{ addslashes($emploi->module->name ?? 'Module') }}',
-                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }}',
-                                                    '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
-                                                    '{{ $emploi->date_debut->format('H:i') }}',
-                                                    '{{ $emploi->date_fin->format('H:i') }}',
-                                                    '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
-                                                )">✕</button>
+                                    {{-- Lien distance --}}
+                                    @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
+                                    <button type="button"
+                                            class="tt-action-btn btn-lien"
+                                            title="Mettre à jour le lien de réunion"
+                                            onclick="openLienModal(
+                                                {{ $emploi->id }},
+                                                '{{ addslashes($emploi->lien_distance ?? '') }}',
+                                                '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
+                                                '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
+                                            )">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                    </button>
                                     @endif
 
-                                    @if($canLien && $emploi->mode === 'distance' && (Auth::user()->role === 'formateur' ? $emploi->id_user === Auth::user()->id : true))
-                                        <button class="tt-btn-edit"
-                                                style="background:#fef3c7; color:#92400e;"
-                                                onclick="openLienModal(
-                                                    {{ $emploi->id }},
-                                                    '{{ addslashes($emploi->lien_distance ?? '') }}',
-                                                    '{{ addslashes(($emploi->groupe->name ?? 'Groupe').' — '.($emploi->module->name ?? 'Module')) }}',
-                                                    '{{ $emploi->date_debut->translatedFormat('l d M') }} · {{ EmploiDuTempsController::spanLabel($sNum, $colspan) }} · {{ $emploi->date_debut->format('H:i') }} → {{ $emploi->date_fin->format('H:i') }}'
-                                                )">🔗</button>
+                                    {{-- Separator before delete --}}
+                                    @if($canDelete && ($canEdit || $canReport || $canLien))
+                                        <div class="tt-actions-sep"></div>
                                     @endif
+
+                                    {{-- Delete --}}
+                                    @if($canDelete)
+                                    <button type="button"
+                                            class="tt-action-btn btn-del"
+                                            title="Supprimer la séance"
+                                            onclick="openDeleteModal(
+                                                '{{ route('emplois.destroy', $emploi) }}',
+                                                '{{ addslashes($emploi->groupe->name ?? 'Groupe') }}',
+                                                '{{ addslashes($emploi->module->name ?? 'Module') }}',
+                                                '{{ $emploi->date_debut->translatedFormat('l d M') }}',
+                                                '{{ EmploiDuTempsController::spanLabel($sNum, $colspan) }}',
+                                                '{{ $emploi->date_debut->format('H:i') }}',
+                                                '{{ $emploi->date_fin->format('H:i') }}',
+                                                '{{ addslashes($emploi->salle->name ?? ($isRemote ? 'À distance' : '—')) }}'
+                                            )">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                    @endif
+
                                 </div>
                                 @endif
 
+                                {{-- ════ CARD BODY ════ --}}
                                 <div class="tt-card-body">
                                     @if($isDraft)<div class="draft-badge">Brouillon</div>@endif
                                     <div class="tt-card-header">
@@ -1191,38 +1256,54 @@ $peutNaviguerSuivante = !$restrictNextWeek
                                     </div>
                                 </div>
 
+                                {{-- ════ CARD FOOTER — icon-only tabs ════ --}}
                                 <div class="tt-card-footer">
-                                    <a href="{{ route('seances.show', $emploi) }}" class="tt-foot-btn" title="Voir le détail">
-                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <circle cx="11" cy="11" r="8" stroke-width="2"/>
-                                            <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+
+                                    {{-- Voir --}}
+                                    <a href="{{ route('seances.show', $emploi) }}"
+                                       class="tt-foot-btn"
+                                       title="Voir le détail">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
-                                        Voir
                                     </a>
 
+                                    {{-- Présence --}}
                                     @if(in_array(Auth::user()->role, ['admin','gestionnaire','formateur']))
                                         @if(!$isDraft)
-                                            <a href="{{ route('seances.show', $emploi) }}#presence" class="tt-foot-btn tt-foot-btn-pres">
-                                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <a href="{{ route('seances.show', $emploi) }}#presence"
+                                               class="tt-foot-btn tt-foot-btn-pres"
+                                               title="Feuille de présence">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                                                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                                                 </svg>
-                                                Présence
                                             </a>
                                         @else
-                                            <span class="tt-foot-btn" style="opacity:.35; cursor:not-allowed;">Présence</span>
+                                            <span class="tt-foot-btn" style="opacity:.3; cursor:not-allowed;" title="Disponible après publication">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                            </span>
                                         @endif
                                     @else
                                         <span></span>
                                     @endif
 
-                                    <a href="{{ route('seances.show', $emploi) }}#classroom" class="tt-foot-btn tt-foot-btn-cls">
-                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {{-- Cours --}}
+                                    <a href="{{ route('seances.show', $emploi) }}#classroom"
+                                       class="tt-foot-btn tt-foot-btn-cls"
+                                       title="Ressources du cours">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-width="2" stroke-linecap="round"
                                                   d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                         </svg>
-                                        Cours
                                     </a>
+
                                 </div>
 
                             </div>
@@ -1299,7 +1380,7 @@ $peutNaviguerSuivante = !$restrictNextWeek
 </div>{{-- .tt-wrap --}}
 
 {{-- ════════════════════════════════════════════════════════════
-     MODALS
+     MODALS  (unchanged)
 ════════════════════════════════════════════════════════════ --}}
 
 {{-- ── DELETE ── --}}
@@ -1473,7 +1554,7 @@ $peutNaviguerSuivante = !$restrictNextWeek
 @endif
 
 {{-- ── CREATE / EDIT ── --}}
-@if($canCreate || $canEdit )
+@if($canCreate || $canEdit)
 <div id="emploi-modal" class="tt-modal-overlay" onclick="if(event.target===this)closeModal()">
     <div class="tt-modal-box">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid {{ $accentColor }};">
@@ -1706,7 +1787,7 @@ $peutNaviguerSuivante = !$restrictNextWeek
 </div>
 @endif
 
-{{-- ════ JAVASCRIPT ════ --}}
+{{-- ════ JAVASCRIPT (unchanged) ════ --}}
 <script>
 const SEANCE_STARTS = ['08:30','11:00','13:30','16:00'];
 const SEANCE_ENDS   = ['11:00','13:30','16:00','18:30'];
@@ -1738,56 +1819,28 @@ let _currentMode   = 'presentiel';
 let _allFormateurs = @json($formateurs->map(fn($f) => ['id'=>$f->id,'name'=>$f->name]));
 let _allSalles     = @json($salles->map(fn($s) => ['id'=>$s->id,'name'=>$s->name,'capacity'=>$s->capacity]));
 
-// ══════════════════════════════════════════════════════════
-// FIX: Sidebar resize → timetable reflow (no flash, precise)
-// ══════════════════════════════════════════════════════════
+// ── Sidebar reflow fix ────────────────────────────────────────────
 (function () {
-    const sidebar   = document.getElementById('sidebar');
-    const scroll    = document.getElementById('tt-scroll-container');
-    const wrap      = document.querySelector('.tt-wrap');
-
+    const sidebar = document.getElementById('sidebar');
+    const scroll  = document.getElementById('tt-scroll-container');
     if (!sidebar) return;
-
-    // transitionend fires at the EXACT moment the sidebar finishes animating.
-    // We only care about the 'width' property — ignore opacity, color, etc.
     sidebar.addEventListener('transitionend', function (e) {
         if (e.propertyName !== 'width') return;
-
-        // Force a synchronous reflow of just the scroll container.
-        // No display:none trick (causes flash). Just a resize event is enough
-        // because .tt-scroll has width:100% and its parent is a flex child.
         if (scroll) {
-            // Temporarily remove max-width cap so the browser recalculates freely
             scroll.style.maxWidth = 'none';
-            void scroll.offsetWidth; // force reflow
+            void scroll.offsetWidth;
             scroll.style.maxWidth = '100%';
         }
         window.dispatchEvent(new Event('resize'));
     });
-
-    // Also handle Alpine.js x-data sidebarOpen toggling via MutationObserver
-    // on the sidebar's class/style (covers both desktop & mobile toggle paths).
     const observer = new MutationObserver(function () {
-        // Debounce: wait for CSS transition to actually start before we listen
-        // for transitionend. If transition hasn't started yet, do nothing here —
-        // the transitionend listener above will handle it.
-        // We only need this fallback for cases where the sidebar has NO transition
-        // (e.g. reduced-motion or instant toggle).
         const hasDuration = parseFloat(getComputedStyle(sidebar).transitionDuration) > 0;
-        if (!hasDuration) {
-            setTimeout(function () {
-                window.dispatchEvent(new Event('resize'));
-            }, 0);
-        }
+        if (!hasDuration) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
     });
-
-    observer.observe(sidebar, {
-        attributes: true,
-        attributeFilter: ['class', 'style'],
-    });
+    observer.observe(sidebar, { attributes: true, attributeFilter: ['class', 'style'] });
 })();
 
-// ── MOBILE DAY SWITCHER ──────────────────────────────────────────
+// ── Mobile day switcher ───────────────────────────────────────────
 function switchMobileDay(dayNum) {
     document.querySelectorAll('.tt-day-pill').forEach(p => {
         p.classList.toggle('active', parseInt(p.dataset.day) === dayNum);
@@ -1796,52 +1849,43 @@ function switchMobileDay(dayNum) {
         b.style.display = parseInt(b.dataset.day) === dayNum ? 'block' : 'none';
     });
 }
-
-// Auto-select today pill on mobile load
 (function () {
     const pills = document.querySelectorAll('.tt-day-pill');
     let todayPill = null;
     pills.forEach(p => { if (p.classList.contains('today-pill')) todayPill = p; });
     if (todayPill && window.innerWidth <= 768) {
         switchMobileDay(parseInt(todayPill.dataset.day));
-        setTimeout(() => todayPill.scrollIntoView({
-            behavior: 'smooth', inline: 'center', block: 'nearest'
-        }), 150);
+        setTimeout(() => todayPill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 150);
     }
 })();
 
-// ── PUBLISH MODAL ────────────────────────────────────────────────
+// ── Publish modal ─────────────────────────────────────────────────
 function openPublishModal()  { document.getElementById('publish-modal').style.display = 'flex'; }
 function closePublishModal() { document.getElementById('publish-modal').style.display = 'none'; }
 function submitPublish()     { document.getElementById('publish-form').submit(); }
 
-// ── PROMO CHANGE ─────────────────────────────────────────────────
+// ── Promo change ──────────────────────────────────────────────────
 function changePromo(promoValue) {
     const url = new URL(window.location.href);
     url.searchParams.set('promo', promoValue);
     window.location.href = url.toString();
 }
 
-// ── MODE TOGGLE (présentiel / distance) ─────────────────────────
+// ── Mode toggle ───────────────────────────────────────────────────
 function setMode(mode) {
     _currentMode = mode;
     document.getElementById('m-mode').value = mode;
-
     const btnPres  = document.getElementById('btn-pres');
     const btnDist  = document.getElementById('btn-dist');
     const salleRow = document.getElementById('salle-row');
     const lienRow  = document.getElementById('lien-row');
     const submit   = document.getElementById('btn-submit');
-
     if (mode === 'distance') {
         btnPres.className = 'mode-btn';
         btnDist.className = 'mode-btn active-dist';
         if (salleRow) salleRow.style.display = 'none';
         if (lienRow)  lienRow.style.display  = 'block';
-        if (submit) {
-            submit.style.background = '#f59e0b';
-            submit.style.boxShadow  = '0 4px 12px rgba(245,158,11,0.4)';
-        }
+        if (submit) { submit.style.background = '#f59e0b'; submit.style.boxShadow = '0 4px 12px rgba(245,158,11,0.4)'; }
         const salleEl = document.getElementById('m-salle');
         if (salleEl) salleEl.required = false;
     } else {
@@ -1849,17 +1893,14 @@ function setMode(mode) {
         btnDist.className = 'mode-btn';
         if (salleRow) salleRow.style.display = 'block';
         if (lienRow)  lienRow.style.display  = 'none';
-        if (submit) {
-            submit.style.background = ACCENT;
-            submit.style.boxShadow  = '0 4px 12px ' + ACCENT + '40';
-        }
+        if (submit) { submit.style.background = ACCENT; submit.style.boxShadow = '0 4px 12px ' + ACCENT + '40'; }
         const salleEl = document.getElementById('m-salle');
         if (salleEl) salleEl.required = true;
     }
     loadAvailable();
 }
 
-// ── PREVIEW BAR ──────────────────────────────────────────────────
+// ── Preview bar ───────────────────────────────────────────────────
 function updatePreview(seanceIdx, duration) {
     let totalH = 0;
     for (let i = 1; i <= 4; i++) {
@@ -1870,7 +1911,7 @@ function updatePreview(seanceIdx, duration) {
         bar.style.background = filled ? color : '#e2e8f0';
         if (filled) totalH += SEANCE_HOURS[i - 1];
     }
-    const endIdx = Math.min(seanceIdx + duration, 4);
+    const endIdx  = Math.min(seanceIdx + duration, 4);
     const startEl = document.getElementById('prev-start');
     const endEl   = document.getElementById('prev-end');
     const lblEl   = document.getElementById('prev-label');
@@ -1879,52 +1920,31 @@ function updatePreview(seanceIdx, duration) {
     if (lblEl)   lblEl.textContent   = totalH + 'h · ' + duration + ' séance' + (duration > 1 ? 's' : '');
 }
 
-// ── AVAILABILITY FETCH ───────────────────────────────────────────
+// ── Availability fetch ────────────────────────────────────────────
 function populateSelect(selectId, items, labelFn, countSpanId, loadingSpanId) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
-    const curVal     = sel.value;
-    const loadingEl  = document.getElementById(loadingSpanId);
+    const curVal    = sel.value;
+    const loadingEl = document.getElementById(loadingSpanId);
     if (loadingEl) loadingEl.style.display = 'none';
-
     const available = items.filter(i => i.available);
     const busy      = items.filter(i => !i.available);
-
     sel.innerHTML = '<option value="">— Sélectionner —</option>';
-
     if (available.length) {
         const grp = document.createElement('optgroup');
         grp.label = '✓ Disponibles (' + available.length + ')';
-        available.forEach(i => {
-            const o = document.createElement('option');
-            o.value = i.id;
-            o.textContent = labelFn(i);
-            grp.appendChild(o);
-        });
+        available.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.textContent = labelFn(i); grp.appendChild(o); });
         sel.appendChild(grp);
     }
-
     if (busy.length) {
         const grp = document.createElement('optgroup');
         grp.label = '✗ Occupés (' + busy.length + ')';
-        busy.forEach(i => {
-            const o = document.createElement('option');
-            o.value = i.id;
-            o.textContent = '✗ ' + labelFn(i);
-            o.disabled = true;
-            o.style.color = '#cbd5e1';
-            grp.appendChild(o);
-        });
+        busy.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.textContent = '✗ ' + labelFn(i); o.disabled = true; o.style.color = '#cbd5e1'; grp.appendChild(o); });
         sel.appendChild(grp);
     }
-
     if (curVal) sel.value = curVal;
-
     const countEl = document.getElementById(countSpanId);
-    if (countEl) {
-        countEl.textContent  = available.length + ' dispo.';
-        countEl.style.display = available.length < items.length ? 'inline' : 'none';
-    }
+    if (countEl) { countEl.textContent = available.length + ' dispo.'; countEl.style.display = available.length < items.length ? 'inline' : 'none'; }
 }
 
 function populateModuleSelect(modules) {
@@ -1933,44 +1953,32 @@ function populateModuleSelect(modules) {
     const curVal    = sel.value;
     const loadingEl = document.getElementById('avail-loading-module');
     if (loadingEl) loadingEl.style.display = 'none';
-
-    // Split into available vs completed (100 %)
     const available = modules.filter(m => !m.nbr_heure || (m.done_hours || 0) < m.nbr_heure);
     const completed = modules.filter(m =>  m.nbr_heure > 0 && (m.done_hours || 0) >= m.nbr_heure);
-
     sel.innerHTML = '<option value="">— Sélectionner un module —</option>';
-
     if (available.length) {
         const grp = document.createElement('optgroup');
         grp.label = '✓ Disponibles (' + available.length + ')';
         available.forEach(m => {
-            const pct = m.nbr_heure > 0
-                ? Math.min(99, Math.round(((m.done_hours || 0) / m.nbr_heure) * 100))
-                : 0;
+            const pct = m.nbr_heure > 0 ? Math.min(99, Math.round(((m.done_hours || 0) / m.nbr_heure) * 100)) : 0;
             const o = document.createElement('option');
-            o.value = m.id;
-            o.textContent = m.name + ' (' + m.nbr_heure + 'h — ' + pct + '%)';
-            o.dataset.nbrHeure  = m.nbr_heure;
-            o.dataset.doneHours = m.done_hours || 0;
+            o.value = m.id; o.textContent = m.name + ' (' + m.nbr_heure + 'h — ' + pct + '%)';
+            o.dataset.nbrHeure = m.nbr_heure; o.dataset.doneHours = m.done_hours || 0;
             grp.appendChild(o);
         });
         sel.appendChild(grp);
     }
-
     if (completed.length) {
         const grp = document.createElement('optgroup');
         grp.label = '✗ Terminés 100% — ' + completed.length + ' module(s)';
         completed.forEach(m => {
             const o = document.createElement('option');
-            o.value       = m.id;
-            o.textContent = '✗ ' + m.name + ' (' + m.nbr_heure + 'h — complet)';
-            o.disabled    = true;
-            o.style.color = '#94a3b8';
+            o.value = m.id; o.textContent = '✗ ' + m.name + ' (' + m.nbr_heure + 'h — complet)';
+            o.disabled = true; o.style.color = '#94a3b8';
             grp.appendChild(o);
         });
         sel.appendChild(grp);
     }
-
     if (curVal) sel.value = curVal;
     updateModuleProgress();
 }
@@ -1979,111 +1987,60 @@ function updateModuleProgress() {
     const sel  = document.getElementById('m-module');
     const wrap = document.getElementById('module-progress-wrap');
     if (!sel || !wrap) return;
-
     const moduleId = parseInt(sel.value);
     if (!moduleId || !_slotGroupeId) { wrap.style.display = 'none'; return; }
-
     const opt    = sel.options[sel.selectedIndex];
     const totalH = parseFloat(opt.dataset.nbrHeure || 0);
     const key    = _slotGroupeId + '_' + moduleId;
     const doneH  = moduleProgressData[key] || 0;
     const pct    = totalH > 0 ? Math.min(100, Math.round((doneH / totalH) * 100)) : 0;
-
     wrap.style.display = 'block';
-
     const bar = document.getElementById('module-progress-bar');
-    if (bar) {
-        bar.style.width      = pct + '%';
-        bar.style.background = pct >= 100 ? '#22c55e' : ACCENT;
-    }
-
-    const pctEl   = document.getElementById('module-progress-pct');
-    const lblEl   = document.getElementById('module-progress-label');
-    const totEl   = document.getElementById('module-progress-total');
-
-    if (pctEl) {
-        pctEl.textContent = pct + '%';
-        pctEl.style.color = pct >= 100 ? '#22c55e' : ACCENT;
-    }
+    if (bar) { bar.style.width = pct + '%'; bar.style.background = pct >= 100 ? '#22c55e' : ACCENT; }
+    const pctEl = document.getElementById('module-progress-pct');
+    const lblEl = document.getElementById('module-progress-label');
+    const totEl = document.getElementById('module-progress-total');
+    if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = pct >= 100 ? '#22c55e' : ACCENT; }
     if (lblEl) lblEl.textContent = doneH.toFixed(1) + 'h planifiées';
     if (totEl) totEl.textContent = totalH + 'h total';
 }
 
-function onModuleChange() {
-    updateModuleProgress();
-    loadAvailable();
-}
+function onModuleChange() { updateModuleProgress(); loadAvailable(); }
 
 function loadAvailable() {
     if (!_slotGroupeId || !_slotDate || !_slotSeance) return;
-
     const durEl      = document.getElementById('m-dur');
     const duration   = parseInt(durEl ? durEl.value : 1);
     const seanceIdx0 = _slotSeance - 1;
     const endIdx     = Math.min(seanceIdx0 + duration, 4);
-
-    const debutEl = document.getElementById('m-debut');
-    const finEl   = document.getElementById('m-fin');
+    const debutEl    = document.getElementById('m-debut');
+    const finEl      = document.getElementById('m-fin');
     if (debutEl) debutEl.value = _slotDate + 'T' + SEANCE_STARTS[seanceIdx0];
     if (finEl)   finEl.value   = _slotDate + 'T' + SEANCE_ENDS[endIdx - 1];
-
     if (document.getElementById('prev-bar-1')) updatePreview(seanceIdx0, duration);
-
     const loadingUser  = document.getElementById('avail-loading-user');
     const loadingSalle = document.getElementById('avail-loading-salle');
     const loadingMod   = document.getElementById('avail-loading-module');
-
     if (loadingUser)  loadingUser.style.display  = 'inline';
     if (loadingSalle && _currentMode === 'presentiel') loadingSalle.style.display = 'inline';
     if (loadingMod)   loadingMod.style.display   = 'inline';
-
     clearTimeout(_fetchTimer);
     _fetchTimer = setTimeout(async () => {
         const moduleId = document.getElementById('m-module')?.value || '';
         const params = new URLSearchParams({
-            groupe_id:    _slotGroupeId,
-            date:         _slotDate,
-            seance_start: _slotSeance,
-            duration:     duration,
-            mode:         _currentMode,
-            module_id:    moduleId,
+            groupe_id: _slotGroupeId, date: _slotDate, seance_start: _slotSeance,
+            duration: duration, mode: _currentMode, module_id: moduleId,
         });
         if (_editExcludeId) params.set('exclude_id', _editExcludeId);
-
         try {
-            const res  = await fetch(AVAILABLE_URL + '?' + params, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
+            const res  = await fetch(AVAILABLE_URL + '?' + params, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const data = await res.json();
-
-            if (document.getElementById('m-user')) {
-                populateSelect(
-                    'm-user',
-                    data.formateurs,
-                    f => f.name,
-                    'avail-count-user',
-                    'avail-loading-user'
-                );
-            }
-
-            if (_currentMode === 'presentiel' && document.getElementById('m-salle')) {
-                populateSelect(
-                    'm-salle',
-                    data.salles,
-                    s => s.name + ' (cap. ' + s.capacity + ')',
-                    'avail-count-salle',
-                    'avail-loading-salle'
-                );
-            } else {
-                if (loadingSalle) loadingSalle.style.display = 'none';
-            }
-
-            if (CAN_SELECT_MODULE && data.modules && moduleId === '') {
-                populateModuleSelect(data.modules);
-            } else {
-                if (loadingMod) loadingMod.style.display = 'none';
-            }
-
+            if (document.getElementById('m-user')) populateSelect('m-user', data.formateurs, f => f.name, 'avail-count-user', 'avail-loading-user');
+            if (_currentMode === 'presentiel' && document.getElementById('m-salle'))
+                populateSelect('m-salle', data.salles, s => s.name + ' (cap. ' + s.capacity + ')', 'avail-count-salle', 'avail-loading-salle');
+            else if (loadingSalle) loadingSalle.style.display = 'none';
+            if (CAN_SELECT_MODULE && data.modules && moduleId === '') populateModuleSelect(data.modules);
+            else if (loadingMod) loadingMod.style.display = 'none';
         } catch (e) {
             console.error('loadAvailable error:', e);
             if (loadingUser)  loadingUser.style.display  = 'none';
@@ -2095,37 +2052,28 @@ function loadAvailable() {
 
 function onDurationChange() { loadAvailable(); }
 
-// ── MODAL OPEN / CLOSE ───────────────────────────────────────────
+// ── Modal open / close ────────────────────────────────────────────
 function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
-    _slotGroupeId  = groupeId;
-    _slotDate      = dateStr;
-    _slotSeance    = seanceNum;
-    _editExcludeId = null;
-
-    const titleEl    = document.getElementById('modal-title');
-    const formEl     = document.getElementById('emploi-form');
-    const methodEl   = document.getElementById('form-method');
-    const groupeHEl  = document.getElementById('m-groupe-hidden');
-    const groupeRow  = document.getElementById('m-groupe-row');
+    _slotGroupeId  = groupeId; _slotDate = dateStr; _slotSeance = seanceNum; _editExcludeId = null;
+    const titleEl = document.getElementById('modal-title');
+    const formEl  = document.getElementById('emploi-form');
+    const methodEl = document.getElementById('form-method');
+    const groupeHEl = document.getElementById('m-groupe-hidden');
+    const groupeRow = document.getElementById('m-groupe-row');
     const slotInfoEl = document.getElementById('modal-slot-info');
-    const durEl      = document.getElementById('m-dur');
-    const modWrap    = document.getElementById('module-progress-wrap');
-    const modSel     = document.getElementById('m-module');
-
-    if (titleEl)   titleEl.textContent    = 'Nouvelle séance';
-    if (formEl)    formEl.action          = '{{ route('emplois.store') }}';
-    if (methodEl)  methodEl.value         = 'POST';
-    if (groupeHEl) groupeHEl.value        = groupeId;
-    if (groupeRow) groupeRow.style.display = 'none';
-    if (durEl)     durEl.value            = '1';
-    if (slotInfoEl) slotInfoEl.textContent =
-        dateStr + ' · ' + (SEANCE_LABELS[seanceNum - 1] || 'S' + seanceNum) + ' · ' + SEANCE_STARTS[seanceNum - 1];
-
+    const durEl = document.getElementById('m-dur');
+    const modWrap = document.getElementById('module-progress-wrap');
+    const modSel  = document.getElementById('m-module');
+    if (titleEl)    titleEl.textContent    = 'Nouvelle séance';
+    if (formEl)     formEl.action          = '{{ route('emplois.store') }}';
+    if (methodEl)   methodEl.value         = 'POST';
+    if (groupeHEl)  groupeHEl.value        = groupeId;
+    if (groupeRow)  groupeRow.style.display = 'none';
+    if (durEl)      durEl.value            = '1';
+    if (slotInfoEl) slotInfoEl.textContent = dateStr + ' · ' + (SEANCE_LABELS[seanceNum - 1] || 'S' + seanceNum) + ' · ' + SEANCE_STARTS[seanceNum - 1];
     if (modWrap) modWrap.style.display = 'none';
     if (modSel)  modSel.innerHTML = '<option value="">— Sélectionner un module —</option>';
-
     if (document.getElementById('btn-pres')) setMode('presentiel');
-
     loadAvailable();
     showModal();
 }
@@ -2133,30 +2081,23 @@ function openModalWithSlot(dayNum, seanceNum, dateStr, groupeId) {
 function openEditModal(id) {
     const e = emploisData.find(x => x.id === id);
     if (!e) return;
-
     const dateStr   = e.date_debut.slice(0, 10);
     const timeStr   = e.date_debut.slice(11, 16);
     const si        = SEANCE_STARTS.indexOf(timeStr);
     const seanceNum = si >= 0 ? si + 1 : 1;
     const ei        = SEANCE_STARTS.indexOf(e.date_fin.slice(11, 16));
     const duration  = ei > si ? ei - si : 1;
-
-    _slotGroupeId  = e.id_groupe;
-    _slotDate      = dateStr;
-    _slotSeance    = seanceNum;
-    _editExcludeId = id;
-
-    const titleEl    = document.getElementById('modal-title');
-    const formEl     = document.getElementById('emploi-form');
-    const methodEl   = document.getElementById('form-method');
-    const groupeHEl  = document.getElementById('m-groupe-hidden');
-    const groupeRow  = document.getElementById('m-groupe-row');
+    _slotGroupeId  = e.id_groupe; _slotDate = dateStr; _slotSeance = seanceNum; _editExcludeId = id;
+    const titleEl   = document.getElementById('modal-title');
+    const formEl    = document.getElementById('emploi-form');
+    const methodEl  = document.getElementById('form-method');
+    const groupeHEl = document.getElementById('m-groupe-hidden');
+    const groupeRow = document.getElementById('m-groupe-row');
     const slotInfoEl = document.getElementById('modal-slot-info');
-    const debutEl    = document.getElementById('m-debut');
-    const finEl      = document.getElementById('m-fin');
-    const durEl      = document.getElementById('m-dur');
-    const lienEl     = document.getElementById('m-lien');
-
+    const debutEl   = document.getElementById('m-debut');
+    const finEl     = document.getElementById('m-fin');
+    const durEl     = document.getElementById('m-dur');
+    const lienEl    = document.getElementById('m-lien');
     if (titleEl)    titleEl.textContent    = 'Modifier la séance';
     if (formEl)     formEl.action          = `/emplois/${id}`;
     if (methodEl)   methodEl.value         = 'PUT';
@@ -2166,51 +2107,37 @@ function openEditModal(id) {
     if (debutEl)    debutEl.value           = e.date_debut;
     if (finEl)      finEl.value             = e.date_fin;
     if (durEl)      durEl.value             = String(duration);
-
     if (document.getElementById('btn-pres')) {
         setMode(e.mode || 'presentiel');
         if (lienEl) lienEl.value = e.lien_distance || '';
         if (document.getElementById('prev-bar-1')) updatePreview(seanceNum - 1, duration);
     }
-
     loadAvailable();
     showModal();
-
-    // Restore selected values after availability fetch populates the <select>s
-    const prevUser   = e.id_user;
-    const prevSalle  = e.id_salle;
-    const prevModule = e.id_module;
-
+    const prevUser = e.id_user, prevSalle = e.id_salle, prevModule = e.id_module;
     setTimeout(() => {
         const userEl   = document.getElementById('m-user');
         const salleEl  = document.getElementById('m-salle');
         const moduleEl = document.getElementById('m-module');
-
         if (prevUser   && userEl)   userEl.value   = prevUser;
         if (prevSalle  && salleEl)  salleEl.value  = prevSalle;
-        if (prevModule && moduleEl) {
-            moduleEl.value = prevModule;
-            updateModuleProgress();
-        }
+        if (prevModule && moduleEl) { moduleEl.value = prevModule; updateModuleProgress(); }
     }, 450);
 }
 
 function showModal()  { document.getElementById('emploi-modal').classList.add('open'); }
 function closeModal() { document.getElementById('emploi-modal').classList.remove('open'); }
 
-// ── DELETE MODAL ─────────────────────────────────────────────────
+// ── Delete modal ──────────────────────────────────────────────────
 function openDeleteModal(action, groupe, module, date, span, heureDebut, heureFin, salle) {
-    document.getElementById('delete-form').action              = action;
+    document.getElementById('delete-form').action               = action;
     document.getElementById('delete-session-label').textContent = groupe + ' — ' + module;
-    document.getElementById('delete-session-meta').textContent  =
-        date + ' · ' + span + ' · ' + heureDebut + ' → ' + heureFin + ' · ' + salle;
+    document.getElementById('delete-session-meta').textContent  = date + ' · ' + span + ' · ' + heureDebut + ' → ' + heureFin + ' · ' + salle;
     document.getElementById('delete-modal').style.display = 'flex';
 }
-function closeDeleteModal() {
-    document.getElementById('delete-modal').style.display = 'none';
-}
+function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; }
 
-// ── LIEN DISTANCE MODAL ──────────────────────────────────────────
+// ── Lien modal ────────────────────────────────────────────────────
 function openLienModal(id, currentLien, groupeLabel, dateMeta) {
     document.getElementById('lien-form').action               = '/emplois/' + id + '/lien';
     document.getElementById('lien-input').value               = currentLien || '';
@@ -2218,16 +2145,13 @@ function openLienModal(id, currentLien, groupeLabel, dateMeta) {
     document.getElementById('lien-session-meta').textContent  = dateMeta   || '';
     document.getElementById('lien-modal').style.display = 'flex';
 }
-function closeLienModal() {
-    document.getElementById('lien-modal').style.display = 'none';
-}
+function closeLienModal() { document.getElementById('lien-modal').style.display = 'none'; }
 function submitLien() {
     document.getElementById('lien-hidden').value = document.getElementById('lien-input').value;
     document.getElementById('lien-form').submit();
 }
 
-
-// ── REPORT MODAL ─────────────────────────────────────────────────
+// ── Report modal ──────────────────────────────────────────────────
 function openReportModal(emploiId, sessionLabel, dateLabel, dateStr, spanLabel, heureDebut, heureFin) {
     document.getElementById('report-emploi-id').value           = emploiId;
     document.getElementById('report-session-label').textContent = sessionLabel;
@@ -2239,11 +2163,8 @@ function openReportModal(emploiId, sessionLabel, dateLabel, dateStr, spanLabel, 
     if (counter) counter.textContent = '0 / 1000';
     document.getElementById('report-modal').style.display = 'flex';
 }
-function closeReportModal() {
-    document.getElementById('report-modal').style.display = 'none';
-}
+function closeReportModal() { document.getElementById('report-modal').style.display = 'none'; }
 
-// Character counter for report textarea
 const reportRaison = document.getElementById('report-raison');
 if (reportRaison) {
     reportRaison.addEventListener('input', function () {

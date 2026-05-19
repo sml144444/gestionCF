@@ -3,7 +3,7 @@
 @section('page-title', 'Modifier l\'utilisateur')
 
 @section('content')
-<div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:800px;">
+<div style="font-family:'Segoe UI',system-ui,sans-serif; max-width:1100px; margin:0 auto;">
 
 {{-- Back --}}
 <a href="{{ route('users.management.index') }}"
@@ -285,6 +285,7 @@
 
 </div>
 </form>
+
 {{-- ══════════════════════════════════════════════════════
      DELETE FORM — lives OUTSIDE the update form
      ══════════════════════════════════════════════════════ --}}

@@ -35,23 +35,34 @@ class DashboardController extends Controller
     }
 
     // ─── GESTIONNAIRE ────────────────────────────────────
-    public function gestionnaire()
-    {
-        [$weekStart, $weekEnd] = $this->currentWeek();
+// ─── GESTIONNAIRE ────────────────────────────────────
+public function gestionnaire()
+{
+    [$weekStart, $weekEnd] = $this->currentWeek();
+    $userId = Auth::id(); // ← ajouter cette ligne
 
-        $stats = [
-            'stagiaires'        => User::where('role', 'stagiaire')->count(),
-            'groupes'           => Groupe::count(),
-            'edu_pending'       => Edu::where('used', false)->count(),
-            'reclamations_open' => Reclamation::where('status', 'en_attente')->count(),
-            'reportations_open' => Reportation::where('status', 'en_attente')->count(),
-            'seances_semaine'   => EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
-                                        ->where('statut', 'actif')->count(),
-            'seances_brouillon' => EmploiDuTemps::where('statut', 'brouillon')->count(),
-        ];
+    $stats = [
+        'stagiaires'        => User::where('role', 'stagiaire')->count(),
+        'groupes'           => Groupe::count(),
+        'edu_pending'       => Edu::where('used', false)->count(),
 
-        return view('gestionnaire.dashboard', compact('stats'));
-    }
+        // ✅ Seulement les réclamations assignées à CE gestionnaire
+        'reclamations_open' => Reclamation::where('status', 'en_attente')
+                                    ->where('assigned_to', $userId)
+                                    ->count(),
+
+        // ✅ Seulement les reportations assignées à CE gestionnaire
+        'reportations_open' => Reportation::where('status', 'en_attente')
+                                    ->where('assigned_to', $userId)
+                                    ->count(),
+
+        'seances_semaine'   => EmploiDuTemps::whereBetween('date_debut', [$weekStart, $weekEnd])
+                                    ->where('statut', 'actif')->count(),
+        'seances_brouillon' => EmploiDuTemps::where('statut', 'brouillon')->count(),
+    ];
+
+    return view('gestionnaire.dashboard', compact('stats'));
+}
 
     // ─── FORMATEUR ───────────────────────────────────────
     public function formateur()

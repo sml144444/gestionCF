@@ -29,7 +29,7 @@
 }
 
 /* ── Base ── */
-.sg-wrap { font-family:'Segoe UI',system-ui,sans-serif; }
+.sg-wrap { font-family:'Segoe UI',system-ui,sans-serif; max-width:1100px; margin:0 auto; }
 
 /* ── Inputs ── */
 .sg-input {
@@ -614,15 +614,6 @@
                         text-transform:uppercase;letter-spacing:.5px;">Grp An.<?php echo e($yr); ?></div>
         </div>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-
-        <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('stagiaire-create')): ?>
-        <button onclick="openCreateModal()" class="sg-btn-primary" style="height:42px;">
-            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nouveau stagiaire
-        </button>
-        <?php endif; ?>
     </div>
 </div>
 
@@ -1247,7 +1238,6 @@ unset($__errorArgs, $__bag); ?>
                 <strong id="delete-name" style="color:#0f172a;"></strong>.
                 <br>Cette action est <strong style="color:#e11d48;">irréversible</strong>.
             </p>
-            
             <div style="margin-top:14px;padding:10px 14px;border-radius:10px;
                         background:#fffbeb;border:1px solid #fde68a;
                         font-size:11px;color:#92400e;text-align:left;
